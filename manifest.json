@@ -1,0 +1,34 @@
+{
+  "name": "OnlyLoops",
+  "short_name": "OnlyLoops",
+  "description": "Progresiones armónicas y loops en tu bolsillo",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "background_color": "#f2ede4",
+  "theme_color": "#f2ede4",
+  "orientation": "portrait",
+  "categories": ["music", "productivity", "entertainment"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
