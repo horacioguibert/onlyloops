@@ -5,7 +5,7 @@
 //   • Next load uses the new one — user always moves forward
 // Version this cache name when you want to force everyone to get a full refresh.
 
-const CACHE_VERSION = 'onlyloops-v1';
+const CACHE_VERSION = 'onlyloops-v11';
 const CORE_ASSETS = [
   '/',
   '/index.html',
