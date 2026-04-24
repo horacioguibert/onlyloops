@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OnlyGuitars — Audition Tool v2</title>
+<link rel="preconnect" href="https://gleitz.github.io">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#efe8dc; --bg2:#e4dccb; --card:#faf6ec;
+  --ink:#2d2820; --ink2:rgba(45,40,32,.65); --ink3:rgba(45,40,32,.38);
+  --rule:rgba(45,40,32,.10); --rule2:rgba(45,40,32,.22);
+  --acc:#6b3a1c; --acc2:rgba(107,58,28,.10);
+  --ok:#6b8e4e; --err:#9e3a2b; --warn:#c89f5a;
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  --mono: 'DM Mono', 'SF Mono', Menlo, monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+body{max-width:900px;margin:0 auto;padding:28px 20px 80px}
+.header{text-align:center;padding:18px 0 28px;border-bottom:1px solid var(--rule);margin-bottom:28px}
+.header h1{font-family:var(--serif);font-size:42px;font-weight:500;font-style:italic;letter-spacing:-.5px;color:var(--acc)}
+.header .tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--ink3);margin-top:8px;text-transform:uppercase}
+.header .sub{font-family:var(--serif);font-size:15px;font-style:italic;color:var(--ink2);margin-top:14px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.5}
+.status{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:12px;color:var(--ink2);min-height:48px}
+.status .dot{width:10px;height:10px;border-radius:50%;background:var(--ink3);flex-shrink:0;transition:background .3s}
+.status.ready .dot{background:var(--ok)}
+.status.loading .dot{background:var(--warn);animation:pulse 1s infinite}
+.status.error .dot{background:var(--err)}
+.status.error{background:#fbe8e3;border-color:#f0c2b4;color:#5a1e13}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.error-panel{background:#fbe8e3;border:1px solid #e79988;border-radius:10px;padding:16px 20px;margin-bottom:24px;font-family:var(--serif);font-size:14px;color:#5a1e13;display:none;line-height:1.6}
+.error-panel.on{display:block}
+.error-panel h4{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.5px;color:#5a1e13;text-transform:uppercase;margin-bottom:8px}
+.error-panel code{font-family:var(--mono);font-size:11px;background:rgba(90,30,19,.08);padding:2px 6px;border-radius:3px}
+.error-panel .fix{background:rgba(107,142,78,.18);border-left:3px solid var(--ok);padding:10px 14px;margin-top:10px;border-radius:4px}
+.howto{background:var(--bg2);border-radius:8px;padding:16px 20px;margin-bottom:32px;font-family:var(--serif);font-size:14px;color:var(--ink2);line-height:1.55}
+.howto strong{font-family:var(--sans);font-weight:600;color:var(--ink);font-size:12px;letter-spacing:.3px}
+.howto .step{display:flex;gap:12px;margin-top:8px}
+.howto .step-n{font-family:var(--mono);font-weight:500;color:var(--acc);flex-shrink:0;font-size:11px;width:22px;height:22px;border:1px solid var(--acc);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.category{margin-bottom:42px}
+.category h2{font-family:var(--serif);font-size:26px;font-weight:500;font-style:italic;color:var(--acc);margin-bottom:6px;display:flex;align-items:baseline;gap:12px}
+.category h2 .count{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--ink3);font-style:normal;text-transform:uppercase}
+.category .intro{font-family:var(--serif);font-size:14px;font-style:italic;color:var(--ink2);margin-bottom:18px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;transition:all .15s ease;position:relative}
+.card:hover{border-color:var(--rule2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(45,40,32,.06)}
+.card.loaded{border-color:rgba(107,142,78,.3)}
+.card .playbtn{width:44px;height:44px;border-radius:50%;background:var(--acc);color:var(--card);border:none;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .12s ease;position:relative}
+.card .playbtn:hover{transform:scale(1.06)}
+.card .playbtn:active{transform:scale(.94)}
+.card .playbtn.loading{background:var(--warn)}
+.card .playbtn.loading::after{content:'';position:absolute;inset:-4px;border:2px solid var(--warn);border-top-color:transparent;border-radius:50%;animation:spin .9s linear infinite}
+.card .playbtn.playing{background:var(--ok)}
+.card .playbtn.loaded{background:var(--ink)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.card .info{flex:1;min-width:0}
+.card .info .name{font-family:var(--serif);font-size:20px;font-weight:500;color:var(--ink);line-height:1.15;margin-bottom:3px}
+.card .info .tech{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.5px;margin-top:3px}
+.card .info .usage{font-family:var(--serif);font-size:12px;font-style:italic;color:var(--ink2);line-height:1.3}
+.card .loaded-tag{position:absolute;top:8px;right:10px;font-family:var(--mono);font-size:9px;color:var(--ok);letter-spacing:.5px;opacity:0;transition:opacity .2s}
+.card.loaded .loaded-tag{opacity:1}
+.card .rating{display:flex;gap:3px;flex-shrink:0}
+.card .star{width:24px;height:24px;border-radius:50%;border:1px solid var(--rule2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink3);transition:all .1s ease;font-family:var(--mono);font-weight:500}
+.card .star:hover{border-color:var(--acc);color:var(--acc)}
+.card .star.on{background:var(--acc);color:var(--card);border-color:var(--acc)}
+.verdict{position:fixed;bottom:20px;right:20px;background:var(--ink);color:var(--card);border-radius:10px;padding:14px 18px;font-family:var(--mono);font-size:11px;letter-spacing:.5px;box-shadow:0 6px 24px rgba(45,40,32,.3);cursor:pointer;z-index:100;transition:transform .15s ease;border:none;text-align:left}
+.verdict:hover{transform:translateY(-2px)}
+.verdict .ttl{font-family:var(--serif);font-size:17px;font-style:italic;font-weight:500;margin-bottom:2px;letter-spacing:0}
+#verdict-panel{position:fixed;inset:0;background:rgba(45,40,32,.85);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+#verdict-panel.on{display:flex}
+#verdict-panel .inner{background:var(--card);border-radius:14px;padding:28px 32px;max-width:620px;width:100%;max-height:85vh;overflow:auto}
+#verdict-panel h3{font-family:var(--serif);font-size:26px;font-style:italic;color:var(--acc);margin-bottom:18px}
+#verdict-panel .item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--rule);font-family:var(--mono);font-size:12px}
+#verdict-panel .item .stars{color:var(--acc);font-weight:500}
+#verdict-panel .close,#verdict-panel .copy{margin-top:10px;width:100%;padding:12px;border:none;border-radius:8px;cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:1px}
+#verdict-panel .copy{background:var(--acc);color:var(--card);margin-top:20px}
+#verdict-panel .close{background:var(--ink);color:var(--card)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Audition Tool</h1>
+  <div class="tag">ONLYGUITARS · v13.114 PREP</div>
+  <div class="sub">Escuchá los candidatos. Calificá ★ del 1 al 5. Elegí los mejores para cada slot. Yo ejecuto con tu curaduría.</div>
+</div>
+
+<div class="status loading" id="status">
+  <div class="dot"></div>
+  <div id="status-text">Verificando motor de audio…</div>
+</div>
+
+<div class="error-panel" id="error-panel">
+  <h4>⚠ No se pudo cargar el motor</h4>
+  <div id="error-msg"></div>
+  <div class="fix" id="error-fix"></div>
+</div>
+
+<div class="howto">
+  <strong>CÓMO USAR</strong>
+  <div class="step"><span class="step-n">1</span><span>Tap al círculo ▶ para escuchar un acorde Am arpegiado.</span></div>
+  <div class="step"><span class="step-n">2</span><span>Calificá ★ 1–5. 5 = lo quiero en OnlyGuitars, 1 = descartar.</span></div>
+  <div class="step"><span class="step-n">3</span><span>Una vez cargado, el botón se pone negro. Podés re-escuchar instantáneo.</span></div>
+  <div class="step"><span class="step-n">4</span><span>Cuando termines, tocá "Ver veredicto" y copiás el texto al chat.</span></div>
+</div>
+
+<div class="category">
+  <h2>Guitarras <span class="count">8 candidatos</span></h2>
+  <div class="intro">Tu colección real: Strato (70%), Tele, Gibson, Ibanez, Godin Nylon, Taylor.</div>
+  <div class="grid" id="grid-guitar"></div>
+</div>
+
+<div class="category">
+  <h2>Pianos <span class="count">5 candidatos</span></h2>
+  <div class="intro">Grand acústico, Honky-tonk, Yamaha CP, Rhodes, Wurlitzer.</div>
+  <div class="grid" id="grid-piano"></div>
+</div>
+
+<div class="category">
+  <h2>Bajos <span class="count">4 candidatos</span></h2>
+  <div class="intro">Fingerstyle, púa, fretless (Jaco), upright (jazz/folk).</div>
+  <div class="grid" id="grid-bass"></div>
+</div>
+
+<button class="verdict" onclick="showVerdict()">
+  <div class="ttl">Ver veredicto</div>
+  <div>Tus selecciones curadas →</div>
+</button>
+
+<div id="verdict-panel">
+  <div class="inner">
+    <h3>Tu curaduría</h3>
+    <div id="verdict-items"></div>
+    <button class="copy" onclick="copyVerdict()">Copiar al portapapeles</button>
+    <button class="close" onclick="hideVerdict()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+/* AUDITION TOOL v2 — Motor propio sin dependencias ES */
+const CATALOG = {
+  guitar: [
+    { id:'electric_guitar_clean', name:'Eléctrica Clean', usage:'Strato limpia — tu 70%' },
+    { id:'electric_guitar_jazz', name:'Eléctrica Jazz', usage:'Tele jazz, comping' },
+    { id:'electric_guitar_muted', name:'Eléctrica Muteada', usage:'Funk, reggae, palm mute' },
+    { id:'overdriven_guitar', name:'Overdriven', usage:'Strato con crunch' },
+    { id:'distortion_guitar', name:'Distortion', usage:'Gibson / Ibanez rock' },
+    { id:'acoustic_guitar_nylon', name:'Acústica Nylon', usage:'Godin Nylon, bossa, clásica' },
+    { id:'acoustic_guitar_steel', name:'Acústica Steel', usage:'Taylor, folk, country' },
+    { id:'guitar_harmonics', name:'Armónicos', usage:'Efecto, capa atmosférica' },
+  ],
+  piano: [
+    { id:'acoustic_grand_piano', name:'Grand Piano', usage:'Steinway/Fazioli concert' },
+    { id:'bright_acoustic_piano', name:'Bright Piano', usage:'Honky-tonk, pop' },
+    { id:'electric_grand_piano', name:'Electric Grand', usage:'Yamaha CP80 vibe' },
+    { id:'electric_piano_1', name:'Rhodes', usage:'Rhodes soul/jazz' },
+    { id:'electric_piano_2', name:'Wurlitzer', usage:'Wurlitzer funk/rock' },
+  ],
+  bass: [
+    { id:'electric_bass_finger', name:'Bajo Fingerstyle', usage:'Jazz / rock fingered' },
+    { id:'electric_bass_pick', name:'Bajo con Púa', usage:'Rock, indie, punk' },
+    { id:'fretless_bass', name:'Bajo Fretless', usage:'Jaco style, jazz suave' },
+    { id:'acoustic_bass', name:'Upright Bass', usage:'Jazz walkin, folk' },
+  ],
+};
+const CHORD_AM = [57, 60, 64, 69, 72, 76];
+const CDN_BASE = 'https://gleitz.github.io/midi-js-soundfonts/MusyngKite';
+const NOTE_NAMES = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+
+let ctx = null;
+const instruments = {};
+const ratings = {};
+
+function setStatus(text, state){
+  document.getElementById('status-text').textContent = text;
+  document.getElementById('status').className = 'status ' + (state || '');
+}
+function showError(msg, fix){
+  document.getElementById('error-msg').innerHTML = msg;
+  document.getElementById('error-fix').innerHTML = fix;
+  document.getElementById('error-panel').classList.add('on');
+  setStatus('Motor no disponible — ver mensaje', 'error');
+}
+function midiToName(midi){
+  return NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
+}
+
+async function checkCDN(){
+  try {
+    const r = await fetch(`${CDN_BASE}/acoustic_grand_piano-ogg.js`, { method: 'HEAD', mode: 'cors' });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return true;
+  } catch(e) {
+    showError(
+      `No pude conectar a <code>${CDN_BASE}</code><br>Error: ${e.message}`,
+      `<strong>Posibles soluciones:</strong><br>
+       1. Si abriste el archivo con doble-click (<code>file://</code>), algunos navegadores bloquean fetch. Subilo a Vercel o abrilo desde http://localhost<br>
+       2. Verificá conexión a internet<br>
+       3. Desactivá bloqueadores (uBlock, AdBlock) para gleitz.github.io`
+    );
+    return false;
+  }
+}
+
+function loadSoundfontScript(id){
+  return new Promise((resolve, reject) => {
+    if(!window.MIDI) window.MIDI = { Soundfont: {} };
+    const script = document.createElement('script');
+    script.src = `${CDN_BASE}/${id}-ogg.js`;
+    script.onload = () => {
+      const sf = window.MIDI.Soundfont[id];
+      if(!sf) return reject(new Error(`Soundfont ${id} vacío tras carga`));
+      resolve(sf);
+    };
+    script.onerror = () => reject(new Error(`No se descargó ${id}`));
+    document.head.appendChild(script);
+  });
+}
+
+async function decodeBase64ToBuffer(dataUrl){
+  const res = await fetch(dataUrl);
+  const arrayBuffer = await res.arrayBuffer();
+  return await ctx.decodeAudioData(arrayBuffer);
+}
+
+function playArpeggio(buffers){
+  const now = ctx.currentTime;
+  const available = Object.keys(buffers);
+  if(available.length === 0){ setStatus('✗ Sin samples decodificados', 'error'); return; }
+
+  CHORD_AM.forEach((midi, i) => {
+    let note = midiToName(midi);
+    let buffer = buffers[note];
+    if(!buffer){
+      // Fallback: buscar la nota más cercana en MIDI value
+      let closest = available[0], closestDiff = 999;
+      available.forEach(n => {
+        // Decodificar nombre a midi
+        const m = n.match(/^([A-G][b#]?)(-?\d+)$/);
+        if(!m) return;
+        const noteIdx = NOTE_NAMES.indexOf(m[1].replace('#','').replace(/^([A-G])$/, '$1'));
+        if(noteIdx < 0) return;
+        const bMidi = (parseInt(m[2]) + 1) * 12 + noteIdx;
+        const diff = Math.abs(bMidi - midi);
+        if(diff < closestDiff){ closestDiff = diff; closest = n; }
+      });
+      buffer = buffers[closest];
+      if(!buffer) return;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const g = ctx.createGain();
+    const t0 = now + i * 0.14;
+    const dur = 2.4;
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.exponentialRampToValueAtTime(0.7, t0 + 0.01);
+    g.gain.setTargetAtTime(0.35, t0 + 0.1, 0.3);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    src.connect(g);
+    g.connect(ctx.destination);
+    src.start(t0);
+    src.stop(t0 + dur + 0.2);
+  });
+}
+
+async function onPlay(id, btn, card){
+  try {
+    if(ctx.state === 'suspended') await ctx.resume();
+    if(instruments[id]){
+      btn.classList.add('playing');
+      playArpeggio(instruments[id]);
+      setStatus(`♪ ${id}`, 'ready');
+      setTimeout(() => btn.classList.remove('playing'), 2800);
+      return;
+    }
+    btn.classList.add('loading');
+    setStatus(`Descargando ${id}… (~5-15MB primera vez)`, 'loading');
+    const sf = await loadSoundfontScript(id);
+    setStatus(`Decodificando ${id}…`, 'loading');
+    const buffers = {};
+    const available = Object.keys(sf);
+    await Promise.all(available.slice(0, 60).map(async note => {
+      try { buffers[note] = await decodeBase64ToBuffer(sf[note]); } catch(e){}
+    }));
+    if(Object.keys(buffers).length === 0) throw new Error('No se decodificó ningún sample');
+    instruments[id] = buffers;
+    btn.classList.remove('loading');
+    btn.classList.add('loaded');
+    card.classList.add('loaded');
+    btn.classList.add('playing');
+    playArpeggio(buffers);
+    setStatus(`✓ ${id} listo — tap para re-escuchar`, 'ready');
+    setTimeout(() => btn.classList.remove('playing'), 2800);
+  } catch(e) {
+    console.error(e);
+    btn.classList.remove('loading','playing');
+    setStatus(`✗ Error: ${e.message}`, 'error');
+  }
+}
+
+function rate(id, stars){
+  ratings[id] = stars;
+  document.querySelectorAll(`[data-rate-id="${id}"] .star`).forEach((s, i) => {
+    s.classList.toggle('on', i < stars);
+  });
+}
+
+function buildGrid(category, containerId){
+  const container = document.getElementById(containerId);
+  CATALOG[category].forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.setAttribute('data-rate-id', item.id);
+    card.innerHTML = `
+      <button class="playbtn" aria-label="Play ${item.name}">▶</button>
+      <div class="info">
+        <div class="name">${item.name}</div>
+        <div class="usage">${item.usage}</div>
+        <div class="tech">${item.id}</div>
+      </div>
+      <div class="rating">
+        ${[1,2,3,4,5].map(n => `<button class="star" data-n="${n}">${n}</button>`).join('')}
+      </div>
+      <div class="loaded-tag">✓ LISTO</div>
+    `;
+    container.appendChild(card);
+    const btn = card.querySelector('.playbtn');
+    btn.onclick = () => onPlay(item.id, btn, card);
+    card.querySelectorAll('.star').forEach(s => {
+      s.onclick = (e) => { e.stopPropagation(); rate(item.id, parseInt(s.dataset.n)); };
+    });
+  });
+}
+
+function showVerdict(){
+  const items = document.getElementById('verdict-items');
+  items.innerHTML = '';
+  const sorted = Object.entries(ratings).sort((a,b) => b[1] - a[1]);
+  if(sorted.length === 0){
+    items.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ink3);font-family:var(--serif);font-style:italic">Todavía no calificaste nada</div>';
+  } else {
+    sorted.forEach(([id, stars]) => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `<span>${id}</span><span class="stars">${'★'.repeat(stars)}${'☆'.repeat(5-stars)}</span>`;
+      items.appendChild(div);
+    });
+  }
+  document.getElementById('verdict-panel').classList.add('on');
+}
+function hideVerdict(){ document.getElementById('verdict-panel').classList.remove('on') }
+function copyVerdict(){
+  const sorted = Object.entries(ratings).sort((a,b) => b[1] - a[1]);
+  const txt = sorted.map(([id,s]) => `${id}: ${s}/5`).join('\n');
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(txt).then(() => alert('Copiado. Pegá en el chat.'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    alert('Copiado. Pegá en el chat.');
+  }
+}
+
+async function boot(){
+  buildGrid('guitar', 'grid-guitar');
+  buildGrid('piano', 'grid-piano');
+  buildGrid('bass', 'grid-bass');
+  try {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch(e) {
+    showError('Tu navegador no soporta Web Audio API', '<strong>Usá Chrome, Safari o Firefox moderno.</strong>');
+    return;
+  }
+  setStatus('Verificando CDN de samples…', 'loading');
+  const cdnOK = await checkCDN();
+  if(!cdnOK) return;
+  setStatus('Listo. Tap ▶ en cualquier candidato para escucharlo.', 'ready');
+}
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+
+</body>
+</html>
