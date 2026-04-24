@@ -3477,21 +3477,106 @@ function loadPianoSampler(){
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// MOTOR DE AUDIO PRO — Fase 1A
+// Bus de mezcla: [source] → masterGain → EQ → Compressor → Limiter → destination
+// Reverb bus:              masterGain → ConvolverNode(IR) → reverbGain → destination
+// Upgrade vs v13.105:
+//   - Reverb ahora es Convolution con IR real (generado exponencial, mejor que ruido blanco)
+//   - Master chain tiene EQ de 3 bandas, Compressor y Limiter (evita clipping)
+//   - Variable global reverbConvolver para swappear IRs en tiempo real
+//   - Arquitectura preparada para cargar IRs desde CDN (F2+)
+// ═══════════════════════════════════════════════════════════════
+let reverbConvolver=null, masterEQ=null, masterComp=null, masterLimiter=null, dryGain=null;
+
+// Genera un IR procedural de calidad "Room" con cola exponencial + early reflections
+// suaves. Mejor que el ruido blanco puro (mantiene más naturalidad).
+function generateIR(ctx, seconds, decay, earlyRefl){
+  const rate=ctx.sampleRate, len=Math.floor(rate*seconds);
+  const buf=ctx.createBuffer(2,len,rate);
+  for(let ch=0;ch<2;ch++){
+    const d=buf.getChannelData(ch);
+    // Early reflections: pequeños picos en los primeros 50ms que dan "cuerpo"
+    if(earlyRefl){
+      const refs=[0.012,0.023,0.037,0.051];
+      refs.forEach((t,i)=>{
+        const idx=Math.floor(t*rate);
+        if(idx<len) d[idx]+=(ch===0?1:0.85)*(1-i*0.18)*(Math.random()>0.5?1:-1)*0.35;
+      });
+    }
+    // Cola exponencial: Moorer's formula — ruido blanco decaído
+    for(let i=0;i<len;i++){
+      const t=i/len;
+      d[i]+=(Math.random()*2-1)*Math.pow(1-t,decay);
+    }
+  }
+  return buf;
+}
+
 function getCtx(){
   if(!audioCtx){
     audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    masterGain=audioCtx.createGain(); masterGain.gain.value=0.72;
-    masterGain.connect(audioCtx.destination);
+
+    // ─── Master chain: source → EQ → Compressor → Limiter → destination ───
+    masterGain=audioCtx.createGain(); masterGain.gain.value=0.80;
+
+    // EQ de 3 bandas: low shelf + mid peak + high shelf
+    masterEQ=audioCtx.createBiquadFilter();
+    masterEQ.type='lowshelf'; masterEQ.frequency.value=120; masterEQ.gain.value=0.5;
+    const midPeak=audioCtx.createBiquadFilter();
+    midPeak.type='peaking'; midPeak.frequency.value=2500; midPeak.Q.value=0.7; midPeak.gain.value=0;
+    const highShelf=audioCtx.createBiquadFilter();
+    highShelf.type='highshelf'; highShelf.frequency.value=8000; highShelf.gain.value=1.5;
+
+    // Compressor suave (glue del mix)
+    masterComp=audioCtx.createDynamicsCompressor();
+    masterComp.threshold.value=-18; masterComp.knee.value=10;
+    masterComp.ratio.value=2.5; masterComp.attack.value=0.003; masterComp.release.value=0.25;
+
+    // Limiter (evita clipping digital)
+    masterLimiter=audioCtx.createDynamicsCompressor();
+    masterLimiter.threshold.value=-1; masterLimiter.knee.value=0;
+    masterLimiter.ratio.value=20; masterLimiter.attack.value=0.001; masterLimiter.release.value=0.08;
+
+    // Cadena master seca
+    masterGain.connect(masterEQ);
+    masterEQ.connect(midPeak);
+    midPeak.connect(highShelf);
+    highShelf.connect(masterComp);
+    masterComp.connect(masterLimiter);
+    masterLimiter.connect(audioCtx.destination);
+
+    // ─── Reverb bus: masterGain → Convolver (IR) → reverbGain → destination ───
     try{
-      const conv=audioCtx.createConvolver(),rate=audioCtx.sampleRate,len=rate*2;
-      const buf=audioCtx.createBuffer(2,len,rate);
-      for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.5);}
-      conv.buffer=buf; reverbGain=audioCtx.createGain(); reverbGain.gain.value=0.18;
-      masterGain.connect(conv); conv.connect(reverbGain); reverbGain.connect(audioCtx.destination);
+      reverbConvolver=audioCtx.createConvolver();
+      // IR "Room" procedural de 1.8s con early reflections → sonido natural de sala mediana
+      reverbConvolver.buffer=generateIR(audioCtx, 1.8, 2.8, true);
+      reverbGain=audioCtx.createGain(); reverbGain.gain.value=0.22;
+      masterGain.connect(reverbConvolver);
+      reverbConvolver.connect(reverbGain);
+      reverbGain.connect(audioCtx.destination);
     }catch(e){}
   }
   if(audioCtx.state==='suspended')audioCtx.resume();
   return audioCtx;
+}
+
+// API pública para cambiar IR de reverb en runtime (F2+: cargar desde URL)
+// Presets procedurales listos para usar desde el slider Reverb del Config.
+function setReverbPreset(presetName){
+  if(!audioCtx||!reverbConvolver) return;
+  const PRESETS_IR={
+    dry:    {seconds:0.25,decay:4.5,earlyRefl:false,wet:0.06},
+    room:   {seconds:1.8, decay:2.8,earlyRefl:true, wet:0.22},
+    hall:   {seconds:3.5, decay:2.0,earlyRefl:true, wet:0.35},
+    studio: {seconds:0.9, decay:3.2,earlyRefl:true, wet:0.14},
+    plate:  {seconds:2.2, decay:3.5,earlyRefl:false,wet:0.28},
+  };
+  const p=PRESETS_IR[presetName]||PRESETS_IR.room;
+  try{
+    reverbConvolver.buffer=generateIR(audioCtx,p.seconds,p.decay,p.earlyRefl);
+    if(reverbGain) reverbGain.gain.setTargetAtTime(p.wet, audioCtx.currentTime, 0.05);
+  }catch(e){}
 }
 function midiToHz(m){return 440*Math.pow(2,(m-69)/12)}
 
@@ -3578,6 +3663,16 @@ function getChordMidis(root,suffix){
   return v.map((f,s)=>f<0?null:OPEN_MIDI[s]+f+off);
 }
 function playNote(freq,when,dur,vel){
+  // ─── Humanización Fase 1A: round-robin simulado ───
+  // Jitter sutil en pitch (±3 cents = 0.173% de la frecuencia) y velocity (±6%)
+  // para que dos notas idénticas no suenen idénticas. Simula las micro-variaciones
+  // que hacen que un músico real suene "vivo" vs un sampler rígido.
+  // Cents→ratio: 2^(cents/1200). 3 cents = 2^0.0025 ≈ 1.00173
+  const pitchJitter = 1 + (Math.random()*2 - 1) * 0.00173;
+  const velJitter = 1 + (Math.random()*2 - 1) * 0.06;
+  freq = freq * pitchJitter;
+  vel = (vel || 0.6) * velJitter;
+
   // Apply current track's octave shift (set by the playback caller before each call).
   // Pianos get an extra +1 octave of base offset because the guitar-voiced MIDI set
   // the synth uses (OPEN_MIDI at octaves 2-4) sits in the piano's muddy low register
