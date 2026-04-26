@@ -312,20 +312,19 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:
 #app{
   display:flex;
   flex-direction:column;
-  /* v13.152 — Layout flexible:
-     · Ancho FIJO 390px (plano modular 18×26 intacto)
-     · Alto = altura real del viewport, con tope de 844px
-     · Header pegado arriba, footer pegado abajo
-     · #tracks (flex:1) absorbe el espacio del medio
-     · En PWA/app nativa (844px) → todo entra cómodo
-     · En browser/preview (600-734px) → tracks se ajustan, header+footer siempre visibles */
-  width: 390px;
-  min-width: 390px;
-  max-width: 390px;
-  height: 100svh;
-  max-height: 844px;
-  flex-shrink: 0;
-  flex-grow: 0;
+  /* v14.2 — Layout Excel-like (Sabor C híbrido inteligente):
+     · #app ocupa todo el viewport (sin caja fija de 390×844)
+     · Header (hdr-band1 + hdr-band2 + ruler-row) FIJO arriba
+     · Footer (#bot) FIJO abajo
+     · Barra instrumentos (.tlbl sticky-left dentro de cada track-row) FIJA izq
+     · Sequencer (#tracks + .ttl) absorbe TODO el espacio sobrante,
+       con scroll libre H y V — como Excel.
+     · transform/will-change se MANTIENEN (containing block de cew-overlay R16)
+     · Funciona idéntico en iPhone, iPad, MacBook, Desktop, Android,
+       Safari, Chrome, ventana achicada — sin media queries por device. */
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh; /* dynamic viewport: respeta la barra de URL móvil */
   background: var(--bg);
   transform: translate3d(0,0,0);
   will-change: transform;
@@ -333,38 +332,21 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:
   overflow: hidden;
 }
 
-/* Wrapper que centra el #app en cualquier viewport */
+/* v14.2 — Wrapper simplificado. El #app ya ocupa todo el viewport,
+   así que el frame solo provee el background y bloquea overflow. */
 #app-frame{
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display:block;
   width:100vw;
-  height:100svh;
+  height:100vh;
+  height:100dvh;
   position:relative;
   overflow:hidden;
   background: var(--bg);
 }
 
-/* v13.152 — En MÓVILES ya NO escalamos el #app.
-   El #app se adapta directo al viewport: alto = 100svh (con tope 844px),
-   ancho = 390px lógicos. Si el viewport es más ancho que 390 hay margen lateral.
-   Si es más bajo que 844, #tracks (flex:1) absorbe la diferencia.
-   Header arriba + footer abajo siempre visibles. */
-@media (max-width: 767px){
-  #app-frame{
-    align-items: flex-start;
-    justify-content: center;
-  }
-}
-
-/* Tablet/Desktop: scale=1, fondo bg2 a los costados, sombra sutil */
-@media (min-width: 768px){
-  body{ background: var(--bg2); }
-  #app-frame{ background: var(--bg2); }
-  #app{
-    box-shadow: 0 8px 40px rgba(18,16,12,.10);
-  }
-}
+/* v14.2 — Media queries del v13.152 (cuadradito centrado) eliminadas.
+   El nuevo layout responsive Excel-like no las necesita: el #app
+   ocupa todo el viewport en todos los devices. */
 
 /* v13.115 — APPLE: bloque About con versión y atribuciones (config menu) */
 .cfg-about{padding:10px 14px 12px;border-top:1px solid var(--rule);font-family:var(--sans);font-size:10px;line-height:1.45;color:var(--ink2)}
@@ -666,6 +648,50 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:
 .ttl.has-selection{touch-action:none}
 .ttl::-webkit-scrollbar{display:none}
 .tc{position:absolute;top:0;left:0;height:100%}
+
+/* v14.2 — SABOR C: tracks vacíos (Excel funcional)
+   Filas vacías abajo de los tracks reales, sutiles tipo Excel.
+   Tap en cualquier zona = abre add-sheet para agregar instrumento. */
+.track-row-empty{
+  cursor: pointer;
+  opacity: .55;
+  transition: opacity .14s ease, background-color .14s ease;
+}
+.track-row-empty:hover,
+.track-row-empty:active{ opacity: .85; background-color: var(--bg2); }
+.tlbl-empty{
+  background: transparent !important;
+  border-right: 1px dashed var(--rule2) !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px !important;
+}
+.tlbl-empty .tlbl-v2-num{
+  color: var(--ink3, var(--ink2));
+  font-weight: 400;
+  font-size: 9px;
+  opacity: .55;
+}
+.tlbl-empty-add{
+  color: var(--ink3, var(--ink2));
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1;
+  opacity: .55;
+}
+.ttl-empty{
+  background: transparent !important;
+  background-image: linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--bw, 39px) - 1px),
+    rgba(0,0,0,.025) calc(var(--bw, 39px) - 1px),
+    rgba(0,0,0,.025) var(--bw, 39px)
+  );
+  background-size: var(--bw, 39px) 100%;
+  pointer-events: none; /* el click lo maneja la fila completa */
+}
 
 /* Playhead — línea roja vertical LIMPIA (versión definitiva v11).
    Sin box-shadow, sin glow — solo línea roja sólida.
@@ -3661,7 +3687,7 @@ body.mixer-dragging *{touch-action:none !important}
     <!-- v13.115 — APPLE: About / atribuciones / privacidad -->
     <!-- v13.119 — CDO/GDPR: detalle de datos almacenados + derecho de erasure -->
     <div id="cfg-about" class="cfg-about" aria-label="Información de la aplicación">
-      <div class="cfg-about-row"><span class="cfg-about-k">Versión</span><span class="cfg-about-v" id="cfg-about-version">13.160</span></div>
+      <div class="cfg-about-row"><span class="cfg-about-k">Versión</span><span class="cfg-about-v" id="cfg-about-version">14.2</span></div>
       <div class="cfg-about-row"><span class="cfg-about-k">Privacidad</span><span class="cfg-about-v">Sin recolección de datos</span></div>
       <div class="cfg-about-credits">
         Audio: <a href="https://tonejs.github.io" target="_blank" rel="noopener noreferrer">Tone.js</a> ·
@@ -5116,8 +5142,19 @@ const G={
     {n:'Steel',inst:'steel',muted:false,vol:.8,reverb:false,delay:false,chorus:false,clips:[]},
   ],
 };
-const TB=()=>G.bars*G.bpb;
-const TW=()=>TB()*BW;
+// v14.2 — SABOR C: límites del Excel.
+// MAX_BARS = compases máximos disponibles para componer (24 compases).
+// MAX_TRACKS = tracks máximos del proyecto (16 tracks: 6 base + 10 vacíos).
+// El usuario puede poner clips en cualquier celda dentro de estos límites,
+// pero el playback solo recorre G.bars (lo que el usuario configura).
+// Los compases / tracks "extra" son espacio para componer.
+const MAX_BARS = 24;
+const MAX_TRACKS = 16;
+// TB_LOOP = beats del loop real (G.bars × G.bpb) → solo lo que reproduce el playback.
+// TB() = beats del Excel (MAX_BARS × G.bpb = 96) → todo el espacio disponible.
+const TB_LOOP = ()=>G.bars*G.bpb;
+const TB = ()=>MAX_BARS*G.bpb;
+const TW = ()=>TB()*BW;
 // Track color palettes per theme — picked dynamically so each visual mode
 // has coherent track colors (not just the UI chrome)
 const T_PALETTES = {
@@ -5219,7 +5256,44 @@ function buildTracks(){
     const sl=row.querySelector('.t-vol');
     if(sl) sl.addEventListener('pointerdown',e=>volSliderStart(e,ti));
   });
+  // v14.2 — SABOR C: agregar tracks vacíos hasta MAX_TRACKS
+  renderEmptyTracks();
   if(typeof updatePHHeight==='function') updatePHHeight();
+}
+
+/**
+ * v14.2 — SABOR C / EXCEL FUNCIONAL
+ * Agrega "tracks vacíos" al final de #tracks hasta llegar a MAX_TRACKS.
+ * Cada track vacío es funcional: tap → abre add-sheet para elegir instrumento.
+ * Igual que Excel: las filas vacías abajo de la última fila con datos
+ * son filas de verdad, las podés llenar.
+ * @returns {void}
+ */
+function renderEmptyTracks(){
+  const el = document.getElementById('tracks');
+  if(!el) return;
+  const realCount = G.tracks.length;
+  const emptyCount = Math.max(0, MAX_TRACKS - realCount);
+  for(let i = 0; i < emptyCount; i++){
+    const placeholderIdx = realCount + i; // posición en el Excel (1-indexed display)
+    const row = document.createElement('div');
+    row.className = 'track-row track-row-empty';
+    row.dataset.emptyIdx = String(placeholderIdx);
+    row.innerHTML = `
+      <div class="tlbl tlbl-v2 tlbl-empty">
+        <span class="tlbl-v2-num">T${placeholderIdx+1}</span>
+        <span class="tlbl-empty-add" aria-hidden="true">+</span>
+      </div>
+      <div class="ttl ttl-empty" aria-label="Celda vacía: tap para agregar instrumento"></div>`;
+    // Tap en track vacío → abre add-sheet (mismo flujo que botón "+ Track" del footer)
+    row.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if(typeof openSheet === 'function'){
+        openSheet('add-sheet');
+      }
+    });
+    el.appendChild(row);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -5738,6 +5812,8 @@ function clipGestureMove(e, st){
 
     if(st.zone==='body'){
       // Move: new sb, same lb. Clamp to [0, TB()-lb] AND respect neighbors
+      // v14.2: zona Excel funcional → clip puede ir hasta TB() (no TB_LOOP).
+      // growLoopIfNeeded() expandirá G.bars al final si el clip excede el loop.
       let newSb = Math.round((st.startSb + dBeat)/snap)*snap;
       newSb = Math.max(0, Math.min(newSb, TB() - st.startLb));
       // Check neighbors — find max left / min right bounds
@@ -5758,6 +5834,7 @@ function clipGestureMove(e, st){
     }
     else if(st.zone==='right'){
       // Resize from end: change lb, keep sb
+      // v14.2: zona Excel funcional → resize puede ir hasta TB() (no TB_LOOP)
       let newLb = Math.round((st.startLb + dBeat)/snap)*snap;
       newLb = Math.max(snap, newLb);
       // Neighbor on the right limits max lb
@@ -5910,6 +5987,7 @@ function clipGestureEnd(e, st){
 
     if(alreadyActiveHere){
       // 2do click consecutivo → crear clip placeholder + abrir editor
+      // v14.2: zona Excel funcional → clip se puede crear en cualquier celda hasta TB()
       const snapLen = G.bpb / G.snap;
       const rawSb = Math.max(0, Math.min(st.beat0, TB() - snapLen));
       const sb = Math.max(0, Math.round(rawSb / snapLen) * snapLen);
@@ -6163,7 +6241,7 @@ function startPB(){
       });
     });
     updatePH();
-    G.playPos=(G.playPos+1)%TB();
+    G.playPos=(G.playPos+1)%TB_LOOP(); // v14.2: usar TB_LOOP (beats reales), NO TB() que incluye zona Excel
     if(G.playPos===0)G.activeClip=null;
   },ms);
 }
@@ -8238,7 +8316,7 @@ async function showPrivacyDetail(){
         <p style="margin:0 0 10px"><strong>Cookies y tracking:</strong> ninguno. Sin Google Analytics, sin Facebook Pixel, sin trackers de terceros, sin telemetría.</p>
         <p style="margin:0 0 10px"><strong>Conexiones de red:</strong> al cargar el piano, la app pide muestras de audio a tonejs.github.io (servidor en USA, GitHub Pages). El resto de la app funciona 100% offline.</p>
         <p style="margin:0 0 10px"><strong>Tus derechos (GDPR):</strong> podés borrar todos tus datos con el botón "Borrar mis datos" en este menú. La acción es inmediata y no requiere contacto con nadie.</p>
-        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">Última actualización: 2026-04-26 · v14.1</p>
+        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">Última actualización: 2026-04-26 · v14.2</p>
       </div>
       <div class="native-confirm-actions">
         <button type="button" class="native-confirm-btn primary" data-privacy-close>Cerrar</button>
@@ -8355,7 +8433,7 @@ async function showLicensesDetail(){
           <li>CC0 — dominio público, sin restricciones</li>
         </ul>
         <p style="margin:0 0 10px;font-size:10px">Sin dependencias GPL, AGPL ni copyleft. Sin obligaciones de redistribución. La app puede comercializarse libremente.</p>
-        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">SBOM v14.1 · Última actualización: 2026-04-25</p>
+        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">SBOM v14.2 · Última actualización: 2026-04-26</p>
       </div>
       <div class="native-confirm-actions">
         <button type="button" class="native-confirm-btn primary" data-licenses-close>Cerrar</button>
@@ -9148,6 +9226,7 @@ function cewOpen(type) {
     case 'dur': {
       document.getElementById('cew-title').textContent = 'Duración';
       // Compute how many beats are available before the next clip (same logic as drag-resize)
+      // v14.2: zona Excel funcional → duración max va hasta TB() (incluye zona Excel)
       const t = G.tracks[G.editRef.ti];
       const others = t.clips.filter((_,i)=>i!==G.editRef.ci);
       let rightBound = TB();
