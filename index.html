@@ -159,7 +159,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops v13.187</title>
+<title>OnlyLoops v14.1</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -594,13 +594,16 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:
 /* ═══ SEQUENCER ═══ */
 #seq{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);position:relative}
 #ruler-row{display:flex;flex-shrink:0;background:var(--card);border-bottom:1.5px solid var(--rule2)}
-#ruler-pad{width:var(--lbl-w);height:var(--ruler-h);flex-shrink:0;border-right:1.5px solid var(--rule2);display:flex;align-items:center;justify-content:flex-start;padding-left:11px;box-sizing:border-box;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;transition:background .12s ease}
+#ruler-pad{width:var(--lbl-w);height:var(--ruler-h);flex-shrink:0;border-right:1.5px solid var(--rule2);display:flex;align-items:center;justify-content:flex-start;padding-left:9px;box-sizing:border-box;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;transition:background .12s ease}
 #ruler-pad span{font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ink3)}
 /* v13.175 — Icono Lucide sliders-vertical DUPLICADO (6 sliders = 6 tracks).
    ViewBox 48×24, ancho del SVG 52px para mantener proporción.
-   Path oficial Lucide intocable, ISC license. */
+   Path oficial Lucide intocable, ISC license.
+   v13.196 — width 52 → 64px (estirado +12px) y padding-left 11 → 7px
+   para alinear el slider 1 con la barrita del ☰ de arriba (Tracks on/off)
+   y dejar espaciado simétrico izq/der dentro de la celda. */
 .ruler-pad-icon{
-  width:52px;height:23px;
+  width:60px;height:23px;
   stroke:var(--ink2);
   stroke-width:2;
   stroke-linecap:round;
@@ -985,6 +988,31 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:
   border-top: 1px solid var(--rule2);
   box-shadow: 0 -4px 18px rgba(18,16,12,.12);
   transition: transform .28s cubic-bezier(.32,.72,0,1);
+  /* v13.190 — override overflow:hidden de .sheet para que el ::after
+     (extensión inferior visual) sea visible. El .s-body interno tiene
+     su propio overflow-y:auto, no afecta el scroll del contenido.
+     #app overflow:hidden clipea el sobrante del ::after. */
+  overflow: visible !important;
+}
+/* v13.191 — chord-sheet TRILLIZO: misma genética que Track Sheet (overflow visible). */
+#chord-sheet{
+  overflow: visible !important;
+}
+/* v13.190 — Extensión visual inferior del Track Sheet.
+   Cubre TODO el espacio entre el panel y el footer cuando sube con drag.
+   Altura: 100vh (clipeada por overflow:hidden de #app).
+   El espacio es para botones futuros. NO afecta altura de apertura.
+   v13.191 — chord-sheet TRILLIZO: misma extensión inferior. */
+.track-sheet-v110::after,
+#chord-sheet::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background: var(--card);
+  pointer-events: none;
 }
 .s-handle{width:60px;height:5px;border-radius:3px;background:var(--rule2);margin:10px auto 6px;flex-shrink:0;position:relative;cursor:grab;touch-action:none;transition:background .15s,width .15s}
 .s-handle::before{content:'';position:absolute;left:-100px;right:-100px;top:-14px;bottom:-14px}
@@ -1451,6 +1479,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   background:var(--bg2);border:1px solid var(--rule);border-radius:12px;
   cursor:pointer;transition:all .12s;
 }
+/* v13.195 — interlineado entre HERO (Dm7 + T·3m·5·7m) y primer botón
+   reducido en 8px para mejorar densidad visual. Cambio aplicado en el
+   margin-bottom inline del HERO (de 14px a 6px). */
 .cew-row:active{background:var(--bg3);border-color:var(--acc3)}
 .cew-lbl{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--acc);width:68px;flex-shrink:0}
 .cew-val{flex:1;font-family:var(--serif);font-size:16px;font-weight:600;font-style:italic;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1465,24 +1496,33 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
    aire abajo en mobile estándar. 30vh es valor probado que ancla el panel
    visualmente al final del contenido del chord-sheet. */
 #cew-overlay{
-  position:fixed;left:0;right:0;bottom:30vh;top:0;
+  /* v13.192 — posicionamiento dinámico. El panel hijo se posiciona
+     inline desde cewOpen() según el botón clickeado (rowRect).
+     Antes: bottom:30vh fijo → todos los wheels abrían a la misma altura
+     ignorando cuál botón se tocó. */
+  position:fixed;inset:0;
   z-index:210;
-  transform:translateY(100%);
-  transition:transform .22s cubic-bezier(.32,.72,0,1);
   pointer-events:none;
-  display:flex;flex-direction:column;justify-content:flex-end;
+  transition:opacity .2s;
+  opacity:0;
 }
-#cew-overlay.on{transform:translateY(0);pointer-events:all}
+#cew-overlay.on{opacity:1;pointer-events:all}
 #cew-close-zone{
-  flex:1;cursor:pointer;
+  position:absolute;inset:0;
+  cursor:pointer;
 }
 #cew-panel{
+  position:absolute;
+  left:0;right:0;
   background:var(--card);
   border-top:1.5px solid var(--rule2);
   border-radius:18px 18px 0 0;
   box-shadow:0 -8px 32px rgba(18,16,12,.18);
   padding-bottom:env(safe-area-inset-bottom,0);
   overflow:hidden;
+  /* La animación slide-up se hace via JS aplicando transform inicial.
+     CSS sin transform/transition — el JS lo controla post-positioning. */
+  transition:transform .22s cubic-bezier(.32,.72,0,1);
 }
 #cew-title{
   text-align:center;
@@ -2311,12 +2351,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   animation: hdr-config-slide .22s cubic-bezier(.3,.7,.3,1);
   /* v13.179 — MISMA FÓRMULA que el Track Sheet (coherencia funcional).
      Altura = 100% - nav-h - tr-h - ruler-h - track-h - 10px - safe-area-bottom.
-     Termina exactamente al borde inferior del track 1, igual que Track Sheet. */
+     Termina exactamente al borde inferior del track 1, igual que Track Sheet.
+     v13.188 — la extensión inferior visual al subir con drag se hace con ::after
+     (no extiendo height porque el panel se ancla por bottom y crecería hacia arriba). */
   max-height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - 10px - env(safe-area-inset-bottom, 0px));
   height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - 10px - env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* v13.190 — overflow:visible para que ::after sea visible. */
+  overflow: visible;
   position: relative;
   transition: height .22s cubic-bezier(.3,.7,.3,1),
               max-height .22s cubic-bezier(.3,.7,.3,1);
@@ -2348,6 +2391,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 /* Cuando está abierto el Color Engine, el config panel también se congela
    (para que no cambie mientras el usuario juega con la rueda). */
 .hdr-config-panel.lnf-mode {
+  background: var(--lnf-editor-bg, var(--card));
+}
+/* v13.190 — Extensión visual inferior del Config Menu.
+   Gemelo del Track Sheet: cubre TODO el espacio hasta el footer.
+   Altura 100vh clipeada por overflow:hidden de #app. */
+.hdr-config-panel::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background: var(--card);
+  pointer-events: none;
+}
+/* En modo Color Engine, el ::after usa el color congelado del editor */
+.hdr-config-panel.lnf-mode::after {
   background: var(--lnf-editor-bg, var(--card));
 }
 /* v13.180 — X de cierre del config panel (salida explícita, gemelo Track Sheet). */
@@ -3777,7 +3837,7 @@ body.mixer-dragging *{touch-action:none !important}
   <div id="seq">
     <div id="ruler-row">
       <div id="ruler-pad" role="button" tabindex="0" aria-label="Abrir mixer" onclick="openTrackSheet(0)">
-        <svg class="ruler-pad-icon" viewBox="0 0 48 24" aria-hidden="true">
+        <svg class="ruler-pad-icon" viewBox="0 0 48 24" preserveAspectRatio="none" aria-hidden="true">
           <!-- v13.175 — Icono Lucide "sliders-vertical" (ISC license) DUPLICADO
                para representar 6 tracks. Path canónico oficial × 2 (3 + 3).
                Segundo grupo desplazado +24 en X. -->
@@ -3899,9 +3959,9 @@ body.mixer-dragging *{touch-action:none !important}
        v13.135 → top: var(--nav-h) (debajo del logo)
        v13.138 → top: calc(nav-h + tr-h + ruler-h + track-h) (debajo del 1er track) -->
 <div id="chord-sheet" class="sheet"
-  style="top: calc(var(--nav-h) + var(--tr-h) + var(--ruler-h) + var(--track-h));
-         height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - env(safe-area-inset-bottom, 0px));
-         max-height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - env(safe-area-inset-bottom, 0px));">
+  style="top: calc(var(--nav-h) + var(--tr-h) + var(--ruler-h) + var(--track-h) + 10px);
+         height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - 10px - env(safe-area-inset-bottom, 0px));
+         max-height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - 10px - env(safe-area-inset-bottom, 0px));">
   <div class="s-handle"></div>
   <div class="s-head">
     <div class="s-title" id="cs-title">Acorde</div>
@@ -3913,7 +3973,8 @@ body.mixer-dragging *{touch-action:none !important}
   <div class="s-body" style="padding:10px 12px 16px">
 
     <!-- HERO — chord display + preview play -->
-    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px">
+    <!-- v13.195 — margin-bottom 14px → 6px: acerca botón Tónica al texto T·3m·5·7m -->
+    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px">
       <div style="flex:1">
         <div class="cd-hero"><div class="cd-root" id="cs-root">A</div><div class="cd-suf" id="cs-suf">m7</div></div>
         <div class="cd-int" id="cs-int">T · 3m · 5 · 7m</div>
@@ -7172,7 +7233,7 @@ const MX_LP_TOL   = 12;
 const MX_SLIDE_THR = 30;
 const MX_SLIDE_RATIO = 1.6;
 
-// v13.187 — getLimits mide en runtime (panel.rect + nav.rect) eliminando captureInitialTop inestable
+// v13.188 — Extensión visual inferior gemelos (::after) — cubre hueco al subir con drag, no toca altura de apertura
 const MX_DBLTAP_MS = 450;
 const _mxTapState = { lastTi: -1, lastTime: 0, pendingFirstTap: null };
 
@@ -7776,22 +7837,7 @@ function openSheet(id){
   // v13.131 — chord-sheet: salida tap-fuera (Regla de Oro #2 mín 2 salidas)
   // v13.183 — track-sheet REMOVIDO de aquí. Ahora usa el sistema unificado
   // PANEL-TWINS gemelo del config menu (CSS-driven, sin race conditions).
-  if(id === 'chord-sheet'){
-    setTimeout(() => {
-      const sheet = document.getElementById(id);
-      if(!sheet) return;
-      const handler = (e) => {
-        if(!sheet.classList.contains('on')) return;
-        if(sheet.contains(e.target)) return;
-        if(e.target.closest && e.target.closest('.native-confirm')) return;
-        if(e.target.closest && e.target.closest('#cew-overlay')) return;
-        closeSheet(id);
-        document.removeEventListener('pointerdown', handler, true);
-      };
-      sheet._tapOutsideHandler = handler;
-      document.addEventListener('pointerdown', handler, true);
-    }, 50);
-  }
+  // v13.191 — chord-sheet TAMBIÉN REMOVIDO. Ahora es TRILLIZO en PANEL_TWINS.
 }
 /**
  * Cierra un sheet por id (o todos si id es undefined). Confirma edits
@@ -7862,7 +7908,8 @@ function closeAllSheets(){closeSheet();}
 // más arriba que su posición de apertura — sin rebote ni snap-back hacia arriba.
 // v13.183 — track-sheet REMOVIDO de este foreach. Ahora usa el sistema
 // unificado #PANEL-TWINS (gemelos track-sheet + hdr-config-menu).
-['chord-sheet','prog-sheet','key-sheet','drum-sheet','add-sheet'].forEach(id=>{
+// v13.191 — chord-sheet TAMBIÉN removido. Ahora es TRILLIZO en PANEL_TWINS.
+['prog-sheet','key-sheet','drum-sheet','add-sheet'].forEach(id=>{
   const el=document.getElementById(id);if(!el)return;
   let sy=null,lastY=0,lastT=0,vel=0,dragging=false;
   let lastTapTime=0;
@@ -8191,7 +8238,7 @@ async function showPrivacyDetail(){
         <p style="margin:0 0 10px"><strong>Cookies y tracking:</strong> ninguno. Sin Google Analytics, sin Facebook Pixel, sin trackers de terceros, sin telemetría.</p>
         <p style="margin:0 0 10px"><strong>Conexiones de red:</strong> al cargar el piano, la app pide muestras de audio a tonejs.github.io (servidor en USA, GitHub Pages). El resto de la app funciona 100% offline.</p>
         <p style="margin:0 0 10px"><strong>Tus derechos (GDPR):</strong> podés borrar todos tus datos con el botón "Borrar mis datos" en este menú. La acción es inmediata y no requiere contacto con nadie.</p>
-        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">Última actualización: 2026-04-26 · v13.187</p>
+        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">Última actualización: 2026-04-26 · v14.1</p>
       </div>
       <div class="native-confirm-actions">
         <button type="button" class="native-confirm-btn primary" data-privacy-close>Cerrar</button>
@@ -8308,7 +8355,7 @@ async function showLicensesDetail(){
           <li>CC0 — dominio público, sin restricciones</li>
         </ul>
         <p style="margin:0 0 10px;font-size:10px">Sin dependencias GPL, AGPL ni copyleft. Sin obligaciones de redistribución. La app puede comercializarse libremente.</p>
-        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">SBOM v13.187 · Última actualización: 2026-04-25</p>
+        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">SBOM v14.1 · Última actualización: 2026-04-25</p>
       </div>
       <div class="native-confirm-actions">
         <button type="button" class="native-confirm-btn primary" data-licenses-close>Cerrar</button>
@@ -9133,6 +9180,71 @@ function cewOpen(type) {
     }
   }
 
+  // v13.192 — POSICIONAMIENTO DINÁMICO del cew-panel según botón clickeado.
+  // Pauta Horacio:
+  //   TONICA, ACORDE → abren ABAJO del botón clickeado (espacio disponible)
+  //   DURACION, TECNICA → abren ARRIBA del propio botón clickeado
+  // v13.193 — FIX cross-platform. #app tiene transform/will-change que crean
+  // un containing block para descendientes con position:fixed. Por eso
+  // #cew-overlay (fixed, inset:0) NO cubre el viewport completo en browser
+  // desktop — queda confinado dentro de #app. rowRect.top es relativo al
+  // viewport, pero panel.style.top es relativo a #cew-overlay. Hay que
+  // restar overlayRect.top para convertir a coordenadas del overlay.
+  // Esto funciona idéntico en PWA standalone, browser desktop, preview Claude,
+  // Safari iOS — porque siempre uses el offset del overlay como origen.
+  (function positionPanel(){
+    const TYPE_TO_ROW_IDX = { 'root':0, 'chord':1, 'dur':2, 'tech':3 };
+    const OPEN_ABOVE = { 'root':false, 'chord':false, 'dur':true, 'tech':true };
+    const idx = TYPE_TO_ROW_IDX[type];
+    if(idx === undefined) return;
+    const rows = document.querySelectorAll('#chord-sheet .cew-row');
+    const row = rows[idx];
+    if(!row) return;
+    const rowRect = row.getBoundingClientRect();
+    const panel = document.getElementById('cew-panel');
+    const overlay = document.getElementById('cew-overlay');
+    if(!panel || !overlay) return;
+    const overlayRect = overlay.getBoundingClientRect();
+    const GAP = 8;
+
+    // Convertir coordenadas del row al sistema del overlay (containing block del panel).
+    const rowTopInOverlay = rowRect.top - overlayRect.top;
+    const rowBottomInOverlay = rowRect.bottom - overlayRect.top;
+
+    // Reset estilos previos
+    panel.style.top = '';
+    panel.style.bottom = '';
+    panel.style.transform = '';
+
+    // Forzar layout para medir altura natural del panel con su nuevo contenido
+    panel.style.visibility = 'hidden';
+    panel.style.transform = 'none';
+    void panel.offsetHeight;
+    const panelH = panel.getBoundingClientRect().height;
+
+    if(OPEN_ABOVE[type]){
+      // Arriba del propio botón: panel.bottom = rowTopInOverlay - GAP
+      // v13.194 — bajar 3px para tapar mejor el borde del botón de arriba.
+      panel.style.top = (rowTopInOverlay - GAP - panelH + 3) + 'px';
+      panel.style.bottom = '';
+    } else {
+      // Abajo del botón: panel.top = rowBottomInOverlay + GAP
+      // v13.194 — subir 5px para tapar mejor el borde del botón de abajo.
+      panel.style.top = (rowBottomInOverlay + GAP - 5) + 'px';
+      panel.style.bottom = '';
+    }
+    // Animación slide-up sutil desde 8px abajo
+    panel.style.transform = 'translateY(8px)';
+    panel.style.opacity = '0';
+    panel.style.visibility = '';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        panel.style.transform = 'translateY(0)';
+        panel.style.opacity = '1';
+      });
+    });
+  })();
+
   document.getElementById('cew-overlay').classList.add('on');
   // After overlay is visible, correct wheel positions with real offsetWidth
   // Two rAFs: first lets CSS transition start, second reads actual layout
@@ -9159,6 +9271,14 @@ function cewOpen(type) {
 function cewClose(){
   CEW.type=null; CEW._dualType=null; CEW.hDragging=false;
   var ov=document.getElementById('cew-overlay'); if(ov) ov.classList.remove('on');
+  // v13.192 — limpiar estilos inline del panel (los aplica positionPanel en cewOpen)
+  var panel = document.getElementById('cew-panel');
+  if(panel){
+    panel.style.transform = '';
+    panel.style.opacity = '';
+    panel.style.top = '';
+    panel.style.bottom = '';
+  }
 }
 
 // cew-overlay click handled via onclick in HTML
@@ -11985,6 +12105,16 @@ function bpmNudge(dir){
       hasWrapper: true,
       wrapperEl: () => document.getElementById('hdr-config-menu'),
     },
+    {
+      // v13.191 — TRILLIZO: chord-sheet (editor de acorde) con la misma genética.
+      id: 'chord-sheet',
+      panelEl: () => document.getElementById('chord-sheet'),
+      isOpen: () => document.getElementById('chord-sheet')?.classList.contains('on'),
+      close: () => closeSheet('chord-sheet'),
+      dragSelectors: ['.s-handle', '.s-head'],
+      hasWrapper: false,
+      wrapperEl: null,
+    },
   ];
 
   TWINS.forEach(twin => {
@@ -12041,7 +12171,7 @@ function bpmNudge(dir){
       return twin.dragSelectors.some(sel => target.closest(sel));
     };
 
-    // v13.187 — getLimits calcula minY/maxY en RUNTIME usando geometría real.
+    // v13.188 — Extensión visual inferior gemelos (::after) — cubre hueco al subir con drag, no toca altura de apertura
     // Ya NO depende de captureInitialTop (eliminado, era inestable durante slide-up).
     // GEMELOS: misma fórmula para Track Sheet y Config Menu.
     //   minY (cuánto puede subir = currentY mínimo, negativo):
