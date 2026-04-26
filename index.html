@@ -159,7 +159,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops v13.161</title>
+<title>OnlyLoops v13.187</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -594,11 +594,33 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:
 /* ═══ SEQUENCER ═══ */
 #seq{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);position:relative}
 #ruler-row{display:flex;flex-shrink:0;background:var(--card);border-bottom:1.5px solid var(--rule2)}
-#ruler-pad{width:var(--lbl-w);height:var(--ruler-h);flex-shrink:0;border-right:1.5px solid var(--rule2);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;transition:background-color .15s ease}
-#ruler-pad:hover span{color:var(--acc)}
-#ruler-pad:active{background-color:var(--rule2)}
-#ruler-pad:active span{color:var(--acc)}
-#ruler-pad span{font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);transition:color .15s ease}
+#ruler-pad{width:var(--lbl-w);height:var(--ruler-h);flex-shrink:0;border-right:1.5px solid var(--rule2);display:flex;align-items:center;justify-content:flex-start;padding-left:11px;box-sizing:border-box;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;transition:background .12s ease}
+#ruler-pad span{font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--ink3)}
+/* v13.175 — Icono Lucide sliders-vertical DUPLICADO (6 sliders = 6 tracks).
+   ViewBox 48×24, ancho del SVG 52px para mantener proporción.
+   Path oficial Lucide intocable, ISC license. */
+.ruler-pad-icon{
+  width:52px;height:23px;
+  stroke:var(--ink2);
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  fill:none;
+  color:var(--ink2);
+  transition:color .15s ease, stroke .15s ease;
+  pointer-events:none;
+  flex-shrink:0;
+}
+#ruler-pad:hover .ruler-pad-icon,
+#ruler-pad:active .ruler-pad-icon{
+  color:var(--acc);
+  stroke:var(--acc);
+}
+#ruler-pad:hover .ruler-pad-icon,
+#ruler-pad:active .ruler-pad-icon{
+  color:var(--acc);
+  stroke:var(--acc);
+}
 #ruler-scroll{flex:1;overflow:hidden;position:relative;overscroll-behavior:none}
 #ruler-c{display:block;height:var(--ruler-h)}
 #tracks{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:none}
@@ -1691,8 +1713,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 
 /* Drums espejados y bajados */
 .tlbl-v2 .tlbl-img[data-inst="drums"] {
-  width: 75% !important;
-  height: 75% !important;
+  width: 67.5% !important;
+  height: 67.5% !important;
   transform: scaleX(-1);
   margin-top: 6%;
 }
@@ -1730,7 +1752,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 }
 /* ═══ Glow concéntrico = "algo está sonando" (⓵ lenguaje visual)
    MISMO patrón que #play-btn.playing pero a escala del mute.
-   Solo cuando NO está muteado (está sonando). */
+   v13.172 — solo activo cuando track suena (.sounding), antes era infinito
+   sin importar el estado de PLAY. Ese era el bug del "glow huérfano sin PLAY". */
 .tlbl-mute::before,
 .tlbl-mute::after {
   content: "";
@@ -1742,45 +1765,51 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   z-index: 0;
   pointer-events: none;
 }
-.tlbl-mute:not(.muted)::before {
+.track-row.sounding .tlbl-mute:not(.muted)::before {
   animation: tlm-glow-pulse 1.6s cubic-bezier(.2,.7,.4,1) infinite;
 }
-.tlbl-mute:not(.muted)::after {
+.track-row.sounding .tlbl-mute:not(.muted)::after {
   animation: tlm-glow-pulse 1.6s cubic-bezier(.2,.7,.4,1) infinite .8s;
 }
 @keyframes tlm-glow-pulse {
   0%   { transform: scale(1);   opacity: 0.28; }
   100% { transform: scale(1.55); opacity: 0; }
 }
-/* Parlante base */
+/* Parlante base
+   v13.175 — gris oscuro siguiente (--ink2) en vez de negro absoluto (--ink),
+   más sutil sin perder legibilidad. */
 .tlm-spk {
-  fill: var(--ink);
+  fill: var(--ink2);
   transition: fill .35s ease;
 }
-/* Ondas — 3 arcos que pulsan escalonados cuando el track suena */
+/* Ondas — 3 arcos del icono "parlante encendido" (siempre visibles excepto muted).
+   v13.170 — fix de v13.169: las ondas NO se ocultan en reposo. Lo que se prende
+   y apaga es el GLOW (animación pulse), no las ondas mismas.
+   v13.175 — color --ink2 (gris oscuro siguiente) en vez de negro --ink. */
 .tlm-wave {
   fill: none;
-  stroke: var(--ink);
+  stroke: var(--ink2);
   stroke-width: 2;
   stroke-linecap: round;
-  transition: opacity .35s ease, stroke .3s ease;
+  transition: opacity .25s ease, stroke .3s ease;
 }
-.tlbl-mute:not(.muted) .tlm-w1 { animation: tlm-pulse 1.4s ease-in-out infinite; }
-.tlbl-mute:not(.muted) .tlm-w2 { animation: tlm-pulse 1.4s ease-in-out infinite .2s; }
-.tlbl-mute:not(.muted) .tlm-w3 { animation: tlm-pulse 1.4s ease-in-out infinite .4s; }
+/* GLOW ON: animación pulse solo cuando track suena Y no está muteado */
+.track-row.sounding .tlbl-mute:not(.muted) .tlm-w1 { animation: tlm-pulse 1.4s ease-in-out infinite; }
+.track-row.sounding .tlbl-mute:not(.muted) .tlm-w2 { animation: tlm-pulse 1.4s ease-in-out infinite .2s; }
+.track-row.sounding .tlbl-mute:not(.muted) .tlm-w3 { animation: tlm-pulse 1.4s ease-in-out infinite .4s; }
 @keyframes tlm-pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.5; }
 }
 /* Cruz roja diagonal — escondida cuando suena, aparece con draw-in al mutear
-   Más contundente: stroke 3.5, cubre de corner a corner (1→23) */
+   v13.164 — más sutil/elegante (stroke 2 en vez de 3.5, líneas dentro de 5→19) */
 .tlm-slash {
   stroke: #C4423A;
-  stroke-width: 3.5;
+  stroke-width: 2;
   stroke-linecap: round;
   fill: none;
-  stroke-dasharray: 34;
-  stroke-dashoffset: 34;
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
   transition: stroke-dashoffset .35s cubic-bezier(.5,0,.3,1);
   vector-effect: non-scaling-stroke;
 }
@@ -1794,6 +1823,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
    TR = mixer
    BL + BR = editor instrumento (track sheet)
    Las zonas son transparentes, no alteran visualmente el label. */
+/* v13.165 — T1-T6 en esquina INFERIOR derecha del track del sequencer
+   (antes estaba arriba pero pisaba el clavijero de las guitarras). Mismo
+   font/size/weight que .tcell-num del Track Sheet para coherencia visual.
+   v13.167 — achicado (11→9px) y más definido (ink3→ink2, weight 700→800). */
+.tlbl-v2-num {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--ink2);
+  letter-spacing: .6px;
+  z-index: 4;
+  pointer-events: none;
+  user-select: none;
+}
 .tlbl-zone {
   position: absolute;
   width: 50%;
@@ -1803,8 +1849,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   background: transparent;
 }
 .tlbl-zone-tr { top: 0;    right: 0; }
-.tlbl-zone-bl { bottom: 0; left:  0; }
-.tlbl-zone-br { bottom: 0; right: 0; }
+/* v13.177 — .tlbl-zone-bl y .tlbl-zone-br removidos (Track Sheet
+   ahora se abre solo desde el icono mixer del ruler). */
 .tlbl-zone:active {
   background: rgba(0,0,0,.06);
 }
@@ -2026,7 +2072,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 }
 #hdr-logo .hdr-only {
   font-size: 14px; font-weight: 400; font-style: italic;
-  color: var(--ink3); letter-spacing: 0.04em; padding-left: 2px;
+  color: var(--ink2); letter-spacing: 0.04em; padding-left: 2px;
 }
 #hdr-logo .hdr-loops {
   font-size: 24px; font-weight: 600; font-style: italic;
@@ -2263,10 +2309,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   padding: 31px 12px calc(27px + env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -10px 30px rgba(0,0,0,.25);
   animation: hdr-config-slide .22s cubic-bezier(.3,.7,.3,1);
-  /* Altura por default (config sheet): termina 2px debajo del ruler numerado,
-     dejando ver el header completo + ruler. Los 10 botones entran sin scroll. */
-  max-height: calc(100% - var(--hdr-u) * 3.5 - 28px - env(safe-area-inset-top, 0px));
-  height: calc(100% - var(--hdr-u) * 3.5 - 28px - env(safe-area-inset-top, 0px));
+  /* v13.179 — MISMA FÓRMULA que el Track Sheet (coherencia funcional).
+     Altura = 100% - nav-h - tr-h - ruler-h - track-h - 10px - safe-area-bottom.
+     Termina exactamente al borde inferior del track 1, igual que Track Sheet. */
+  max-height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - 10px - env(safe-area-inset-bottom, 0px));
+  height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - 10px - env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2303,6 +2350,29 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .hdr-config-panel.lnf-mode {
   background: var(--lnf-editor-bg, var(--card));
 }
+/* v13.180 — X de cierre del config panel (salida explícita, gemelo Track Sheet). */
+.cfg-close-x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.cfg-close-x:hover { background: var(--bg2); }
+.cfg-close-x:active { background: var(--bg3); transform: scale(.92); }
 
 .lnf-head {
   display: flex; align-items: center;
@@ -3131,6 +3201,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   background:color-mix(in srgb, var(--acc) 4%, var(--card));
   box-shadow:0 0 0 2px color-mix(in srgb, var(--acc) 22%, transparent);
 }
+/* v13.162 — Estado MUTED visual: el cell se ve borroso/desaturado para
+   espejar visualmente lo que el sequencer muestra con la cruz roja sobre el
+   parlante. Funciona con o sin .active. */
+.tcell.muted-look .tcell-instr,
+.tcell.muted-look .tcell-content{
+  filter: blur(1.2px) saturate(.35) brightness(.92);
+  opacity: .55;
+  transition: filter .2s ease, opacity .2s ease;
+}
+.tcell.muted-look .tcell-label,
+.tcell.muted-look .tcell-dots{
+  opacity: .55;
+  transition: opacity .2s ease;
+}
+.tcell.muted-look:not(.active){
+  background: color-mix(in srgb, var(--ink3) 6%, var(--card));
+}
 .tcell:active:not(.dragging):not(.wiggle){transform:scale(.97)}
 .tcell.empty{
   cursor:default;
@@ -3245,10 +3332,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .tcell-dots{
   position:absolute;top:5px;left:50%;
   transform:translateX(-50%);
-  display:flex;gap:3px;
+  display:flex;gap:3px;align-items:center;
+  height:14px; /* v13.165 — height fijo para alinear verticalmente con .tcell-num */
   z-index:3;pointer-events:none;
   background:rgba(255,253,248,.6);
-  padding:3px 5px;border-radius:6px;
+  padding:0 5px;border-radius:6px;
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
 }
 .tcell-dot{
@@ -3259,7 +3347,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .tcell-dot.on{background:var(--acc);transform:scale(1.5)}
 .tcell-num{
   position:absolute;top:5px;right:7px;
-  font-family:var(--mono);font-size:8px;font-weight:500;
+  display:flex;align-items:center; /* v13.165 — flex-center para alinear con .tcell-dots */
+  height:14px; /* v13.165 — same height que dots para que centros visuales coincidan */
+  font-family:var(--mono);font-size:11px;font-weight:700;
   color:var(--ink3);letter-spacing:.6px;
   z-index:3;pointer-events:none;
 }
@@ -3498,6 +3588,7 @@ body.mixer-dragging *{touch-action:none !important}
 <div id="hdr-config-menu" onclick="if(event.target===this)hdrCloseConfig()">
   <div class="hdr-config-panel">
     <div class="s-handle cfg-handle"></div>
+    <button class="shbtn cfg-close-x" onclick="hdrCloseConfig()" aria-label="Cerrar">✕</button>
     <div class="hdr-config-title">Configuración</div>
     <div class="cfg-grid" id="cfg-grid"></div>
     <!-- Fila inferior: botón Paletas (zona 1) + carrusel de 10 estilos (zonas 2-4+) -->
@@ -3510,7 +3601,7 @@ body.mixer-dragging *{touch-action:none !important}
     <!-- v13.115 — APPLE: About / atribuciones / privacidad -->
     <!-- v13.119 — CDO/GDPR: detalle de datos almacenados + derecho de erasure -->
     <div id="cfg-about" class="cfg-about" aria-label="Información de la aplicación">
-      <div class="cfg-about-row"><span class="cfg-about-k">Versión</span><span class="cfg-about-v" id="cfg-about-version">13.161</span></div>
+      <div class="cfg-about-row"><span class="cfg-about-k">Versión</span><span class="cfg-about-v" id="cfg-about-version">13.160</span></div>
       <div class="cfg-about-row"><span class="cfg-about-k">Privacidad</span><span class="cfg-about-v">Sin recolección de datos</span></div>
       <div class="cfg-about-credits">
         Audio: <a href="https://tonejs.github.io" target="_blank" rel="noopener noreferrer">Tone.js</a> ·
@@ -3685,7 +3776,33 @@ body.mixer-dragging *{touch-action:none !important}
 <div id="view-seq" class="view on">
   <div id="seq">
     <div id="ruler-row">
-      <div id="ruler-pad" role="button" tabindex="0" aria-label="Abrir mixer" onclick="openMixerPanel(0)"><span>Tracks</span></div>
+      <div id="ruler-pad" role="button" tabindex="0" aria-label="Abrir mixer" onclick="openTrackSheet(0)">
+        <svg class="ruler-pad-icon" viewBox="0 0 48 24" aria-hidden="true">
+          <!-- v13.175 — Icono Lucide "sliders-vertical" (ISC license) DUPLICADO
+               para representar 6 tracks. Path canónico oficial × 2 (3 + 3).
+               Segundo grupo desplazado +24 en X. -->
+          <!-- Grupo 1 (sliders 1-3) -->
+          <line x1="4"  y1="21" x2="4"  y2="14"/>
+          <line x1="4"  y1="10" x2="4"  y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="12"/>
+          <line x1="12" y1="8"  x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/>
+          <line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="2"  y1="14" x2="6"  y2="14"/>
+          <line x1="10" y1="8"  x2="14" y2="8"/>
+          <line x1="18" y1="16" x2="22" y2="16"/>
+          <!-- Grupo 2 (sliders 4-6) — mismo path desplazado +24 en X -->
+          <line x1="28" y1="21" x2="28" y2="14"/>
+          <line x1="28" y1="10" x2="28" y2="3"/>
+          <line x1="36" y1="21" x2="36" y2="12"/>
+          <line x1="36" y1="8"  x2="36" y2="3"/>
+          <line x1="44" y1="21" x2="44" y2="16"/>
+          <line x1="44" y1="12" x2="44" y2="3"/>
+          <line x1="26" y1="14" x2="30" y2="14"/>
+          <line x1="34" y1="8"  x2="38" y2="8"/>
+          <line x1="42" y1="16" x2="46" y2="16"/>
+        </svg>
+      </div>
       <div id="ruler-scroll"><canvas id="ruler-c"></canvas></div>
     </div>
     <div id="tracks"></div>
@@ -3927,9 +4044,9 @@ body.mixer-dragging *{touch-action:none !important}
      v13.111 TICKET 1.5: 2 posiciones. Clase .compact oculta efectos y baja ~1.5u el top.
 -->
 <div id="track-sheet" class="sheet track-sheet-v110"
-  style="top: calc(var(--nav-h) + var(--tr-h) + var(--ruler-h) + var(--track-h));
-         height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - env(safe-area-inset-bottom, 0px));
-         max-height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - env(safe-area-inset-bottom, 0px));">
+  style="top: calc(var(--nav-h) + var(--tr-h) + var(--ruler-h) + var(--track-h) + 10px);
+         height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - 10px - env(safe-area-inset-bottom, 0px));
+         max-height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - 10px - env(safe-area-inset-bottom, 0px));">
   <div class="s-handle"></div>
   <div class="s-head">
     <div class="s-title" id="ts-title">Mixer</div>
@@ -4928,14 +5045,14 @@ const G={
   palette:0,
   liveVisible:false, // v13.154: arranca cerrado; el botón LIVE lo abre/cierra
   tracks:[
-    {n:'Guitar 1',inst:'nylon',muted:false,vol:.5,reverb:false,delay:false,chorus:false,
+    {n:'Guitar 1',inst:'nylon',muted:false,vol:.8,reverb:false,delay:false,chorus:false,
      clips:[{r:'D',s:'m7',sb:0,lb:4,tech:'ARPEGIO',v:'p-i-m-a',grade:'ii7'},{r:'G',s:'7',sb:4,lb:4,tech:'RASGUEO',v:'D-D-U-D-U',grade:'V7'},{r:'C',s:'maj7',sb:8,lb:8,tech:'ARPEGIO',v:'p-i-m-a',grade:'Imaj7'}]},
-    {n:'Bass',inst:'bass',muted:false,vol:.5,reverb:false,delay:false,chorus:false,
+    {n:'Bass',inst:'bass',muted:false,vol:.8,reverb:false,delay:false,chorus:false,
      clips:[{r:'D',s:'minor',sb:0,lb:4,tech:'PLANCHADO',v:'Plaquée',grade:'ii'},{r:'G',s:'major',sb:4,lb:4,tech:'PLANCHADO',v:'Plaquée',grade:'V'},{r:'C',s:'major',sb:8,lb:8,tech:'PLANCHADO',v:'Plaquée',grade:'I'}]},
-    {n:'Drums',inst:'drums',muted:false,vol:.5,reverb:false,delay:false,chorus:false,drum:true,drumStyle:'jazz-swing',drumInt:3,drumVar:'A',clips:[]},
-    {n:'Piano',inst:'piano',muted:false,vol:.5,reverb:false,delay:false,chorus:false,clips:[]},
-    {n:'Guitar 2',inst:'electric',muted:false,vol:.5,reverb:false,delay:false,chorus:false,clips:[]},
-    {n:'Steel',inst:'steel',muted:false,vol:.5,reverb:false,delay:false,chorus:false,clips:[]},
+    {n:'Drums',inst:'drums',muted:false,vol:.8,reverb:false,delay:false,chorus:false,drum:true,drumStyle:'jazz-swing',drumInt:3,drumVar:'A',clips:[]},
+    {n:'Piano',inst:'piano',muted:false,vol:.8,reverb:false,delay:false,chorus:false,clips:[]},
+    {n:'Guitar 2',inst:'electric',muted:false,vol:.8,reverb:false,delay:false,chorus:false,clips:[]},
+    {n:'Steel',inst:'steel',muted:false,vol:.8,reverb:false,delay:false,chorus:false,clips:[]},
   ],
 };
 const TB=()=>G.bars*G.bpb;
@@ -5021,17 +5138,16 @@ function buildTracks(){
             <path class="tlm-wave tlm-w1" d="M15 10 Q16.5 12 15 14"/>
             <path class="tlm-wave tlm-w2" d="M17.5 8 Q20 12 17.5 16"/>
             <path class="tlm-wave tlm-w3" d="M20 6 Q23.5 12 20 18"/>
-            <line class="tlm-slash tlm-slash-1" x1="1" y1="23" x2="23" y2="1"/>
-            <line class="tlm-slash tlm-slash-2" x1="1" y1="1" x2="23" y2="23"/>
+            <line class="tlm-slash tlm-slash-1" x1="5" y1="19" x2="19" y2="5"/>
+            <line class="tlm-slash tlm-slash-2" x1="5" y1="5" x2="19" y2="19"/>
           </svg>
         </button>
-        <!-- Mapa de click 2×2 cuadrantes:
-             TL = mute (el botón de arriba)
-             TR = mixer (abrir mixer lateral derecho)
-             BL + BR = editor instrumento (track sheet v8.50) -->
+        <span class="tlbl-v2-num">T${ti+1}</span>
+        <!-- v13.177 — Mapa de click 2×2 cuadrantes simplificado:
+             TL = mute (botón parlante arriba)
+             TR = abre MIXER_PANEL lateral (octavador + volumen)
+             BL + BR = ANULADOS. Track Sheet se abre solo desde el icono mixer del ruler. -->
         <div class="tlbl-zone tlbl-zone-tr" onclick="event.stopPropagation();openMixerPanel(${ti})" aria-label="Mixer"></div>
-        <div class="tlbl-zone tlbl-zone-bl" onclick="event.stopPropagation();openTrackSheet(${ti})" aria-label="Editor"></div>
-        <div class="tlbl-zone tlbl-zone-br" onclick="event.stopPropagation();openTrackSheet(${ti})" aria-label="Editor"></div>
       </div>
       <div class="ttl" id="ttl-${ti}" data-ti="${ti}" onscroll="syncScroll(this)">
         <canvas class="tc" id="tc-${ti}"></canvas>
@@ -5906,6 +6022,8 @@ function togglePlay(){
     updatePHHeight();
     document.getElementById('ph').style.display='block';
     startPB();
+    // v13.169 — Glow ON: marcar todos los tracks como sonando (CSS filtra muted)
+    document.querySelectorAll('.track-row').forEach(r => r.classList.add('sounding'));
   }else{
     ic.className='play-icon';ic.innerHTML='';
     btn.classList.remove('playing');
@@ -5914,6 +6032,8 @@ function togglePlay(){
     document.getElementById('ph').style.display='none';
     const mosq = document.getElementById('mosquitos');
     if(mosq) mosq.classList.remove('visible');
+    // v13.169 — Glow OFF: limpiar todos los .sounding al pausar
+    document.querySelectorAll('.track-row.sounding').forEach(r => r.classList.remove('sounding'));
   }
 }
 
@@ -6599,6 +6719,11 @@ function toggleMute(ti){
     try{ killPianoIfActive(ti); }catch(e){}
   }
   renderTrack(ti);
+  // v13.162 — Sincronización Track Sheet: si el ts-mixer está renderizado,
+  // actualizar la clase .muted-look del cell correspondiente para que el
+  // efecto borroso espeje el estado del sequencer.
+  const tsCell = document.querySelector(`#ts-mixer .tcell[data-ti="${ti}"]`);
+  if(tsCell) tsCell.classList.toggle('muted-look', !!t.muted);
 }
 // Shift the octave applied to this track's playback.
 // Range: -2 to +2 octaves. 0 = no shift.
@@ -6976,10 +7101,10 @@ function buildMixerGrid(){
     const dots = MIXER_CATALOG.map((_, k) =>
       `<span class="tcell-dot ${k === instIdx ? 'on' : ''}"></span>`
     ).join('');
-    const vol = (typeof t.vol === 'number' ? t.vol : 0.5);
+    const vol = (typeof t.vol === 'number' ? t.vol : 0.8);
     const fillH = (vol * 100).toFixed(1) + '%';
     const volPct = Math.round(vol * 100);
-    cell.className = 'tcell' + (isActive ? ' active' : '');
+    cell.className = 'tcell' + (isActive ? ' active' : '') + (t.muted ? ' muted-look' : '');
     cell.innerHTML = `
       <div class="tcell-fader" data-ti="${ti}">
         <div class="tcell-fader-vol">${volPct}%</div>
@@ -7047,6 +7172,32 @@ const MX_LP_TOL   = 12;
 const MX_SLIDE_THR = 30;
 const MX_SLIDE_RATIO = 1.6;
 
+// v13.187 — getLimits mide en runtime (panel.rect + nav.rect) eliminando captureInitialTop inestable
+const MX_DBLTAP_MS = 450;
+const _mxTapState = { lastTi: -1, lastTime: 0, pendingFirstTap: null };
+
+/* v13.162 — Activa el track tanto en el sequencer (.destacado) como en el
+   Track Sheet (.tcell.active), sin esperar rebuild del grid. Refresca también
+   el estado visual de mute en cada cell según G.tracks[ti].muted. */
+function _mxActivateTrack(ti){
+  G.mixerActiveTi = ti;
+  G.editTi = ti;
+  G.activeTi = ti;
+  // Sequencer: destacar la fila del track
+  document.querySelectorAll('.track-row.destacado').forEach(r => r.classList.remove('destacado'));
+  const trRow = document.getElementById(`tr-${ti}`);
+  if(trRow) trRow.classList.add('destacado');
+  // Track Sheet: marcar el cell .active y desmarcar los demás
+  document.querySelectorAll('#ts-mixer .tcell').forEach(c => {
+    const cti = parseInt(c.dataset.ti, 10);
+    c.classList.toggle('active', cti === ti);
+    // Refrescar muted-look según estado actual del track
+    const t = G.tracks[cti];
+    c.classList.toggle('muted-look', !!(t && t.muted));
+  });
+  if(typeof updateNowPlaying === 'function') updateNowPlaying();
+}
+
 function bindMixerCell(cell, ti){
   let pid = -1;
   let startX=0, startY=0, started=false;
@@ -7085,13 +7236,53 @@ function bindMixerCell(cell, ti){
     try{ cell.releasePointerCapture(pid); }catch(_){}
     if(lpFired){ started = false; return; }
     if(!didSlide && started){
-      G.mixerActiveTi = ti;
-      G.editTi = ti;
-      buildMixerGrid();
-      renderMixerEffects();
-      const inst = MIXER_CATALOG[instKeyToIdx(G.tracks[ti].inst || 'electric')];
-      toast(`T${ti+1} · ${inst.label}`);
-      if(navigator.vibrate) navigator.vibrate(8);
+      const now = Date.now();
+      const t = G.tracks[ti];
+      const wasMuted = !!(t && t.muted);
+      const isDouble = (_mxTapState.lastTi === ti) &&
+                       ((now - _mxTapState.lastTime) < MX_DBLTAP_MS);
+
+      if(isDouble){
+        // ── DOBLE TAP → MUTE (siempre mute, no toggle) ──
+        // 1) cancelar rebuild diferido del primer tap
+        if(_mxTapState.pendingFirstTap){
+          clearTimeout(_mxTapState.pendingFirstTap);
+          _mxTapState.pendingFirstTap = null;
+        }
+        _mxTapState.lastTi = -1; _mxTapState.lastTime = 0;
+        _mxActivateTrack(ti);
+        // Solo mutear si NO está ya muteado (evita unmute accidental por doble tap)
+        if(!wasMuted){
+          try{ toggleMute(ti); }catch(err){}
+          cell.classList.add('muted-look');
+          toast(`T${ti+1} · MUTE`);
+          if(navigator.vibrate) navigator.vibrate([8, 30, 8]);
+        } else {
+          // Ya muteado: doble tap no hace nada destructivo, solo reafirma activación
+          toast(`T${ti+1} · MUTE`);
+        }
+      } else if(wasMuted){
+        // ── TAP SIMPLE sobre track MUTEADO → UNMUTE inmediato (sin esperar ventana de doble) ──
+        _mxTapState.lastTi = -1; _mxTapState.lastTime = 0;
+        _mxActivateTrack(ti);
+        try{ toggleMute(ti); }catch(err){}  // alterna a desmuteado
+        cell.classList.remove('muted-look');
+        const inst = MIXER_CATALOG[instKeyToIdx(G.tracks[ti].inst || 'electric')];
+        toast(`T${ti+1} · ${inst.label}`);
+        if(navigator.vibrate) navigator.vibrate(10);
+      } else {
+        // ── TAP SIMPLE sobre track NORMAL → activar + esperar ventana por si llega doble tap ──
+        _mxTapState.lastTi = ti;
+        _mxTapState.lastTime = now;
+        _mxActivateTrack(ti);
+        _mxTapState.pendingFirstTap = setTimeout(() => {
+          _mxTapState.pendingFirstTap = null;
+          try{ buildMixerGrid(); renderMixerEffects(); }catch(err){}
+          const inst = MIXER_CATALOG[instKeyToIdx(G.tracks[ti].inst || 'electric')];
+          toast(`T${ti+1} · ${inst.label}`);
+          if(navigator.vibrate) navigator.vibrate(8);
+        }, MX_DBLTAP_MS + 20);
+      }
     }
     started = false; didSlide = false; pid = -1;
   }
@@ -7143,7 +7334,7 @@ function bindMixerFader(fader, ti){
     pid = e.pointerId;
     startY = e.clientY;
     const t = G.tracks[ti]; if(!t) return;
-    startVol = (typeof t.vol === 'number' ? t.vol : 0.5);
+    startVol = (typeof t.vol === 'number' ? t.vol : 0.8);
     faderH = fader.querySelector('.tcell-fader-track').getBoundingClientRect().height;
     fader.classList.add('touching');
     try{ fader.setPointerCapture(pid); }catch(_){}
@@ -7397,7 +7588,7 @@ function buildAddGrid(){
       while(G.tracks.some(t=>t.n===n)){n=`${trackName} ${idx++}`;}
       G.tracks.push({
         n,
-        inst:o.inst,muted:false,vol:.5,reverb:false,delay:false,chorus:false,
+        inst:o.inst,muted:false,vol:.8,reverb:false,delay:false,chorus:false,
         octShift: (o.inst === 'piano') ? -1 : 0,
         ...(isDrum?{drum:true,drumStyle:'rock',drumInt:3,drumVar:'A',clips:[]}:{clips:[]}),
       });
@@ -7582,19 +7773,17 @@ function openSheet(id){
       });
     }
   }catch(_){}
-  // v13.115 — track-sheet: tap fuera cierra (HIG segunda salida)
-  // v13.131 — chord-sheet: misma salida tap-fuera (Regla de Oro #2 mín 2 salidas)
-  if(id === 'track-sheet' || id === 'chord-sheet'){
+  // v13.131 — chord-sheet: salida tap-fuera (Regla de Oro #2 mín 2 salidas)
+  // v13.183 — track-sheet REMOVIDO de aquí. Ahora usa el sistema unificado
+  // PANEL-TWINS gemelo del config menu (CSS-driven, sin race conditions).
+  if(id === 'chord-sheet'){
     setTimeout(() => {
       const sheet = document.getElementById(id);
       if(!sheet) return;
       const handler = (e) => {
         if(!sheet.classList.contains('on')) return;
-        // No cerrar si el tap fue dentro del sheet o sobre un overlay activo
         if(sheet.contains(e.target)) return;
         if(e.target.closest && e.target.closest('.native-confirm')) return;
-        // No cerrar el chord-sheet si el tap es sobre el cew-overlay activo
-        // (la rueda interna está encima del chord-sheet — debe operarse libre)
         if(e.target.closest && e.target.closest('#cew-overlay')) return;
         closeSheet(id);
         document.removeEventListener('pointerdown', handler, true);
@@ -7671,7 +7860,9 @@ function closeAllSheets(){closeSheet();}
 // Sin blur, sin sombras dinámicas: app de atrás se ve nítida.
 // v13.139 — sheets con top inline (chord-sheet desde v13.138) pueden subir
 // más arriba que su posición de apertura — sin rebote ni snap-back hacia arriba.
-['chord-sheet','prog-sheet','key-sheet','drum-sheet','track-sheet','add-sheet'].forEach(id=>{
+// v13.183 — track-sheet REMOVIDO de este foreach. Ahora usa el sistema
+// unificado #PANEL-TWINS (gemelos track-sheet + hdr-config-menu).
+['chord-sheet','prog-sheet','key-sheet','drum-sheet','add-sheet'].forEach(id=>{
   const el=document.getElementById(id);if(!el)return;
   let sy=null,lastY=0,lastT=0,vel=0,dragging=false;
   let lastTapTime=0;
@@ -7773,7 +7964,19 @@ function closeAllSheets(){closeSheet();}
     } else {
       setTimeout(()=>{ el.style.transition=''; }, 220);
     }
-    dragging=false;sy=null;vel=0;
+    // v13.180 — RESET COMPLETO del estado de drag (no solo dragging=false).
+    // Bug previo: después de un drag que NO cerró, las salidas de emergencia
+    // (X y tap-outside) dejaban de responder. Ahora limpiamos TODO el estado
+    // para garantizar que ningún flag stale bloquee los próximos clicks.
+    dragging=false; sy=null; lastY=0; lastT=0; vel=0;
+    el._baseY = null;
+    // v13.180 — RE-INSTALAR el handler tap-outside (Apple HIG salidas de
+    // emergencia siempre activas). Si por cualquier race condition el listener
+    // quedó stale durante el drag, esto lo restablece.
+    if(el._tapOutsideHandler){
+      document.removeEventListener('pointerdown', el._tapOutsideHandler, true);
+      document.addEventListener('pointerdown', el._tapOutsideHandler, true);
+    }
   };
 
   el.addEventListener('touchstart',e=>{
@@ -7788,6 +7991,9 @@ function closeAllSheets(){closeSheet();}
   window.addEventListener('mousemove',e=>{ if(dragging) move(e.clientY,e); });
   window.addEventListener('mouseup',e=>{ if(dragging) end(); });
 });
+
+// v13.181 — Drag del config panel está más abajo en el código (v13.114 original
+// línea ~12095). ELIMINADO el duplicado v13.180 que competía con el original.
 
 // ══════════════════════════════════════════════════════════════
 // SIDEBAR TOGGLE — Logic-style button in transport
@@ -7985,7 +8191,7 @@ async function showPrivacyDetail(){
         <p style="margin:0 0 10px"><strong>Cookies y tracking:</strong> ninguno. Sin Google Analytics, sin Facebook Pixel, sin trackers de terceros, sin telemetría.</p>
         <p style="margin:0 0 10px"><strong>Conexiones de red:</strong> al cargar el piano, la app pide muestras de audio a tonejs.github.io (servidor en USA, GitHub Pages). El resto de la app funciona 100% offline.</p>
         <p style="margin:0 0 10px"><strong>Tus derechos (GDPR):</strong> podés borrar todos tus datos con el botón "Borrar mis datos" en este menú. La acción es inmediata y no requiere contacto con nadie.</p>
-        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">Última actualización: 2026-04-25 · v13.161</p>
+        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">Última actualización: 2026-04-26 · v13.187</p>
       </div>
       <div class="native-confirm-actions">
         <button type="button" class="native-confirm-btn primary" data-privacy-close>Cerrar</button>
@@ -8102,7 +8308,7 @@ async function showLicensesDetail(){
           <li>CC0 — dominio público, sin restricciones</li>
         </ul>
         <p style="margin:0 0 10px;font-size:10px">Sin dependencias GPL, AGPL ni copyleft. Sin obligaciones de redistribución. La app puede comercializarse libremente.</p>
-        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">SBOM v13.161 · Última actualización: 2026-04-25</p>
+        <p style="margin:0 0 0;font-size:10px;color:var(--ink2)">SBOM v13.187 · Última actualización: 2026-04-25</p>
       </div>
       <div class="native-confirm-actions">
         <button type="button" class="native-confirm-btn primary" data-licenses-close>Cerrar</button>
@@ -9466,6 +9672,9 @@ const MIXER_PANEL = {
       t.muted = false;
       const muteBtn = document.getElementById('tvol-' + d.ti);
       if (muteBtn) muteBtn.classList.remove('muted');
+      /* v13.162 — sincronizar .muted-look del Track Sheet si está abierto */
+      const tsCell = document.querySelector(`#ts-mixer .tcell[data-ti="${d.ti}"]`);
+      if (tsCell) tsCell.classList.remove('muted-look');
     }
     // v13.108: actualizar el bus de audio para que el cambio se escuche al instante
     try{ updateTrackBus(d.ti); }catch(e){}
@@ -10258,65 +10467,21 @@ function hdrToggleLoopSong(){
 function hdrOpenConfig(){
   var m = document.getElementById('hdr-config-menu');
   if(!m) return;
-  // Toggle: si ya está abierto, cierra todo de una (salida rápida #1).
+  // Toggle: si ya está abierto, cierra todo de una.
   if(m.classList.contains('open')){
     hdrCloseConfig();
     return;
   }
   buildCfgGrid();
-  // También construir la fila Paletas (botón activo + carrusel)
   if(typeof paletasBuildRow === 'function') paletasBuildRow();
   m.classList.add('open');
-
-  // Salida rápida #2: tap en cualquier área del app fuera del panel cierra.
-  // El overlay #hdr-config-menu tiene pointer-events:none; usamos un listener
-  // global capture-phase en document que detecta tap fuera del panel.
-  if(!m._outsideInited){
-    m._outsideInited = true;
-    document.addEventListener('pointerdown', function(e){
-      if(!m.classList.contains('open')) return;
-      var panel = m.querySelector('.hdr-config-panel');
-      if(!panel) return;
-      // Ignorar taps dentro del panel o en el propio botón config (que ya toggle)
-      if(panel.contains(e.target)) return;
-      if(e.target.closest('.hdr-config')) return;
-      hdrCloseConfig();
-    }, true);
-  }
-
-  // Salida rápida #3: swipe-down en el título "Configuración".
-  var panel = m.querySelector('.hdr-config-panel');
-  if(panel && !panel._swipeInited){
-    panel._swipeInited = true;
-    var title = panel.querySelector('.hdr-config-title');
-    if(title){
-      var startY = 0, startX = 0, tracking = false;
-      title.style.cursor = 'ns-resize';
-      title.style.touchAction = 'none';
-      title.addEventListener('pointerdown', function(e){
-        startY = e.clientY;
-        startX = e.clientX;
-        tracking = true;
-      });
-      title.addEventListener('pointermove', function(e){
-        if(!tracking) return;
-        var dy = e.clientY - startY;
-        var dx = Math.abs(e.clientX - startX);
-        if(dy > 40 && dx < 40){
-          tracking = false;
-          hdrCloseConfig();
-        }
-      });
-      title.addEventListener('pointerup', function(){ tracking = false; });
-      title.addEventListener('pointercancel', function(){ tracking = false; });
-    }
-  }
+  // v13.183 — drag, salidas, reset de posición → manejados por PANEL-TWINS unificado.
 }
 function hdrCloseConfig(){
   var m = document.getElementById('hdr-config-menu');
   if(m) m.classList.remove('open');
-  // Al cerrar el config, también ocultar el editor L&F si estaba abierto
   closeLnfEditor();
+  // v13.183 — el reset de transform lo hace PANEL-TWINS al cerrar.
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -11771,75 +11936,228 @@ function bpmNudge(dir){
   }
 })();
 
-// v13.114 — Drag libre para el menú config (mismo sistema que sheets)
-(function(){
-  const panel = document.querySelector('#hdr-config-menu .hdr-config-panel');
-  if(!panel) return;
-  let sy=null,lastY=0,lastT=0,vel=0,dragging=false;
-  const getMaxDrag = () => panel.getBoundingClientRect().height;
-  const readY = () => {
-    const m = window.getComputedStyle(panel).transform;
-    if(m && m !== 'none'){
-      const match = m.match(/matrix.*\((.+)\)/);
-      if(match){
-        const vals = match[1].split(',').map(v=>parseFloat(v));
-        return vals.length===6 ? vals[5] : (vals[13]||0);
+// v13.183 — IIFE de drag config viejo ELIMINADO. Reemplazado por PANEL-TWINS unificado.
+
+// ════════════════════════════════════════════════════════════════════
+// PANEL-TWINS v13.183 — Sistema único para Track Sheet y Config Menu.
+// Reemplaza:
+//   • JS tap-outside específico track-sheet (openSheet)
+//   • Foreach drag de sheets que incluía track-sheet
+//   • IIFE drag config v13.114
+//   • Listeners _outsideInited en hdrOpenConfig
+//   • Resets de transform en hdrOpen/hdrCloseConfig
+// Comportamiento 1:1 del mockup validado por Horacio:
+//   - Apertura siempre desde misma posición (reset transform al abrir/cerrar)
+//   - Drag desde handle o título (no desde contenido ni botones internos)
+//   - Threshold 55% o velocidad >0.7 para cierre por swipe
+//   - X de cierre conectada
+//   - Tap-outside cierra (CSS-driven en config wrapper, JS en track-sheet)
+//   - Reset COMPLETO al cerrar (transform=0, dragging=false)
+// ════════════════════════════════════════════════════════════════════
+(function setupPanelTwins(){
+  // Configuración por panel: identifica el elemento que se mueve, cómo se cierra,
+  // y los selectores de las zonas de drag.
+  const TWINS = [
+    {
+      id: 'track-sheet',
+      // El panel que se mueve es el propio #track-sheet
+      panelEl: () => document.getElementById('track-sheet'),
+      // Está abierto cuando tiene clase 'on'
+      isOpen: () => document.getElementById('track-sheet')?.classList.contains('on'),
+      // Cierre = la función global closeSheet
+      close: () => closeSheet('track-sheet'),
+      // Zonas de drag: handle y head (no contenido, no botones)
+      dragSelectors: ['.s-handle', '.s-head'],
+      // Para detectar tap-outside: el panel está en el DOM directo, no en wrapper
+      hasWrapper: false,
+      wrapperEl: null,
+    },
+    {
+      id: 'hdr-config-menu',
+      // El panel que se mueve es .hdr-config-panel adentro del wrapper
+      panelEl: () => document.querySelector('#hdr-config-menu .hdr-config-panel'),
+      // Está abierto cuando el wrapper tiene clase 'open'
+      isOpen: () => document.getElementById('hdr-config-menu')?.classList.contains('open'),
+      close: () => hdrCloseConfig(),
+      // Zonas de drag: cfg-handle y título
+      dragSelectors: ['.cfg-handle', '.hdr-config-title'],
+      // El config tiene wrapper #hdr-config-menu (el wrapper YA tiene onclick para tap-outside)
+      hasWrapper: true,
+      wrapperEl: () => document.getElementById('hdr-config-menu'),
+    },
+  ];
+
+  TWINS.forEach(twin => {
+    const panel = twin.panelEl();
+    if(!panel) return;
+
+    // Estado del drag para este panel (scope cerrado por panel)
+    let sy = 0, baseY = 0, currentY = 0, lastY = 0, lastT = 0, vel = 0, dragging = false;
+    // v13.187 — elTopInitial ELIMINADO. getLimits mide en runtime.
+
+    // Lee el translateY actual del panel
+    const readY = () => {
+      const m = window.getComputedStyle(panel).transform;
+      if(m && m !== 'none'){
+        const match = m.match(/matrix.*\((.+)\)/);
+        if(match){
+          const vals = match[1].split(',').map(v => parseFloat(v));
+          return vals.length === 6 ? vals[5] : (vals[13] || 0);
+        }
       }
+      return 0;
+    };
+
+    // Reset COMPLETO del panel: vuelve a posición inicial sin transition.
+    // Se llama al cerrar para que la próxima apertura sea limpia.
+    const resetPanel = () => {
+      panel.style.transition = 'none';
+      panel.style.transform = '';
+      currentY = 0;
+      sy = 0; baseY = 0; lastY = 0; lastT = 0; vel = 0; dragging = false;
+      // Forzar reflow para que el reset tome efecto antes del próximo render
+      void panel.offsetHeight;
+    };
+
+    // v13.187 — captureInitialTop ELIMINADO. getLimits mide en runtime.
+    // MutationObserver solo resetea al cerrar (apertura no requiere captura).
+    const observedEl = twin.hasWrapper ? twin.wrapperEl() : panel;
+    const isOpenClass = twin.hasWrapper ? 'open' : 'on';
+    if(observedEl){
+      const obs = new MutationObserver(() => {
+        if(!observedEl.classList.contains(isOpenClass)){
+          // Acaba de cerrar
+          resetPanel();
+        }
+      });
+      obs.observe(observedEl, { attributes: true, attributeFilter: ['class'] });
     }
-    return 0;
-  };
-  const start=(y,target)=>{
-    const onHandle=target.closest('.cfg-handle');
-    const onTitle=target.closest('.hdr-config-title');
-    if(!onHandle && !onTitle) return false;
-    if(target.closest('button,input,select,textarea')) return false;
-    sy=y;lastY=y;lastT=performance.now();vel=0;dragging=true;
-    panel.style.transition='none';
-    panel._baseY = readY();
-    return true;
-  };
-  const move=(y,e)=>{
-    if(!dragging)return;
-    const dy=y-sy, now=performance.now();
-    if(now-lastT>8){vel=(y-lastY)/(now-lastT);lastY=y;lastT=now;}
-    const max = getMaxDrag();
-    let newY = (panel._baseY||0) + dy;
-    if(newY < 0) newY = newY * 0.25;
-    if(newY > max) newY = max + (newY - max) * 0.3;
-    panel.style.transform=`translateY(${newY}px)`;
-    if(e&&e.cancelable)e.preventDefault();
-  };
-  const end=()=>{
-    if(!dragging)return;
-    panel.style.transition='transform .22s cubic-bezier(.4,.0,.2,1)';
-    const curY = readY();
-    const max = getMaxDrag();
-    const closeThreshold = max * 0.55;
-    if(curY > closeThreshold || vel > 0.7){
-      panel.style.transform=`translateY(${max + 30}px)`;
-      setTimeout(()=>{
-        panel.style.transition='';
-        panel.style.transform='';
-        if(typeof hdrCloseConfig === 'function') hdrCloseConfig();
-      }, 180);
-    } else {
-      if(curY < 0) panel.style.transform='translateY(0)';
-      setTimeout(()=>{ panel.style.transition=''; }, 220);
-    }
-    dragging=false;sy=null;vel=0;
-  };
-  panel.addEventListener('touchstart',e=>{
-    if(e.touches[0])start(e.touches[0].clientY, e.target);
-  },{passive:true});
-  panel.addEventListener('touchmove',e=>{
-    if(e.touches[0])move(e.touches[0].clientY,e);
-  },{passive:false});
-  panel.addEventListener('touchend',e=>end());
-  panel.addEventListener('touchcancel',()=>end());
-  panel.addEventListener('mousedown',e=>start(e.clientY,e.target));
-  window.addEventListener('mousemove',e=>{ if(dragging) move(e.clientY,e); });
-  window.addEventListener('mouseup',e=>{ if(dragging) end(); });
+
+    // Detecta si el target del touch/click está en una zona de drag válida
+    const isDragZone = (target) => {
+      // Excluir botones, inputs, etc — esos hacen su click normal, no drag
+      if(target.closest('button, input, select, textarea, a')) return false;
+      // Verificar si está en alguna zona de drag declarada
+      return twin.dragSelectors.some(sel => target.closest(sel));
+    };
+
+    // v13.187 — getLimits calcula minY/maxY en RUNTIME usando geometría real.
+    // Ya NO depende de captureInitialTop (eliminado, era inestable durante slide-up).
+    // GEMELOS: misma fórmula para Track Sheet y Config Menu.
+    //   minY (cuánto puede subir = currentY mínimo, negativo):
+    //     panelTop_sin_transform = panel.rect.top - currentY (desafecta el transform)
+    //     navBottom = app.rect.top + nav-h (variable CSS)
+    //       — usamos la var CSS porque #nav.getBoundingClientRect() puede devolver
+    //         0×0 en algunos contextos (headless, viewport no estable, etc).
+    //     minY = -(panelTop_sin_transform - navBottom)
+    //   maxY (cuánto puede bajar antes de rebote elástico):
+    //     hasta su altura completa.
+    const getLimits = () => {
+      const panelRect = panel.getBoundingClientRect();
+      const panelTop = panelRect.top - currentY;
+      const appEl = document.getElementById('app');
+      const appTop = appEl ? appEl.getBoundingClientRect().top : 0;
+      const navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 60;
+      const navBottom = appTop + navH;
+      const minY = -(panelTop - navBottom);
+      const maxY = panelRect.height;
+      return { minY, maxY };
+    };
+
+    const dragStart = (y, target) => {
+      if(!twin.isOpen()) return;
+      if(!isDragZone(target)) return;
+      dragging = true;
+      sy = y;
+      baseY = currentY;
+      lastY = y;
+      lastT = performance.now();
+      vel = 0;
+      panel.style.transition = 'none';
+    };
+
+    const dragMove = (y, e) => {
+      if(!dragging) return;
+      const dy = y - sy;
+      const now = performance.now();
+      if(now - lastT > 8){
+        vel = (y - lastY) / (now - lastT);
+        lastY = y;
+        lastT = now;
+      }
+      const { minY, maxY } = getLimits();
+      let newY = baseY + dy;
+      // v13.186 — FRENO DURO hacia arriba (límite = borde inferior del nav,
+      // el botón PLAY no se tapa nunca). Sin rebote elástico arriba.
+      // Hacia abajo: rebote elástico se mantiene (donde está el swipe-down).
+      if(newY < minY) newY = minY;
+      if(newY > maxY) newY = maxY + (newY - maxY) * 0.3;
+      currentY = newY;
+      panel.style.transform = `translateY(${newY}px)`;
+      if(e && e.cancelable) e.preventDefault();
+    };
+
+    const dragEnd = () => {
+      if(!dragging) return;
+      dragging = false;
+      const { minY, maxY } = getLimits();
+      const closeThreshold = maxY * 0.55;
+      panel.style.transition = 'transform .22s cubic-bezier(.4,0,.2,1)';
+      // Si pasó el 55% hacia abajo o velocidad alta → cerrar
+      if(currentY > closeThreshold || vel > 0.7){
+        panel.style.transform = `translateY(${maxY + 30}px)`;
+        setTimeout(() => { twin.close(); }, 180);
+        // El close → MutationObserver → resetPanel limpia todo el estado
+      } else {
+        // v13.184 — snap-back si quedó fuera del rango válido (rebote)
+        if(currentY < minY){
+          currentY = minY;
+          panel.style.transform = `translateY(${minY}px)`;
+        }
+        // Limpiar transition después de la animación
+        setTimeout(() => { panel.style.transition = ''; }, 220);
+      }
+      sy = 0; baseY = 0; lastY = 0; lastT = 0; vel = 0;
+    };
+
+    // Listeners de drag
+    panel.addEventListener('touchstart', (e) => {
+      if(e.touches[0]) dragStart(e.touches[0].clientY, e.target);
+    }, { passive: true });
+    panel.addEventListener('touchmove', (e) => {
+      if(e.touches[0]) dragMove(e.touches[0].clientY, e);
+    }, { passive: false });
+    panel.addEventListener('touchend', dragEnd);
+    panel.addEventListener('touchcancel', dragEnd);
+    panel.addEventListener('mousedown', (e) => dragStart(e.clientY, e.target));
+    window.addEventListener('mousemove', (e) => { if(dragging) dragMove(e.clientY, e); });
+    window.addEventListener('mouseup', () => { if(dragging) dragEnd(); });
+
+    // ════ TAP-OUTSIDE ════
+    // v13.185 — AMBOS gemelos usan el mismo listener JS (corrección v13.183).
+    // El config tiene wrapper #hdr-config-menu pero el wrapper tiene
+    // pointer-events:none (para no bloquear el sequencer detrás), por lo que
+    // su onclick="if(event.target===this)hdrCloseConfig()" NUNCA se dispara.
+    // Solución gemela: listener pointerdown capture-phase en document para los DOS.
+    // Cierre asíncrono (setTimeout 0) para no competir con clicks de
+    // botones internos. Si entre medio el click cerró, el setTimeout aborta.
+    document.addEventListener('pointerdown', (e) => {
+      if(!twin.isOpen()) return;
+      if(panel.contains(e.target)) return;
+      // No cerrar si el tap es sobre overlays activos
+      if(e.target.closest && e.target.closest('.native-confirm')) return;
+      if(e.target.closest && e.target.closest('#cew-overlay')) return;
+      // Para el config: no cerrar si el tap fue sobre el propio botón ⚙
+      // (que ya hace toggle por su cuenta — sino doble-cierre)
+      if(twin.id === 'hdr-config-menu' && e.target.closest && e.target.closest('.hdr-config')) return;
+      // Cierre asíncrono — el click del botón X (si lo tocaron) gana primero
+      setTimeout(() => {
+        if(twin.isOpen()) twin.close();
+      }, 0);
+    }, true);
+  });
 })();
+
 
 // ══════════════════════════════════════════════════════════════
 // v13.115 — APPLE A11Y / KEYBOARD / VOICEOVER COMPLIANCE
