@@ -980,7 +980,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v17.4.2</title>
+<title>OnlyLoops · v17.4.3</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -6203,7 +6203,7 @@ body.mixer-dragging *{touch-action:none !important}
         <div id="cs-meta-compas">Compás 1</div>
       </div>
       <div class="cs-col-center">
-        <div id="cs-tech-formula"></div>
+        <div id="cs-tech-formula"><div class="tf-compact" style="opacity:.3">— grilla técnica —</div></div>
       </div>
       <div class="cs-col-right">
         <button class="cs-play" id="cs-play-btn" onclick="previewChord()">
@@ -26838,35 +26838,45 @@ function _subIdxByVariantName(family, techKey, variantName) {
 // FIX v17.4.1: cuando clip.tech no existe en el catálogo de la familia del
 // inst (caso típico: clip viejo con tech='BALADA' en track ahora 'gtr_strat'),
 // fallback a la técnica activa del wheel UI o a la primera del catálogo.
+// v17.4.3: logs explícitos + invocación reforzada.
 function _renderChordSheetTechFormula(clip) {
   try {
     const elTarget = document.getElementById('cs-tech-formula');
-    if (!elTarget) return;
-    if (!clip) { elTarget.innerHTML = ''; return; }
+    if (!elTarget) {
+      console.warn('[v17.4.3] cs-tech-formula NO ENCONTRADO en DOM');
+      return;
+    }
+    if (!clip) { console.log('[v17.4.3] clip vacío — limpiando grilla'); elTarget.innerHTML = ''; return; }
     const ti = (window.G && G.editRef && G.editRef.ti != null) ? G.editRef.ti : -1;
     const tr = (ti >= 0 && window.G && G.tracks && G.tracks[ti]) ? G.tracks[ti] : null;
     const inst = tr ? tr.inst : null;
-    if (!inst || /drum/i.test(inst)) { elTarget.innerHTML = ''; return; }
+    if (!inst) {
+      console.warn('[v17.4.3] no hay inst — ti=' + ti + ' tr=' + !!tr);
+      elTarget.innerHTML = '<div class="tf-compact" style="opacity:.3">— sin inst —</div>'; return;
+    }
+    if (/drum/i.test(inst)) { elTarget.innerHTML = ''; return; }
     const family = _familyForInst(inst);
-    if (!family) { elTarget.innerHTML = ''; return; }
-    if (!TECH_FORMULAS[family]) { elTarget.innerHTML = ''; return; }
+    if (!family) {
+      console.warn('[v17.4.3] family null para inst=' + inst);
+      elTarget.innerHTML = '<div class="tf-compact" style="opacity:.3">— familia no detectada: ' + inst + ' —</div>';
+      return;
+    }
+    if (!TECH_FORMULAS[family]) {
+      console.warn('[v17.4.3] TECH_FORMULAS no tiene family=' + family);
+      elTarget.innerHTML = ''; return;
+    }
 
     let techKey = clip.tech || '';
     let variantName = clip.v || '';
+    console.log('[v17.4.3] render chord-sheet · inst=' + inst + ' family=' + family + ' tech=' + techKey + ' v=' + variantName);
 
-    // Modo Director Preset
     if (techKey === '__PRESET__') {
       elTarget.innerHTML = '<div class="tf-compact">— Director Preset activo —</div>';
       return;
     }
 
-    // 1er intento: clip.tech + clip.v en la familia detectada
     let subIdx = _subIdxByVariantName(family, techKey, variantName);
 
-    // 2do intento (fallback): si no matchea, leer estado del wheel UI
-    // El wheel TÉCNICA del chord-editor está en HWS[5], SUBTÉCNICA en HWS[6].
-    // Si _currentTechList existe, lo usamos para resolver el techKey real
-    // mostrado en el UI.
     if (subIdx < 0 || !TECH_FORMULAS[family][techKey]) {
       let resolvedTech = null, resolvedVar = null;
       try {
@@ -26881,29 +26891,37 @@ function _renderChordSheetTechFormula(clip) {
           }
         }
       } catch(_) {}
-
       if (resolvedTech && TECH_FORMULAS[family][resolvedTech]) {
+        console.log('[v17.4.3] fallback wheel → tech=' + resolvedTech + ' var=' + resolvedVar);
         techKey = resolvedTech;
         variantName = resolvedVar;
         subIdx = _subIdxByVariantName(family, techKey, variantName);
         if (subIdx < 0) subIdx = 0;
       } else {
-        // 3er intento: primera técnica del catálogo de la familia
         const firstTech = Object.keys(TECH_FORMULAS[family])[0];
         if (firstTech) {
+          console.log('[v17.4.3] fallback primera tech → ' + firstTech);
           techKey = firstTech;
           subIdx = 0;
         }
       }
     }
 
-    if (subIdx < 0) { elTarget.innerHTML = ''; return; }
+    if (subIdx < 0) {
+      console.warn('[v17.4.3] subIdx<0 sin fallback resuelto');
+      elTarget.innerHTML = '<div class="tf-compact" style="opacity:.3">— ' + techKey + ' / ' + variantName + ' —</div>';
+      return;
+    }
     const formula = _getTechFormula(family, techKey, subIdx);
-    if (!formula) { elTarget.innerHTML = ''; return; }
+    if (!formula) {
+      console.warn('[v17.4.3] formula null para ' + family + '/' + techKey + '/' + subIdx);
+      elTarget.innerHTML = ''; return;
+    }
     const html = _renderTechFormulaGrid(formula, { mode: 'contextual', suffix: clip.s || 'major', filter: true });
     elTarget.innerHTML = html;
+    console.log('[v17.4.3] grilla renderizada · ' + family + '/' + techKey + '[' + subIdx + '] · HTML ' + html.length + ' bytes');
   } catch (e) {
-    console.warn('[v17.4.1] _renderChordSheetTechFormula error:', e);
+    console.warn('[v17.4.3] _renderChordSheetTechFormula error:', e);
   }
 }
 
@@ -27085,7 +27103,44 @@ window._renderChordSheetTechFormula = _renderChordSheetTechFormula;
 window._renderInstSheetTechFormula = _renderInstSheetTechFormula;
 window._setChordSheetMeta = _setChordSheetMeta;
 
-console.log('[v17.4.0] TECH_FORMULAS cargado · 113 fórmulas · helpers + hooks reactivos OK');
+console.log('[v17.4.3] TECH_FORMULAS cargado · 113 fórmulas · helpers + hooks reactivos OK');
+
+// v17.4.3 — Watcher defensivo: cada 400ms, si el chord-sheet o inst-sheet
+// están abiertos, refresca la grilla. Atrapa cualquier caso donde los hooks
+// directos no se hayan disparado (cambio de inst, navegación entre clips,
+// reapertura del sheet, etc.). El polling es barato y solo opera cuando hay
+// sheets visibles.
+(function setupTechFormulaWatcher() {
+  let csVisible = false, isVisible = false;
+  let lastCsKey = '', lastIsKey = '';
+  setInterval(() => {
+    try {
+      const cs = document.getElementById('chord-sheet');
+      const is = document.getElementById('inst-sheet');
+      const csNowVisible = cs && cs.classList && cs.classList.contains('on');
+      const isNowVisible = is && is.classList && is.classList.contains('on');
+
+      if (csNowVisible && window.G && G.editRef && G.editRef.clip) {
+        const c = G.editRef.clip;
+        const key = (c.r||'') + '|' + (c.s||'') + '|' + (c.tech||'') + '|' + (c.v||'') + '|' + (c.lb||'');
+        if (key !== lastCsKey || !csVisible) {
+          lastCsKey = key;
+          _renderChordSheetTechFormula(c);
+        }
+      }
+      csVisible = csNowVisible;
+
+      if (isNowVisible && typeof INST_EDIT !== 'undefined' && INST_EDIT.ti != null) {
+        const key = (INST_EDIT.inst||'') + '|' + (INST_EDIT.tech||'') + '|' + (INST_EDIT.varName||'');
+        if (key !== lastIsKey || !isVisible) {
+          lastIsKey = key;
+          _renderInstSheetTechFormula();
+        }
+      }
+      isVisible = isNowVisible;
+    } catch(_e) {}
+  }, 400);
+})();
 
 </script>
 
