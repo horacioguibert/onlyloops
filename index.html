@@ -980,7 +980,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v17.4.3</title>
+<title>OnlyLoops · v17.5.13</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1927,15 +1927,41 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:
   transform:translateZ(0);
   -webkit-transform:translateZ(0);
 }
-/* v15.0.51 — Inst-sheet SIN SCROLL en su s-body (instrucción del arquitecto:
-   "saca la función de scroll. No tenga scroll, es que todo es pegado adentro,
-   es la única manera que uno tiene de verlo abajo"). El contenido entra todo
-   pegado: no hay desborde, no hay scroll, no hay fondo vacío arrastrable.
-   Si en el futuro algún device chico no alcanza, achicamos paddings/gaps
-   antes que reintroducir scroll. */
+/* v15.0.51 → v17.5.0 — Inst-sheet vuelve a tener scroll vertical interno,
+   esta vez con la SEMÁNTICA solicitada por el arquitecto: las fotos del
+   instrumento (is-stage + is-fam-row) quedan FIJAS arriba (sticky header),
+   y los wheels horizontales (SONIDO/TÉCNICA/SUBTÉCNICA/OCTAVADOR/TECNICA-grilla)
+   suben con scroll y se esconden POR DEBAJO de las fotos. Esto se hizo
+   necesario al agregar la grilla de TECNICA bajo el Octavador (v17.4.x),
+   que sumó altura. La altura de apertura del sheet, el handle superior
+   y el comportamiento de drag externo NO se tocan. */
 #inst-sheet .s-body{
-  overflow:hidden !important;
-  -webkit-overflow-scrolling:auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+/* Sticky header con fotos del instrumento (siempre visible). Los wheels
+   horizontales pasan por debajo al scrollear. El fondo opaco evita que
+   se vea el contenido de los wheels asomándose detrás. margin negativo
+   para compensar el padding lateral del s-body (4px 12px 2px). */
+#inst-sheet .is-sticky-header{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--card, var(--bg, #fff));
+  margin: 0 -12px;
+  padding: 4px 12px 6px;
+}
+/* Pequeña sombra inferior cuando el contenido scrollea hacia arriba para
+   indicar que algo se esconde por debajo */
+#inst-sheet .is-sticky-header::after{
+  content: '';
+  position: absolute;
+  left: 12px; right: 12px; bottom: -1px;
+  height: 1px;
+  background: var(--rule, rgba(0,0,0,.08));
+  pointer-events: none;
 }
 .s-sec{margin-bottom:16px}
 .s-sec:last-child{margin-bottom:4px}
@@ -1945,7 +1971,7 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:
 .cd-hero{display:flex;align-items:flex-start;gap:2px;margin-bottom:4px}
 .cd-root{font-family:var(--serif);font-size:58px;font-weight:600;font-style:italic;line-height:.88;color:var(--ink);letter-spacing:-.5px}
 .cd-suf{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--acc);align-self:flex-start;margin-top:8px;letter-spacing:-.2px}
-.cd-int{font-family:var(--mono);font-size:10px;color:var(--ink2);letter-spacing:.3px;margin-bottom:10px}
+.cd-int{font-family:var(--mono);font-size:12px;color:var(--ink2);letter-spacing:.3px;margin-bottom:10px}/* v17.5.12 — fórmula del acorde +20%: 10→12px */
 /* v15.0.11 — Notaciones combinadas: grado/cifrado chico arriba con línea separadora.
    Color azul-grisáceo según el plano (acc del preset). El border-bottom dibuja la
    línea horizontal debajo del texto. */
@@ -2768,10 +2794,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 }
 .is-mw-track:active{cursor:grabbing}
 .is-mw-sel{
+  /* v17.5.8 — recuadro 4px más ancho (64→68) sin tocar altura ni items. */
   position:absolute;
   left:50%;top:0;bottom:0;
-  width:64px;
-  margin-left:-32px;
+  width:68px;
+  margin-left:-34px;
   background:var(--acc2);
   pointer-events:none;
   z-index:1;
@@ -3067,6 +3094,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   color:var(--acc);
   padding:0 4px;
   display:block;
+  /* v17.5.9 — labels bajadas 3px en layer superior; no empujan el wheel. */
+  position:relative;top:3px;z-index:3;
 }
 /* Override .is-mw flex para que NO crezca (estaba flex:1 para la columna
    derecha del layout viejo donde había 4 wheels apilados con flex 1 cada
@@ -3367,7 +3396,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
    sin tocar el tamaño del recuadro ni los fonts. */
 .cew-hw-row{border-bottom:1px solid var(--rule)}
 .cew-hw-row:last-child{border-bottom:none}
-.cew-hw-lbl{font-size:7px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);padding:2px 14px 0;display:block}
+.cew-hw-lbl{font-size:7px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);padding:2px 14px 0;display:block;
+  /* v17.5.9 — labels bajadas 3px en layer superior; no empujan el wheel. */
+  position:relative;top:3px;z-index:3}
 .cew-hw-track{
   position:relative;height:60px;
   overflow:hidden;cursor:ew-resize;touch-action:none;
@@ -3391,9 +3422,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   background-position:center,calc(100% - 10px) center;
 }
 .cew-hw-sel{
+  /* v17.5.8 — recuadro 4px más ancho (68→72) sin tocar altura ni items. */
   position:absolute;left:50%;top:2px;bottom:2px;
   transform:translateX(-50%);
-  width:68px;
+  width:72px;
   border:1.5px solid var(--acc3);border-radius:10px;
   background:var(--acc2);pointer-events:none;z-index:1;
 }
@@ -3409,6 +3441,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   line-height:1.1;text-align:center;padding:0 3px;
 }
 .cew-hw-item.chwa{color:var(--ink);font-size:22px}
+/* v17.5.10 — Interlineado reducido 20% (1.1 → 0.88) SOLO en el wheel de
+   SUBTÉCNICA del chord-editor (#cew-hw6) y del inst-sheet (data-mw=subtech).
+   Para textos de 3 líneas tipo "Tears in Heaven", "Bridge over Water",
+   "Field of Gold" — quedan más juntas verticalmente sin tocar otros wheels. */
+#cew-hw6-track .cew-hw-item,
+.is-mw[data-mw="subtech"] .is-mw-item{
+  line-height: 0.88;
+}
 /* v16.3.1 — items grisados (sin samples cargados en este slot).
    Norma de Horacio: si NO se pone bold cuando pasa por el centro = NO es opción.
    Por eso el .disabled.chwa MANTIENE el font-size chico y el peso normal.
@@ -5669,7 +5709,11 @@ body.mixer-dragging *{touch-action:none !important}
   grid-template-columns: minmax(140px, 1fr) minmax(280px, 2fr) minmax(140px, 1fr);
   gap: 12px;
   align-items: stretch;
-  margin-bottom: 6px;
+  /* v17.5.4 — Línea divisoria sutil que separa el HERO (acorde + grilla +
+     iconos/meta) de los wheels de abajo. Define visualmente el header. */
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 0.5px solid var(--rule, rgba(0,0,0,.12));
 }
 .cs-header-3col .cs-col-left {
   display: flex;
@@ -5702,6 +5746,35 @@ body.mixer-dragging *{touch-action:none !important}
 
 /* Esconder el cs-title viejo: ahora la metadata vive en cs-meta-* */
 #cs-title { display: none !important; }
+
+/* v17.4.4 — Esconder el s-head viejo del chord-sheet: los iconos ✓🗑× se
+   movieron al HERO 3-col y el cs-title está oculto. Solo queda el handle
+   de drag (s-handle) que necesita estar visible para gestos. */
+#chord-sheet > .s-head { display: none !important; }
+
+/* Iconos circulares ✓🗑× en la columna derecha del HERO */
+.cs-icons-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.cs-icons-row .shbtn {
+  /* v17.5.11 — botones +20%: 30→36 px, font 14→17 px. Mismo lugar y alineación. */
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 0.5px solid var(--rule, rgba(0,0,0,.18));
+  background: var(--card, #fff);
+  color: var(--ink, #1a1a1a);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 17px;
+  padding: 0;
+  transition: transform .1s, background .15s;
+}
+.cs-icons-row .shbtn:active { transform: scale(.92); }
+.cs-icons-row .shbtn.ok { color: var(--ok, #2a8a44); }
+.cs-icons-row .shbtn.del { color: var(--alert, #c64545); }
 
 /* ─── inst-sheet: bloque de fórmula técnica abajo del Octavador ─── */
 .is-mw-block-tf {
@@ -6189,10 +6262,13 @@ body.mixer-dragging *{touch-action:none !important}
        solo afecta espacios libres arriba/abajo (sin tocar fonts ni recuadro). -->
   <div class="s-body" style="padding:4px 12px 4px">
 
-    <!-- v17.4.0 — HERO reagrupado en 3 columnas: izq (acorde + Compás N) ·
-         centro (grilla técnica reactiva) · der (play + meta del track).
-         Compás 1 y Ensamble · by Note quedan abajo de cada columna, sobre
-         la divisoria que abre los wheels. Sin agregar altura vertical. -->
+    <!-- v17.4.0/v17.4.4 — HERO reagrupado en 3 columnas:
+         · izq: acorde grande + fórmula del acorde + Compás N (al fondo)
+         · centro: grilla técnica reactiva
+         · der: iconos ✓🗑× (arriba) + Track · Layer (al fondo)
+         El botón ▶ queda oculto por CSS (la funcionalidad sigue disponible
+         vía previewChord() pero no estorba el header). El s-head viejo
+         queda con display:none en CSS (solo el handle de drag visible). -->
     <div class="cs-header-3col">
       <div class="cs-col-left">
         <div>
@@ -6200,16 +6276,21 @@ body.mixer-dragging *{touch-action:none !important}
           <div class="cd-hero"><div class="cd-root" id="cs-root">A</div><div class="cd-suf" id="cs-suf">m7</div></div>
           <div class="cd-int" id="cs-int">T · 3m · 5 · 7m</div>
         </div>
-        <div id="cs-meta-compas">Compás 1</div>
+        <div id="cs-meta-compas">Track 1 - Compás 1</div>
       </div>
       <div class="cs-col-center">
-        <div id="cs-tech-formula"><div class="tf-compact" style="opacity:.3">— grilla técnica —</div></div>
+        <div id="cs-tech-formula"><div class="tf-compact" style="opacity:.25">— —</div></div>
       </div>
       <div class="cs-col-right">
-        <button class="cs-play" id="cs-play-btn" onclick="previewChord()">
+        <div class="cs-icons-row">
+          <button class="shbtn ok" onclick="applyEdit()" aria-label="Aplicar">✓</button>
+          <button class="shbtn del" onclick="deleteClip()" aria-label="Eliminar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+          <button class="shbtn" onclick="closeSheet('chord-sheet')" aria-label="Cerrar">✕</button>
+        </div>
+        <button class="cs-play" id="cs-play-btn" onclick="previewChord()" style="display:none">
           <div class="cs-play-ic"></div>
         </button>
-        <div id="cs-meta-track">Ensamble · by Note</div>
+        <div id="cs-meta-track">Ensamble · (notas)</div>
       </div>
     </div>
 
@@ -6446,6 +6527,11 @@ body.mixer-dragging *{touch-action:none !important}
        Solo aplica al inst-sheet; el chord-sheet sigue intocable R6.2. -->
   <div class="s-body" style="padding:4px 12px 2px">
 
+    <!-- v17.5.0 — Wrapper sticky: las tabs de familia + el carrusel de
+         instrumentos quedan FIJOS arriba mientras los wheels horizontales
+         scrollean por debajo. -->
+    <div class="is-sticky-header">
+
     <!-- FILA 1 — 6 chips FIJOS de FAMILIA (Guitarra/Bajo/Piano/Batería/futuros).
          Slots 5 y 6 quedan reservados para futuras adiciones (ej: Saxo, Violín). -->
     <div class="is-fam-row" id="is-fam-row"></div>
@@ -6485,6 +6571,8 @@ body.mixer-dragging *{touch-action:none !important}
       </div>
 
     </div>
+
+    </div><!-- /.is-sticky-header -->
 
     <!-- ZONA 2 — FILA INFERIOR (donde estaban los FX antes):
          Wheels horizontales VIVOS de Técnica + Sub-técnica + Octavador.
@@ -15502,11 +15590,26 @@ function openChordSheet(clip,ti,ci){
   // track · layer (col-right) por separado. El cs-title viejo sigue siendo
   // el escritor "ground truth" para preservar funcionalidad existente, pero
   // visualmente queda oculto vía CSS (display:none).
+  // v17.5.3 — col-left ahora muestra "Track N - Compás N" (con número del track
+  // del clip activo). col-right reemplaza "by Note" → "(notas)" y "by Chord" →
+  // "(acordes)" según pedido del arquitecto. La etiqueta indica si el sample
+  // está armado por notas sueltas o por samples de acordes (TODO pendiente:
+  // cargar samples de acordes para extensiones complejas).
   try {
     const _elMC = document.getElementById('cs-meta-compas');
     const _elMT = document.getElementById('cs-meta-track');
-    if (_elMC) _elMC.textContent = 'Compás ' + compN + (beatsPart || '');
-    if (_elMT) _elMT.textContent = trackName + (_layerBadge ? _layerBadge.replace(/^\s*·\s*/, ' · ') : '');
+    const _trackN = (typeof ti === 'number' && ti >= 0) ? (ti + 1) : 1;
+    if (_elMC) _elMC.textContent = 'Track ' + _trackN + ' - Compás ' + compN + (beatsPart || '');
+    if (_elMT) {
+      let _layerStr = _layerBadge ? _layerBadge.replace(/^\s*·\s*/, '') : '';
+      // v17.5.3 — Notación pedida: "by Note" → "(notas)", "by Chord" → "(acordes)",
+      // "by Loop" → "(loop)". Insensible a mayúsculas, regex tolerante con espacios.
+      _layerStr = _layerStr
+        .replace(/by\s+note/i,  '(notas)')
+        .replace(/by\s+chord/i, '(acordes)')
+        .replace(/by\s+loop/i,  '(loop)');
+      _elMT.textContent = trackName + (_layerStr ? ' · ' + _layerStr : '');
+    }
   } catch(_e) {}
 
   updateHero(clip);
@@ -20119,6 +20222,8 @@ function instRenderWheels(){
   if(typeof instMwBuildAll === 'function') instMwBuildAll();
   // v17.4.0 — refrescar grilla técnica del inst-sheet (modo abstracto, sin filtro)
   try { if (typeof _renderInstSheetTechFormula === 'function') _renderInstSheetTechFormula(); } catch(_e) {}
+  // v17.5.5 — auto-fit del texto del item activo si se sale del recuadro
+  try { if (typeof _autoFitWheelText === 'function') requestAnimationFrame(_autoFitWheelText); } catch(_e) {}
 }
 
 /** Renderiza la grilla de FX del inst-sheet (mismo motor que renderMixerEffects). */
@@ -21981,6 +22086,8 @@ function cewUpdateRowVals(clip){
   _set('cew-var-disp', _varDisp);
   // v17.4.0 — refrescar grilla técnica del chord-editor cuando cambia tech/sub
   try { if (typeof _renderChordSheetTechFormula === 'function') _renderChordSheetTechFormula(clip); } catch(_e) {}
+  // v17.5.5 — auto-fit del texto del item activo si se sale del recuadro azul
+  try { if (typeof _autoFitWheelText === 'function') requestAnimationFrame(_autoFitWheelText); } catch(_e) {}
   
   // Octava del clip (cew-oct-val): tampoco existe en v16.3.10 pero defensivo.
   const _octEl = document.getElementById('cew-oct-val');
@@ -24396,6 +24503,10 @@ function buildCfgWheel(def){
     strip.querySelectorAll('.cfg-w-item').forEach((el, i) => {
       el.classList.toggle('active', i === idx);
     });
+    // v17.5.13 — auto-fit del item activo (solo wheel Notación, ver _autoFitWheelText)
+    if(def.key === 'notation'){
+      try { if(typeof _autoFitWheelText === 'function') requestAnimationFrame(_autoFitWheelText); } catch(_e) {}
+    }
   };
 
   // v15.0-DEMO: doble-rAF defensivo para medir trackW DESPUÉS de que el menú
@@ -26835,94 +26946,63 @@ function _subIdxByVariantName(family, techKey, variantName) {
 }
 
 // Render para chord-sheet: contextual + filtrado por suffix del acorde.
-// FIX v17.4.1: cuando clip.tech no existe en el catálogo de la familia del
-// inst (caso típico: clip viejo con tech='BALADA' en track ahora 'gtr_strat'),
-// fallback a la técnica activa del wheel UI o a la primera del catálogo.
-// v17.4.3: logs explícitos + invocación reforzada.
+// FIX v17.5.2: detectar familia buscando directamente qué TECH_FORMULAS
+// contiene (clip.tech, clip.v) — NO depende de detectar el inst del track,
+// que era la fuente de bugs (clip de bajo en track de piano y casos así).
 function _renderChordSheetTechFormula(clip) {
   try {
     const elTarget = document.getElementById('cs-tech-formula');
-    if (!elTarget) {
-      console.warn('[v17.4.3] cs-tech-formula NO ENCONTRADO en DOM');
-      return;
-    }
-    if (!clip) { console.log('[v17.4.3] clip vacío — limpiando grilla'); elTarget.innerHTML = ''; return; }
-    const ti = (window.G && G.editRef && G.editRef.ti != null) ? G.editRef.ti : -1;
-    const tr = (ti >= 0 && window.G && G.tracks && G.tracks[ti]) ? G.tracks[ti] : null;
-    const inst = tr ? tr.inst : null;
-    if (!inst) {
-      console.warn('[v17.4.3] no hay inst — ti=' + ti + ' tr=' + !!tr);
-      elTarget.innerHTML = '<div class="tf-compact" style="opacity:.3">— sin inst —</div>'; return;
-    }
-    if (/drum/i.test(inst)) { elTarget.innerHTML = ''; return; }
-    const family = _familyForInst(inst);
-    if (!family) {
-      console.warn('[v17.4.3] family null para inst=' + inst);
-      elTarget.innerHTML = '<div class="tf-compact" style="opacity:.3">— familia no detectada: ' + inst + ' —</div>';
-      return;
-    }
-    if (!TECH_FORMULAS[family]) {
-      console.warn('[v17.4.3] TECH_FORMULAS no tiene family=' + family);
-      elTarget.innerHTML = ''; return;
-    }
+    if (!elTarget || !clip) return;
 
-    let techKey = clip.tech || '';
-    let variantName = clip.v || '';
-    console.log('[v17.4.3] render chord-sheet · inst=' + inst + ' family=' + family + ' tech=' + techKey + ' v=' + variantName);
+    const techKey = clip.tech || '';
+    const variantName = clip.v || '';
 
+    // Modo Director Preset
     if (techKey === '__PRESET__') {
       elTarget.innerHTML = '<div class="tf-compact">— Director Preset activo —</div>';
       return;
     }
 
-    let subIdx = _subIdxByVariantName(family, techKey, variantName);
-
-    if (subIdx < 0 || !TECH_FORMULAS[family][techKey]) {
-      let resolvedTech = null, resolvedVar = null;
-      try {
-        if (typeof _currentTechList === 'function' && typeof HWS !== 'undefined') {
-          const list = _currentTechList(inst) || [];
-          const ti5 = (HWS[5] && HWS[5].idx) || 0;
-          const tk = list[ti5] || list[0];
-          if (tk && tk.key && tk.key !== '__PRESET__') {
-            resolvedTech = tk.key;
-            const vi = (HWS[6] && HWS[6].idx) || 0;
-            resolvedVar = (tk.vars && tk.vars[vi] && tk.vars[vi].n) || (tk.vars && tk.vars[0] && tk.vars[0].n) || '';
-          }
-        }
-      } catch(_) {}
-      if (resolvedTech && TECH_FORMULAS[family][resolvedTech]) {
-        console.log('[v17.4.3] fallback wheel → tech=' + resolvedTech + ' var=' + resolvedVar);
-        techKey = resolvedTech;
-        variantName = resolvedVar;
-        subIdx = _subIdxByVariantName(family, techKey, variantName);
-        if (subIdx < 0) subIdx = 0;
-      } else {
-        const firstTech = Object.keys(TECH_FORMULAS[family])[0];
-        if (firstTech) {
-          console.log('[v17.4.3] fallback primera tech → ' + firstTech);
-          techKey = firstTech;
-          subIdx = 0;
-        }
+    // Buscar la familia que contiene (techKey, variantName)
+    let family = null, subIdx = -1;
+    if (techKey && TECH_FORMULAS) {
+      for (const fam of ['PIANO', 'BASS', 'STRINGS', 'GUITAR']) {
+        if (!TECH_FORMULAS[fam] || !TECH_FORMULAS[fam][techKey]) continue;
+        const idx = _subIdxByVariantName(fam, techKey, variantName);
+        if (idx >= 0) { family = fam; subIdx = idx; break; }
       }
     }
 
-    if (subIdx < 0) {
-      console.warn('[v17.4.3] subIdx<0 sin fallback resuelto');
-      elTarget.innerHTML = '<div class="tf-compact" style="opacity:.3">— ' + techKey + ' / ' + variantName + ' —</div>';
-      return;
+    // Si no se encontró por (tech, v), intentar inferir familia desde el track
+    // y usar la primera técnica del catálogo como fallback.
+    if (!family) {
+      let tr = null;
+      if (window.G && Array.isArray(G.tracks)) {
+        if (G.editRef && G.editRef.ti != null && G.tracks[G.editRef.ti]) tr = G.tracks[G.editRef.ti];
+        if (!tr) {
+          for (let i = 0; i < G.tracks.length; i++) {
+            const t = G.tracks[i];
+            if (t && Array.isArray(t.clips) && t.clips.indexOf(clip) >= 0) { tr = t; break; }
+          }
+        }
+        if (!tr && G.activeTi != null && G.tracks[G.activeTi]) tr = G.tracks[G.activeTi];
+      }
+      const inst = tr && tr.inst;
+      if (inst && /drum/i.test(inst)) { elTarget.innerHTML = ''; return; }
+      const fam2 = inst ? _familyForInst(inst) : null;
+      if (fam2 && TECH_FORMULAS[fam2]) {
+        family = fam2;
+        const firstTech = Object.keys(TECH_FORMULAS[family])[0];
+        if (firstTech) subIdx = 0;
+      }
     }
-    const formula = _getTechFormula(family, techKey, subIdx);
-    if (!formula) {
-      console.warn('[v17.4.3] formula null para ' + family + '/' + techKey + '/' + subIdx);
-      elTarget.innerHTML = ''; return;
-    }
+
+    if (!family || subIdx < 0) return; // preservar placeholder
+    const formula = _getTechFormula(family, clip.tech || Object.keys(TECH_FORMULAS[family])[0], subIdx);
+    if (!formula) return;
     const html = _renderTechFormulaGrid(formula, { mode: 'contextual', suffix: clip.s || 'major', filter: true });
     elTarget.innerHTML = html;
-    console.log('[v17.4.3] grilla renderizada · ' + family + '/' + techKey + '[' + subIdx + '] · HTML ' + html.length + ' bytes');
-  } catch (e) {
-    console.warn('[v17.4.3] _renderChordSheetTechFormula error:', e);
-  }
+  } catch (_e) {}
 }
 
 // Render para inst-sheet: abstracto, sin filtrado.
@@ -26980,12 +27060,22 @@ function _renderInstSheetTechFormula(_unused) {
   }
 }
 
-// Setea Compás N y track meta en los nuevos slots del header chord-sheet
-function _setChordSheetMeta(compN, trackName, layerLabel) {
+// Setea Track N - Compás N y track · (notas)/(acordes) meta en los nuevos
+// slots del header chord-sheet. v17.5.3: agrega trackIdx y reemplaza el
+// formato textual del layer label.
+function _setChordSheetMeta(compN, trackName, layerLabel, trackIdx) {
   const elC = document.getElementById('cs-meta-compas');
   const elT = document.getElementById('cs-meta-track');
-  if (elC) elC.textContent = 'Compás ' + compN;
-  if (elT) elT.textContent = trackName + (layerLabel ? ' · ' + layerLabel.replace(/^\s*·\s*/, '') : '');
+  const trackN = (typeof trackIdx === 'number' && trackIdx >= 0) ? (trackIdx + 1) : 1;
+  if (elC) elC.textContent = 'Track ' + trackN + ' - Compás ' + compN;
+  if (elT) {
+    let layerStr = layerLabel ? String(layerLabel).replace(/^\s*·\s*/, '') : '';
+    layerStr = layerStr
+      .replace(/by\s+note/i,  '(notas)')
+      .replace(/by\s+chord/i, '(acordes)')
+      .replace(/by\s+loop/i,  '(loop)');
+    elT.textContent = trackName + (layerStr ? ' · ' + layerStr : '');
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -27036,7 +27126,7 @@ if (typeof window.openChordSheet === 'function') {
             layerLabel = _getActiveLayerLabel(G.tracks[ti].inst, clip.r, clip.s, clip.tech) || '';
           }
         } catch(_) {}
-        _setChordSheetMeta(compN, trackName, layerLabel);
+        _setChordSheetMeta(compN, trackName, layerLabel, ti);
         _renderChordSheetTechFormula(clip);
       }
     } catch (e) { console.warn('[v17.4.0] openChordSheet meta error:', e); }
@@ -27102,6 +27192,67 @@ window._subIdxByVariantName = _subIdxByVariantName;
 window._renderChordSheetTechFormula = _renderChordSheetTechFormula;
 window._renderInstSheetTechFormula = _renderInstSheetTechFormula;
 window._setChordSheetMeta = _setChordSheetMeta;
+
+// ────────────────────────────────────────────────────────────────────
+// v17.5.7 — Auto-fit del texto en items activos de los wheels (H + V)
+// ────────────────────────────────────────────────────────────────────
+// Mismo principio que el clip de acordes en la timeline:
+//   const rootFs = Math.min(43, Math.max(15, w * 0.18));
+// — calcular el font UNA VEZ proporcional al ancho disponible. NO iterar.
+// v17.5.7: además de overflow horizontal (scrollWidth > clientWidth),
+// detecta overflow VERTICAL (scrollHeight > clientHeight) — caso típico:
+// "Tears in Heaven" wrappea a 3 líneas y se sale por abajo del recuadro.
+// Aplica el ratio MÁS conservador de los dos.
+// Memoize por contenido: si el texto no cambió, NO tocar el font-size.
+// SOLO se invoca desde hooks puntuales (cewUpdateRowVals + instRenderWheels)
+// cuando algo cambió. NUNCA desde el setInterval defensivo.
+function _autoFitWheelText() {
+  try {
+    // v17.5.13 — incluir SOLO el wheel "Notación" del config (data-key="notation").
+    // Otros wheels del config (Tonalidad, Compases, Métrica) NO requieren auto-fit.
+    const activeEls = document.querySelectorAll('.cew-hw-item.chwa, .is-mw-item.active, .cfg-wheel[data-key="notation"] .cfg-w-item.active');
+    for (const el of activeEls) {
+      const txt = (el.textContent || '').trim();
+      // Memoize duro: si el texto NO cambió, salir sin tocar nada.
+      if (el._fitFor === txt) continue;
+      el._fitFor = txt;
+
+      // Resetear inline para medir desde el font CSS natural.
+      el.style.fontSize = '';
+      const naturalW = el.scrollWidth;
+      const naturalH = el.scrollHeight;
+      const containerW = el.clientWidth;
+      const containerH = el.clientHeight;
+
+      // ¿Entra OK en ambos ejes?
+      const fitsH = naturalW <= containerW + 1;
+      const fitsV = naturalH <= containerH + 1;
+      if (fitsH && fitsV) continue;
+
+      // No entra: cálculo PROPORCIONAL único en ambos ejes, tomamos el ratio
+      // más conservador. Margen de seguridad: 4px lateral, 2px vertical.
+      const baseFont = parseFloat(getComputedStyle(el).fontSize) || 14;
+      const minFont = Math.max(8, baseFont * 0.55);
+      const ratioH = fitsH ? 1 : Math.max(0, (containerW - 4) / naturalW);
+      const ratioV = fitsV ? 1 : Math.max(0, (containerH - 2) / naturalH);
+      const ratio = Math.min(ratioH, ratioV);
+      let newSize = baseFont * ratio;
+      newSize = Math.max(minFont, Math.min(baseFont, newSize));
+      // Round a 0.5px para que el render sea estable.
+      newSize = Math.round(newSize * 2) / 2;
+      el.style.fontSize = newSize + 'px';
+    }
+    // Items que dejaron de ser activos: limpiar inline + memo.
+    document.querySelectorAll('.cew-hw-item, .is-mw-item, .cfg-wheel[data-key="notation"] .cfg-w-item').forEach(el => {
+      const isActive = el.classList.contains('chwa') || el.classList.contains('active');
+      if (!isActive && el.style && el.style.fontSize) {
+        el.style.fontSize = '';
+        if (el._fitFor !== undefined) delete el._fitFor;
+      }
+    });
+  } catch(_e) {}
+}
+window._autoFitWheelText = _autoFitWheelText;
 
 console.log('[v17.4.3] TECH_FORMULAS cargado · 113 fórmulas · helpers + hooks reactivos OK');
 
