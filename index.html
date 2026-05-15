@@ -980,7 +980,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v21.1.4</title>
+<title>OnlyLoops · v21.1.5</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -7594,6 +7594,8 @@ const STYLES_LIST = [
   { id:'tango',        label:'Tango' },
   { id:'country',      label:'Country' },
   { id:'folk',         label:'Folklore' },
+  // v21.1.5 — TR-909 nativo (8 patches + fills) · pensado para inst='drum_909'
+  { id:'drum909',      label:'Drum 909' },
   { id:'varios',       label:'Varios',        legacy:true },
 ];
 window.STYLES_LIST = STYLES_LIST;
@@ -37991,6 +37993,127 @@ function _resolveDrum909Variant(clip, track) {
 window._resolveDrum909Variant = _resolveDrum909Variant;
 
 // ════════════════════════════════════════════════════════════════════
+// v21.1.5 — DRUM909_TECH_V · variantes compatibles con STYLE_CATALOG.
+// Cada PATCH_X tiene UNA variante única (el patch nativo del 909).
+// Cada FILL_NB tiene 8 sub-variantes (una por género · subtécnica elegible).
+// Helper _drum909Pattern() genera dots BD/SD/HH para el canvas del clip.
+// ════════════════════════════════════════════════════════════════════
+function _drum909Pattern(steps) {
+  // Convierte los 16 steps del 909 a pattern BD/SD/HH para visualización clip.
+  // HC (Hand Clap) cuenta como SD para los dots (mismo rol backbeat).
+  // OH/RIDE cuentan como HH para los dots (mismo rol cymbal).
+  const pat = { BD: [], SD: [], HH: [] };
+  for (let s = 0; s < 16; s++) {
+    const hits = (steps && steps[s]) || [];
+    pat.BD.push(hits.some(h => h[0] === 'BD') ? 1 : 0);
+    pat.SD.push(hits.some(h => h[0] === 'SD' || h[0] === 'HC') ? 1 : 0);
+    pat.HH.push(hits.some(h => h[0] === 'HH' || h[0] === 'HHO' || h[0] === 'RIDE' || h[0] === 'RIDE_BELL') ? 1 : 0);
+  }
+  return pat;
+}
+
+// Helper: dispara los 16 steps de un patch via drumHit (motor canónico).
+function _drum909Play(steps, bs) {
+  if (typeof drumHit !== 'function') return;
+  const sixteenth = bs / 4;
+  for (let s = 0; s < 16; s++) {
+    const hits = steps[s];
+    if (!hits || !hits.length) continue;
+    const tOffset = s * sixteenth;
+    hits.forEach(h => drumHit(h[0], tOffset, h[1]));
+  }
+}
+
+// Constructor de variant por patch (PATCH_X con 1 variante)
+function _drum909MakePatchVar(patchKey) {
+  const patch = DRUM909_PATCHES[patchKey];
+  if (!patch) return null;
+  return {
+    n: patch.label,
+    d: patch.genre + ' · ' + patch.source,
+    pattern: _drum909Pattern(patch.steps),
+    play: (rs, iv, bs, now) => _drum909Play(patch.steps, bs)
+  };
+}
+
+// Constructor de variant por fill (8 fills disponibles · uno por género)
+function _drum909MakeFillVar(patchKey) {
+  const patch = DRUM909_PATCHES[patchKey];
+  if (!patch || !patch.fill) return null;
+  return {
+    n: patch.fill.label,
+    d: 'Fill ' + patch.genre,
+    pattern: _drum909Pattern(patch.fill.steps),
+    play: (rs, iv, bs, now) => _drum909Play(patch.fill.steps, bs)
+  };
+}
+
+const DRUM909_PATCH_KEYS = ['HOUSE','TECHNO','ACID','MINIMAL','GARAGE','DEEP_HOUSE','INDUSTRIAL','DETROIT'];
+
+// Las 8 variantes de fill (una por género, repetidas en todas las FILL_NB)
+const _DRUM909_FILL_VARS = DRUM909_PATCH_KEYS.map(k => _drum909MakeFillVar(k)).filter(Boolean);
+
+// INTRO/OUTRO simples: solo BD cada beat (kick build) + crash al cierre
+const _DRUM909_INTRO_VARS = [{
+  n: '4-on-Floor Build',
+  d: 'Kick en cada beat · build-up clásico 909',
+  pattern: { BD:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], SD:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], HH:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] },
+  play: (rs, iv, bs, now) => {
+    if (typeof drumHit !== 'function') return;
+    const sixteenth = bs / 4;
+    [0,4,8,12].forEach(s => drumHit('BD', s * sixteenth, 1.0));
+  }
+}];
+
+const _DRUM909_OUTRO_VARS = [{
+  n: 'Crash Outro',
+  d: 'Kick + crash final',
+  pattern: { BD:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], SD:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], HH:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] },
+  play: (rs, iv, bs, now) => {
+    if (typeof drumHit !== 'function') return;
+    const sixteenth = bs / 4;
+    [0,4,8,12].forEach(s => drumHit('BD', s * sixteenth, 1.0));
+    drumHit('CRASH', 12 * sixteenth, 0.9);
+    drumHit('BD', 15 * sixteenth, 0.85);
+  }
+}];
+
+const DRUM909_TECH_V = {
+  INTRO:   _DRUM909_INTRO_VARS,
+  PATCH_1: [_drum909MakePatchVar('HOUSE')],
+  PATCH_2: [_drum909MakePatchVar('TECHNO')],
+  PATCH_3: [_drum909MakePatchVar('ACID')],
+  PATCH_4: [_drum909MakePatchVar('MINIMAL')],
+  PATCH_5: [_drum909MakePatchVar('GARAGE')],
+  PATCH_6: [_drum909MakePatchVar('DEEP_HOUSE')],
+  PATCH_7: [_drum909MakePatchVar('INDUSTRIAL')],
+  PATCH_8: [_drum909MakePatchVar('DETROIT')],
+  FILL_4B: _DRUM909_FILL_VARS,
+  FILL_3B: _DRUM909_FILL_VARS,
+  FILL_2B: _DRUM909_FILL_VARS,
+  FILL_1B: _DRUM909_FILL_VARS,
+  OUTRO:   _DRUM909_OUTRO_VARS
+};
+
+const DRUM909_DRUMS_TECH_LIST = [
+  { key:'INTRO',    label:'Intro',         vars: DRUM909_TECH_V.INTRO    },
+  { key:'PATCH_1',  label:'House Basic',   vars: DRUM909_TECH_V.PATCH_1  },
+  { key:'PATCH_2',  label:'Techno Drive',  vars: DRUM909_TECH_V.PATCH_2  },
+  { key:'PATCH_3',  label:'Acid House',    vars: DRUM909_TECH_V.PATCH_3  },
+  { key:'PATCH_4',  label:'Minimal',       vars: DRUM909_TECH_V.PATCH_4  },
+  { key:'PATCH_5',  label:'Garage Shuffle',vars: DRUM909_TECH_V.PATCH_5  },
+  { key:'PATCH_6',  label:'Deep House',    vars: DRUM909_TECH_V.PATCH_6  },
+  { key:'PATCH_7',  label:'Industrial',    vars: DRUM909_TECH_V.PATCH_7  },
+  { key:'PATCH_8',  label:'Detroit Electro', vars: DRUM909_TECH_V.PATCH_8 },
+  { key:'FILL_4B',  label:'Fill 4 beats',  vars: DRUM909_TECH_V.FILL_4B },
+  { key:'FILL_3B',  label:'Fill 3 beats',  vars: DRUM909_TECH_V.FILL_3B },
+  { key:'FILL_2B',  label:'Fill 2 beats',  vars: DRUM909_TECH_V.FILL_2B },
+  { key:'FILL_1B',  label:'Fill 1 beat',   vars: DRUM909_TECH_V.FILL_1B },
+  { key:'OUTRO',    label:'Outro',         vars: DRUM909_TECH_V.OUTRO   }
+];
+window.DRUM909_DRUMS_TECH_LIST = DRUM909_DRUMS_TECH_LIST;
+
+// ════════════════════════════════════════════════════════════════════
 // v20.10.0 CIRUGÍA MAYOR — MOTOR LIMPIO DEL BAJO
 // Reemplaza COMPLETAMENTE el sistema legacy (playBassChord, BASS_TECH_V,
 // _normalizeBassClipLegacy, _currentClipTech/Var globals, PHYSICAL_BASS_TECHS).
@@ -44503,6 +44626,28 @@ const STYLE_CATALOG = {
     cuerdas:  { sounds: [], techs: STRINGS_TECH_LIST },
     otros:    { sounds: [], techs: []                },
     bateria:  { sounds: [], techs: []                },
+  },
+
+  // ── drum909 (v21.1.5 · TR-909 nativo · 8 patches + fills) ──────────
+  // Estilo dedicado al lenguaje del Roland TR-909. Las 8 técnicas (PATCH_1..8)
+  // mapean a los géneros históricos: House Basic · Techno Drive · Acid House ·
+  // Minimal · Garage Shuffle · Deep House · Industrial · Detroit Electro.
+  // Cada FILL_NB ofrece 8 sub-variantes (una por género) para que el usuario
+  // elija el fill compatible con el patch activo.
+  // Pianos/bajos/guitarras/cuerdas usan las listas legacy (compat con cualquier
+  // instrumento del track no-batería). El track recomendado es 'drum_909' para
+  // que el motor use los synths nativos del 909 (no los samples Salamander).
+  drum909: {
+    piano:    { sounds: [], techs: PIANO_TECH_LIST   },
+    bajo:     { sounds: [], techs: BASS_TECH_LIST    },
+    guitarra: { sounds: [], techs: TECH_LIST         },
+    cuerdas:  { sounds: [], techs: STRINGS_TECH_LIST },
+    otros:    { sounds: [], techs: []                },
+    bateria:  {
+      sounds: [],
+      kind:  'tr909',
+      techs: DRUM909_DRUMS_TECH_LIST,
+    },
   },
 
   // ── rock (TANDA 1 · IMPLEMENTADO v20.0.0) ──────────────────────────
