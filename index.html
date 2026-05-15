@@ -980,7 +980,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v21.1.2</title>
+<title>OnlyLoops · v21.1.4</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -4537,11 +4537,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 }
 .hdr-pro-btn:hover { filter: brightness(1.08); }
 .hdr-pro-btn:active { transform: scale(.94); }
+/* v21.1.3 — Tamaño consistente activado/desactivado: el ✓ adicional NO debe
+   hacer crecer el botón. Achicar letter-spacing y font-size cuando applied
+   para compensar el carácter extra y que NO se corte en iPhone. */
 .hdr-pro-btn.applied {
   background: linear-gradient(180deg, var(--ink) 0%, #000 100%);
   border-color: #a07a2e;
+  letter-spacing: 0.4px;
+  font-size: 10px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
-.hdr-pro-btn.applied::after { content: " ✓"; opacity: 0.9; letter-spacing: 0; }
+.hdr-pro-btn.applied::after { content: " ✓"; opacity: 0.9; letter-spacing: 0; margin-left: 1px; }
 .hdr-pro-btn svg { flex-shrink: 0; }
 
 /* Config sheet */
@@ -9225,22 +9232,95 @@ function _buildDrum909Once() {
   try {
     if (window._drum909) return;
     if (typeof Tone === 'undefined') return;
+    // v21.1.3 — Refactor: synths DEDICADOS para cada elemento (no kick reusado
+    // para toms). Volúmenes nivelados al drums original Salamander para que el
+    // switch entre baterías mantenga el groove sin cambio de balance.
     window._drum909 = {
+      // BD — Kick 909 punchy
       kick: new Tone.MembraneSynth({
         pitchDecay: 0.04, octaves: 4,
         envelope: { attack: 0.001, decay: 0.25, sustain: 0.01, release: 0.4 },
-        volume: -6
+        volume: -3
       }).toDestination(),
+      // SD — Snare blanco 909 característico
       snare: new Tone.NoiseSynth({
         noise: { type: 'white' },
-        envelope: { attack: 0.001, decay: 0.2, sustain: 0 },
+        envelope: { attack: 0.001, decay: 0.18, sustain: 0 },
+        volume: -9
+      }).toDestination(),
+      // RIM — Snare más corto + tone superior (rim shot)
+      rim: new Tone.MetalSynth({
+        frequency: 800,
+        envelope: { attack: 0.001, decay: 0.03, release: 0.01 },
+        harmonicity: 3.1, modulationIndex: 16, resonance: 3000, octaves: 0.5,
         volume: -14
       }).toDestination(),
+      // HH — Hi-hat cerrado metálico (909 classic)
       hh: new Tone.MetalSynth({
         frequency: 400,
-        envelope: { attack: 0.001, decay: 0.04, release: 0.005 },
+        envelope: { attack: 0.001, decay: 0.05, release: 0.005 },
         harmonicity: 8, modulationIndex: 24, resonance: 6000, octaves: 1,
-        volume: -26
+        volume: -15
+      }).toDestination(),
+      // HHO — Hi-hat abierto largo
+      hho: new Tone.MetalSynth({
+        frequency: 400,
+        envelope: { attack: 0.001, decay: 0.3, release: 0.1 },
+        harmonicity: 8, modulationIndex: 28, resonance: 7000, octaves: 1.2,
+        volume: -14
+      }).toDestination(),
+      // RIDE — Sustain medio + bell
+      ride: new Tone.MetalSynth({
+        frequency: 350,
+        envelope: { attack: 0.001, decay: 0.4, release: 0.15 },
+        harmonicity: 5.2, modulationIndex: 22, resonance: 5000, octaves: 1.5,
+        volume: -16
+      }).toDestination(),
+      // RIDE_BELL — Bell brillante
+      rideBell: new Tone.MetalSynth({
+        frequency: 600,
+        envelope: { attack: 0.001, decay: 0.25, release: 0.1 },
+        harmonicity: 6.5, modulationIndex: 16, resonance: 8000, octaves: 1,
+        volume: -15
+      }).toDestination(),
+      // CRASH — Decay largo brillante
+      crash: new Tone.MetalSynth({
+        frequency: 300,
+        envelope: { attack: 0.001, decay: 1.2, release: 0.4 },
+        harmonicity: 8.5, modulationIndex: 32, resonance: 9000, octaves: 1.8,
+        volume: -10
+      }).toDestination(),
+      // SPLASH — Crash más corto y agudo
+      splash: new Tone.MetalSynth({
+        frequency: 500,
+        envelope: { attack: 0.001, decay: 0.4, release: 0.15 },
+        harmonicity: 7, modulationIndex: 28, resonance: 8500, octaves: 1.4,
+        volume: -12
+      }).toDestination(),
+      // TM1 — Tom alto · membrane dedicado
+      tm1: new Tone.MembraneSynth({
+        pitchDecay: 0.06, octaves: 3,
+        envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 0.5 },
+        volume: -7
+      }).toDestination(),
+      // TM2 — Tom medio
+      tm2: new Tone.MembraneSynth({
+        pitchDecay: 0.07, octaves: 3.5,
+        envelope: { attack: 0.001, decay: 0.45, sustain: 0.01, release: 0.55 },
+        volume: -7
+      }).toDestination(),
+      // FT — Floor tom · más grave + decay largo
+      ft: new Tone.MembraneSynth({
+        pitchDecay: 0.09, octaves: 4,
+        envelope: { attack: 0.001, decay: 0.6, sustain: 0.01, release: 0.7 },
+        volume: -5
+      }).toDestination(),
+      // v21.1.4 — HC (Hand Clap) · característico del 909, NO existe en Salamander.
+      // NoiseSynth pink con envelope rápido para emular el clap analógico clásico.
+      hc: new Tone.NoiseSynth({
+        noise: { type: 'pink' },
+        envelope: { attack: 0.002, decay: 0.13, sustain: 0, release: 0.05 },
+        volume: -10
       }).toDestination()
     };
   } catch(e) { console.warn('[drum_909 build]', e); }
@@ -35506,12 +35586,20 @@ function drumHit(type,t,vol){
 
   // ════════════════════════════════════════════════════════════════
   // v21.1.1 — DRUM 909 HOOK · enrutar al synth si el track activo
-  // tiene inst='drum_909'. type → synth mapping:
-  //   BD                  → kick
-  //   SD, RIM             → snare
-  //   HH                  → hh corto (32n)
-  //   HHO, RIDE, RIDE_BELL, CRASH, SPLASH → hh largo (16n)
-  //   TM1, TM2, FT        → kick con tone (pitch alto)
+  // tiene inst='drum_909'.
+  // v21.1.3 — REFACTOR: synths dedicados para cada elemento. Volúmenes
+  // nivelados al drums original (Salamander) para que el switch entre
+  // baterías preserve el groove y balance.
+  //   BD → kick (MembraneSynth · pitchDecay 0.04)
+  //   SD → snare (NoiseSynth white)
+  //   RIM → rim (MetalSynth corto · rim-shot character)
+  //   HH → hh (MetalSynth corto cerrado)
+  //   HHO → hho (MetalSynth sustain largo abierto)
+  //   RIDE → ride (MetalSynth medio sustain)
+  //   RIDE_BELL → rideBell (MetalSynth bright bell)
+  //   CRASH → crash (MetalSynth decay 1.2s brillante)
+  //   SPLASH → splash (MetalSynth decay 0.4s)
+  //   TM1/TM2/FT → MembraneSynth dedicado (NO kick reusado)
   // ════════════════════════════════════════════════════════════════
   try {
     const _trk = G && G.tracks && G.tracks[currentTrackIdx];
@@ -35519,23 +35607,48 @@ function drumHit(type,t,vol){
       const kit = window._drum909;
       const startT = ctx.currentTime + (t || 0);
       const v = Math.max(0, Math.min(1, vol || 0.8));
+      // Volume scaling: cada synth tiene su volume base · velocity ajusta ±6dB
+      const vAdj = (v - 0.5) * 12;
       if (type === 'BD') {
-        kit.kick.volume.value = -6 + (v - 0.5) * 12;
+        kit.kick.volume.value = -3 + vAdj;
         kit.kick.triggerAttackRelease('C1', '8n', startT);
-      } else if (type === 'SD' || type === 'RIM') {
-        kit.snare.volume.value = -14 + (v - 0.5) * 12;
-        kit.snare.triggerAttackRelease(type === 'RIM' ? '32n' : '16n', startT);
+      } else if (type === 'SD') {
+        kit.snare.volume.value = -9 + vAdj;
+        kit.snare.triggerAttackRelease('16n', startT);
+      } else if (type === 'RIM') {
+        kit.rim.volume.value = -14 + vAdj;
+        kit.rim.triggerAttackRelease('32n', startT);
       } else if (type === 'HH') {
-        kit.hh.volume.value = -26 + (v - 0.5) * 14;
+        kit.hh.volume.value = -15 + vAdj;
         kit.hh.triggerAttackRelease('32n', startT);
-      } else if (type === 'HHO' || type === 'RIDE' || type === 'RIDE_BELL' || type === 'CRASH' || type === 'SPLASH') {
-        kit.hh.volume.value = -22 + (v - 0.5) * 14;
-        kit.hh.triggerAttackRelease('16n', startT);
-      } else if (type === 'TM1' || type === 'TM2' || type === 'FT') {
-        // Toms con kick a distinto pitch
-        const tomNote = (type === 'TM1') ? 'G1' : (type === 'TM2' ? 'E1' : 'A0');
-        kit.kick.volume.value = -8 + (v - 0.5) * 10;
-        kit.kick.triggerAttackRelease(tomNote, '16n', startT);
+      } else if (type === 'HHO') {
+        kit.hho.volume.value = -14 + vAdj;
+        kit.hho.triggerAttackRelease('8n', startT);
+      } else if (type === 'RIDE') {
+        kit.ride.volume.value = -16 + vAdj;
+        kit.ride.triggerAttackRelease('8n', startT);
+      } else if (type === 'RIDE_BELL') {
+        kit.rideBell.volume.value = -15 + vAdj;
+        kit.rideBell.triggerAttackRelease('16n', startT);
+      } else if (type === 'CRASH') {
+        kit.crash.volume.value = -10 + vAdj;
+        kit.crash.triggerAttackRelease('2n', startT);
+      } else if (type === 'SPLASH') {
+        kit.splash.volume.value = -12 + vAdj;
+        kit.splash.triggerAttackRelease('4n', startT);
+      } else if (type === 'TM1') {
+        kit.tm1.volume.value = -7 + vAdj;
+        kit.tm1.triggerAttackRelease('A2', '8n', startT);
+      } else if (type === 'TM2') {
+        kit.tm2.volume.value = -7 + vAdj;
+        kit.tm2.triggerAttackRelease('E2', '8n', startT);
+      } else if (type === 'FT') {
+        kit.ft.volume.value = -5 + vAdj;
+        kit.ft.triggerAttackRelease('A1', '4n', startT);
+      } else if (type === 'HC') {
+        // v21.1.4 — Hand Clap · característico del 909, NO existe en Salamander
+        kit.hc.volume.value = -10 + vAdj;
+        kit.hc.triggerAttackRelease('16n', startT);
       }
       return;
     }
@@ -37159,8 +37272,11 @@ function clipGestureEnd(e, st){
     // v20.6.1 — Preview drum clip: el motor canónico es _resolveDrumVariant + variant.play
     // (el mismo que usa startPB línea ~17920). playChord no soporta drums y caería al
     // silencio explícito. variant.play dispara los hits BD/SD/HH/etc del compás del clip.
+    // v21.1.4 — Branch dedicado para drum_909 (catálogo nativo TR-909).
     try {
-      const _v = (typeof _resolveDrumVariant === 'function') ? _resolveDrumVariant(clip, t) : null;
+      const _v = (t.inst === 'drum_909' && typeof _resolveDrum909Variant === 'function')
+        ? _resolveDrum909Variant(clip, t)
+        : (typeof _resolveDrumVariant === 'function') ? _resolveDrumVariant(clip, t) : null;
       if (_v && typeof _v.play === 'function') {
         const _ctx = (typeof getCtx === 'function') ? getCtx() : null;
         const _now = _ctx ? _ctx.currentTime : 0;
@@ -37637,19 +37753,242 @@ function updatePHHeight(){
  * Devuelve null si no encuentra la variant (motor → silencio, render → vacío).
  */
 function _resolveDrumVariant(clip, track) {
-  if (!clip || !clip.tech) return null;
+  if (!clip) return null;
   let estilo = clip.estilo || 'rock';
   if (estilo === 'todos' && clip._origin) estilo = clip._origin;
   if (estilo === 'varios') estilo = 'rock'; // Varios no tiene catálogo drums
   if (typeof STYLE_CATALOG === 'undefined') return null;
   const entry = STYLE_CATALOG[estilo] && STYLE_CATALOG[estilo].bateria;
   if (!entry || !Array.isArray(entry.techs)) return null;
-  const tech = entry.techs.find(t => t.key === clip.tech);
+  // v21.1.3 — Default audible: si no hay tech o tech=INTRO (no produce groove),
+  // usar PATCH_1 como fallback para que la batería SUENE por default.
+  // Si el usuario eligió explícitamente una tech distinta, se respeta.
+  let techKey = clip.tech;
+  if (!techKey) techKey = 'PATCH_1';
+  let tech = entry.techs.find(t => t.key === techKey);
+  // Fallback en cascada: tech inválida → PATCH_1; PATCH_1 ausente → primera tech con vars
+  if (!tech || !Array.isArray(tech.vars) || tech.vars.length === 0) {
+    tech = entry.techs.find(t => t.key === 'PATCH_1' && Array.isArray(t.vars) && t.vars.length > 0);
+    if (!tech) tech = entry.techs.find(t => Array.isArray(t.vars) && t.vars.length > 0);
+  }
   if (!tech || !Array.isArray(tech.vars)) return null;
   const variant = tech.vars.find(v => v.n === clip.v) || tech.vars[0];
   return variant || null;
 }
 window._resolveDrumVariant = _resolveDrumVariant;
+
+// ════════════════════════════════════════════════════════════════════
+// v21.1.4 — DRUM 909 PATCHES · catálogo NATIVO del Roland TR-909
+// Fórmulas históricas de los productores que definieron el 909:
+//   Frankie Knuckles · Derrick May · Jeff Mills · Phuture · Larry Heard
+//   Robin S · Skinny Puppy · Underground Resistance · Basic Channel
+// Mapping a UI existente del drum-sheet:
+//   PATCH_1→HOUSE · PATCH_2→TECHNO · PATCH_3→ACID · PATCH_4→MINIMAL
+//   PATCH_5→GARAGE · PATCH_6→DEEP_HOUSE · PATCH_7→INDUSTRIAL · PATCH_8→DETROIT
+//   FILL_NB → fill del último patch activo del track (fallback HOUSE)
+// R6.2 ✅ Catálogo SEPARADO · NO toca STYLE_CATALOG · NO toca _resolveDrumVariant
+// ════════════════════════════════════════════════════════════════════
+const DRUM909_PATCHES = {
+  HOUSE: {
+    label: 'House Basic', bpm: 124, genre: 'Chicago House',
+    source: 'Frankie Knuckles "Your Love" · Derrick May "Strings of Life"',
+    steps: [
+      [['BD',1.0],['HH',0.6]], [['HH',0.5]], [['HH',0.6]], [['HH',0.5]],
+      [['BD',1.0],['SD',0.9],['HH',0.6]], [['HH',0.5]], [['HH',0.6]], [['HH',0.5],['HHO',0.7]],
+      [['BD',1.0],['HH',0.6]], [['HH',0.5]], [['HH',0.6]], [['HH',0.5]],
+      [['BD',1.0],['SD',0.9],['HH',0.6]], [['HH',0.5]], [['HH',0.6]], [['HH',0.5],['HHO',0.7]]
+    ],
+    fill: { label:'Snare Roll', steps: [
+      [['BD',1.0],['HH',0.6]], [['HH',0.5]], [['HH',0.6]], [['HH',0.5]],
+      [['BD',1.0],['SD',0.9],['HH',0.6]], [['HH',0.5]], [['HH',0.6]], [['HH',0.5]],
+      [['BD',1.0]], [['HH',0.5]], [['HH',0.6]], [['HH',0.5]],
+      [['SD',0.85]], [['SD',0.9]], [['SD',0.95]], [['SD',1.0],['HC',1.0],['CRASH',0.7]]
+    ]}
+  },
+  TECHNO: {
+    label: 'Techno Drive', bpm: 132, genre: 'Detroit Techno',
+    source: 'Jeff Mills · Underground Resistance · Juan Atkins',
+    steps: [
+      [['BD',1.0]], [], [['HH',0.7]], [['BD',0.5]],
+      [['BD',1.0],['SD',0.9]], [], [['HH',0.7]], [['HHO',0.6]],
+      [['BD',1.0]], [], [['HH',0.7]], [['BD',0.5]],
+      [['BD',1.0],['SD',0.9]], [], [['HH',0.7]], [['HHO',0.6]]
+    ],
+    fill: { label:'Tom Cascade', steps: [
+      [['BD',1.0]], [], [['HH',0.7]], [],
+      [['BD',1.0],['SD',0.9]], [], [['HH',0.7]], [],
+      [['BD',1.0]], [], [], [['TM1',0.85]],
+      [['TM1',0.9]], [['TM2',0.9]], [['FT',0.95]], [['CRASH',1.0],['FT',1.0]]
+    ]}
+  },
+  ACID: {
+    label: 'Acid House', bpm: 130, genre: 'Chicago Acid',
+    source: 'Phuture "Acid Tracks" (1987) · Gene Hunt · DJ Pierre',
+    steps: [
+      [['BD',1.0],['HH',0.7]], [['HHO',0.4]], [['HH',0.6]], [['HH',0.7]],
+      [['BD',1.0],['SD',0.85],['HC',0.8]], [['HHO',0.4]], [['HH',0.6]], [['HH',0.7],['BD',0.6]],
+      [['BD',1.0],['HH',0.7]], [['HHO',0.4]], [['HH',0.6]], [['HH',0.7]],
+      [['BD',1.0],['SD',0.85],['HC',0.8]], [['HHO',0.4]], [['BD',0.6],['HH',0.6]], [['HH',0.7]]
+    ],
+    fill: { label:'Clap Roll', steps: [
+      [['BD',1.0],['HH',0.7]], [['HHO',0.4]], [['HH',0.6]], [['HH',0.7]],
+      [['BD',1.0],['SD',0.85]], [['HHO',0.4]], [['HH',0.6]], [['HH',0.7]],
+      [['BD',1.0],['HH',0.7]], [['HHO',0.4]], [['BD',0.7]], [['HH',0.7]],
+      [['HC',0.85]], [['HC',0.9]], [['HC',0.95]], [['HC',1.0],['CRASH',0.8]]
+    ]}
+  },
+  MINIMAL: {
+    label: 'Minimal', bpm: 128, genre: 'Dub Techno',
+    source: 'Plastikman · Basic Channel · Robert Hood',
+    steps: [
+      [['BD',1.0]], [], [['HH',0.6]], [],
+      [['BD',1.0],['SD',0.85]], [], [['HH',0.6]], [],
+      [['BD',1.0]], [], [['HH',0.6]], [],
+      [['BD',1.0],['SD',0.85]], [], [['HH',0.6]], []
+    ],
+    fill: { label:'OH Build', steps: [
+      [['BD',1.0]], [], [['HH',0.6]], [],
+      [['BD',1.0],['SD',0.85]], [], [['HH',0.6]], [],
+      [['BD',1.0]], [], [['HHO',0.6]], [],
+      [['HHO',0.7]], [['HHO',0.75]], [['HHO',0.85]], [['HHO',0.95],['RIDE',0.85]]
+    ]}
+  },
+  GARAGE: {
+    label: 'Garage Shuffle', bpm: 130, genre: 'UK Garage',
+    source: 'Robin S "Show Me Love" (1993) · Todd Edwards',
+    steps: [
+      [['BD',1.0],['HH',0.7]], [['HH',0.5]], [['HH',0.7]], [['HHO',0.6]],
+      [['BD',1.0],['SD',0.85],['HC',0.85]], [['HH',0.5]], [['HH',0.7]], [['HHO',0.6]],
+      [['BD',1.0],['HH',0.7]], [['HH',0.5]], [['HH',0.7]], [['HHO',0.7]],
+      [['BD',1.0],['SD',0.85],['HC',0.85]], [['HH',0.5]], [['HH',0.7]], [['HHO',0.6]]
+    ],
+    fill: { label:'Shuffle Snare', steps: [
+      [['BD',1.0],['HH',0.7]], [['HH',0.5]], [['HH',0.7]], [['HHO',0.6]],
+      [['BD',1.0],['SD',0.85]], [], [['HH',0.7]], [],
+      [['SD',0.7]], [['SD',0.75]], [['SD',0.8]], [['SD',0.85]],
+      [['SD',0.85]], [['SD',0.9]], [['SD',0.95]], [['SD',1.0],['HC',1.0],['CRASH',0.7]]
+    ]}
+  },
+  DEEP_HOUSE: {
+    label: 'Deep House', bpm: 122, genre: 'Deep House',
+    source: 'Larry Heard "Mr Fingers" "Can You Feel It" (1986)',
+    steps: [
+      [['BD',1.0],['RIDE',0.7]], [], [['RIDE',0.55]], [],
+      [['BD',1.0],['SD',0.7],['HC',0.5],['RIDE',0.7]], [], [['RIDE',0.55]], [],
+      [['BD',1.0],['RIDE',0.7]], [], [['RIDE',0.55]], [],
+      [['BD',1.0],['SD',0.7],['HC',0.5],['RIDE',0.7]], [], [['RIDE',0.55]], [['RIDE',0.6]]
+    ],
+    fill: { label:'Ride Bell', steps: [
+      [['BD',1.0],['RIDE',0.7]], [], [['RIDE',0.55]], [],
+      [['BD',1.0],['SD',0.7],['RIDE',0.7]], [], [['RIDE',0.55]], [],
+      [['BD',1.0],['RIDE',0.75]], [['RIDE',0.6]], [['RIDE_BELL',0.7]], [['RIDE',0.6]],
+      [['SD',0.7],['HC',0.7]], [['RIDE',0.65]], [['HC',0.6]], [['CRASH',0.6],['BD',0.8]]
+    ]}
+  },
+  INDUSTRIAL: {
+    label: 'Industrial', bpm: 140, genre: 'Industrial',
+    source: 'Skinny Puppy "Remission" (1984) — primer uso documentado del 909',
+    steps: [
+      [['BD',1.0],['CRASH',0.5]], [], [['HH',0.6]], [['HH',0.5]],
+      [['BD',1.0],['SD',1.0]], [], [['HH',0.6]], [['SD',0.6]],
+      [['BD',1.0]], [['HH',0.6]], [['HH',0.6]], [['HH',0.5]],
+      [['BD',1.0],['SD',1.0]], [['CRASH',0.6]], [['HH',0.6]], [['HH',0.6],['SD',0.6]]
+    ],
+    fill: { label:'Tom Buzz', steps: [
+      [['BD',1.0]], [], [['HH',0.6]], [['HH',0.5]],
+      [['BD',1.0],['SD',1.0]], [], [['TM1',0.85]], [['TM1',0.85]],
+      [['TM2',0.9]], [['TM2',0.9]], [['FT',0.9]], [['FT',0.9]],
+      [['SD',0.9]], [['SD',0.95]], [['SD',1.0],['FT',0.9]], [['CRASH',1.0],['BD',1.0]]
+    ]}
+  },
+  DETROIT: {
+    label: 'Detroit Electro', bpm: 128, genre: 'Detroit Electro / UR',
+    source: 'Underground Resistance · Cybotron "Electronic Warfare" (1994)',
+    steps: [
+      [['BD',1.0]], [['HH',0.5]], [['HH',0.6]], [['BD',0.6]],
+      [['BD',1.0],['SD',1.0]], [['HH',0.5]], [['HHO',0.6]], [['HH',0.5]],
+      [['BD',1.0],['TM1',0.6]], [['HH',0.5]], [['HH',0.6]], [['BD',0.6]],
+      [['BD',1.0],['SD',1.0]], [['HH',0.5]], [['HHO',0.6]], [['HH',0.5],['FT',0.5]]
+    ],
+    fill: { label:'Accent Sweep', steps: [
+      [['BD',1.0]], [['HH',0.5]], [['HH',0.6]], [],
+      [['BD',1.0],['SD',1.0]], [], [['HHO',0.7]], [],
+      [['BD',1.0]], [['TM1',0.8]], [['TM2',0.85]], [['FT',0.9]],
+      [['SD',0.9]], [['TM1',0.95]], [['TM2',1.0]], [['FT',1.0],['CRASH',1.0]]
+    ]}
+  }
+};
+window.DRUM909_PATCHES = DRUM909_PATCHES;
+
+// Mapping de techs UI existentes → keys del catálogo 909
+const _DRUM909_TECH_MAP = {
+  'PATCH_1': 'HOUSE',
+  'PATCH_2': 'TECHNO',
+  'PATCH_3': 'ACID',
+  'PATCH_4': 'MINIMAL',
+  'PATCH_5': 'GARAGE',
+  'PATCH_6': 'DEEP_HOUSE',
+  'PATCH_7': 'INDUSTRIAL',
+  'PATCH_8': 'DETROIT'
+};
+
+/**
+ * Resuelve la variante de un clip de drum_909.
+ * Devuelve un objeto con .play(start,_,bs,when) compatible con el scheduler.
+ * NO usa STYLE_CATALOG · usa DRUM909_PATCHES directo.
+ */
+function _resolveDrum909Variant(clip, track) {
+  if (!clip) return null;
+  const techKey = clip.tech || 'PATCH_1';
+  let patch = null;
+  let isFill = false;
+  // Es un FILL? Buscar último patch activo del track (clips anteriores) o default HOUSE
+  if (typeof techKey === 'string' && techKey.indexOf('FILL') === 0) {
+    isFill = true;
+    let lastPatchKey = 'HOUSE';
+    try {
+      const clips = (track && Array.isArray(track.clips)) ? track.clips : [];
+      const myStart = clip.sb || 0;
+      // Buscar el último clip ANTERIOR con tech PATCH_X
+      for (let i = clips.length - 1; i >= 0; i--) {
+        const c = clips[i];
+        if (!c || (c.sb || 0) >= myStart) continue;
+        if (c.tech && _DRUM909_TECH_MAP[c.tech]) {
+          lastPatchKey = _DRUM909_TECH_MAP[c.tech];
+          break;
+        }
+      }
+    } catch(_){}
+    patch = DRUM909_PATCHES[lastPatchKey];
+  } else {
+    // Patch normal: mapear PATCH_X → key del catálogo · fallback HOUSE
+    const key = _DRUM909_TECH_MAP[techKey] || 'HOUSE';
+    patch = DRUM909_PATCHES[key];
+  }
+  if (!patch) return null;
+  const stepsSource = isFill ? (patch.fill && patch.fill.steps) : patch.steps;
+  if (!stepsSource || !Array.isArray(stepsSource)) return null;
+  // Construir variant compatible con el scheduler (que llama variant.play(_,_,bs,when))
+  return {
+    n: isFill ? patch.fill.label : patch.label,
+    play: function(_a, _b, bs, when) {
+      // bs = beat seconds (60/bpm). 1 step = 16th = bs/4
+      const sixteenth = bs / 4;
+      for (let s = 0; s < 16; s++) {
+        const hits = stepsSource[s];
+        if (!hits || !hits.length) continue;
+        const tOffset = s * sixteenth;
+        hits.forEach(h => {
+          const type = h[0];
+          const vel = h[1];
+          // drumHit ya tiene el branch para drum_909 que enruta a los synths
+          if (typeof drumHit === 'function') drumHit(type, tOffset, vel);
+        });
+      }
+    }
+  };
+}
+window._resolveDrum909Variant = _resolveDrum909Variant;
 
 // ════════════════════════════════════════════════════════════════════
 // v20.10.0 CIRUGÍA MAYOR — MOTOR LIMPIO DEL BAJO
@@ -37811,9 +38150,13 @@ function startPB(){
         const cl = (t.clips||[]).find(c => c && (c.sb||0) === G.playPos);
         if (!cl) return;
         if (cl.drumMuted) return;
-        const variant = (typeof _resolveDrumVariant === 'function')
-          ? _resolveDrumVariant(cl, t)
-          : null;
+        // v21.1.4 — Branch dedicado para drum_909 (catálogo DRUM909_PATCHES) ·
+        // NO usa _resolveDrumVariant (que va al Salamander STYLE_CATALOG).
+        const variant = (t.inst === 'drum_909' && typeof _resolveDrum909Variant === 'function')
+          ? _resolveDrum909Variant(cl, t)
+          : (typeof _resolveDrumVariant === 'function')
+            ? _resolveDrumVariant(cl, t)
+            : null;
         if (!variant || typeof variant.play !== 'function') return;
         const ctx = (typeof getCtx === 'function') ? getCtx() : null;
         const now = ctx ? ctx.currentTime : 0;
@@ -37831,7 +38174,9 @@ function startPB(){
         // siempre" que produce machine-gun effect. Tabla basada en práctica
         // estándar (iZotope/Splice): BD locked, HH/HHO el que más se beneficia.
         // NO toca timing (regla universal con UN sample: mantener tight).
-        const _humV = { BD:0, SD:0.05, HH:0.10, HHO:0.08, RIDE:0.06, RIDE_BELL:0.05, CRASH:0.05, SPLASH:0.05, TM1:0.06, TM2:0.06, FT:0.06, RIM:0.05 };
+        // v21.1.4 — HC (Hand Clap del 909) agregado · accent binario más que velocity
+        // gradiente, jitter mínimo para no romper el carácter mecánico del 909.
+        const _humV = { BD:0, SD:0.05, HH:0.10, HHO:0.08, RIDE:0.06, RIDE_BELL:0.05, CRASH:0.05, SPLASH:0.05, TM1:0.06, TM2:0.06, FT:0.06, RIM:0.05, HC:0.04 };
         // v20.9.3-test — Accent overflow SOLO para CRASH/SPLASH (1 sixteenth
         // máximo fuera de la ventana). Permite que un fill termine con el accent
         // en el "1" del próximo compás (técnica BeatBuddy real). NO afecta BD ni
