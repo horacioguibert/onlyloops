@@ -980,7 +980,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v20.10.27</title>
+<title>OnlyLoops · v21.1.2</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1397,24 +1397,49 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:
    v20.10.23 — MOVIDO del #transport (que está display:none) al #hdr-band1 visible,
    junto al #hdr-play-btn. Ahora SÍ aparece al apretar PLAY.
    v20.10.25 — Texto "cargando" al lado del emoji (parpadea igual, oculto en .state-check).
+   v21.1.2 — MUDADO al primer placeholder de track empty (T6 del plano). renderEmptyTracks()
+   mueve el nodo con appendChild · si no hay placeholder (8/8 llenos), queda escondido en
+   #loading-anchor. Estilo: caja blanca centrada dentro de la fila empty.
    · Secuencia: 🥁 (inline) → 🎹 (Salamander) → 🎻 (Bass+Strings) → 🎸 (Nylon+Electric) → ✓
    · Lee estado vía _samplersLoadingStatus() · presencia en window._XSamplers
    · NO toca Tone/Salamander/grilla/LNF · uso público de banderas existentes */
+
+/* Home invisible cuando 8/8 tracks llenos (sin placeholder donde ir) */
+#loading-anchor{display:none}
+
+/* Indicador en sí — vive normalmente flotante centrado en el slot empty */
 #loading-ind{
-  height:36px;
-  display:inline-flex;align-items:center;justify-content:flex-start;
+  height:32px;
+  display:inline-flex;align-items:center;justify-content:center;
   flex-shrink:0;line-height:1;
   gap:6px;
-  padding:0 6px 0 2px;
+  padding:4px 12px 4px 10px;
+  background:var(--card);
+  border:0.5px solid var(--rule);
+  border-radius:10px;
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
   opacity:0;transform:scale(0.75);
   transition:opacity 350ms ease-out, transform 350ms ease-out;
   pointer-events:none;
   font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
 }
 #loading-ind.active{opacity:1;transform:scale(1)}
+
+/* v21.1.2 — Cuando el indicator vive DENTRO de una .track-row-empty: posicionado
+   absoluto centrado en la celda, sin afectar el layout de la fila placeholder. */
+.track-row-empty{position:relative}
+.track-row-empty > #loading-ind{
+  position:absolute;
+  left:50%; top:50%;
+  transform:translate(-50%, -50%) scale(0.75);
+}
+.track-row-empty > #loading-ind.active{
+  transform:translate(-50%, -50%) scale(1);
+}
+
 #loading-ind .glyph{
   display:inline-block;
-  font-size:26px;
+  font-size:22px;
   line-height:1;
   /* v20.10.26 — SOLO transform en transition · opacity lo maneja la animation
      (la transition de opacity bloqueaba el parpadeo) */
@@ -4158,8 +4183,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   background: var(--card);
   border-bottom: 0.5px solid var(--rule);
   display: grid;
-  /* v20.10.23 — 9 columnas: logo · rewind · play · loading-ind | spacer | LIVE · loopsong | spacer | lupa */
-  grid-template-columns: auto auto auto auto 1fr auto auto 1fr auto;
+  /* v21.1.2 — 7 columnas: logo · rewind · play | spacer 1fr | LIVE · loopsong · config
+     Removidos: loading-ind (al primer track empty) · lupa (Prog del footer)
+     Agregado: hdr-config (mudado desde banda 2) */
+  grid-template-columns: auto auto auto 1fr auto auto auto;
   align-items: center;
   padding: 0 10px;
   gap: 6px;
@@ -4248,7 +4275,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 @keyframes hdr-live-pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 
 .hdr-switch {
-  position: relative; width: 80px;
+  position: relative; width: 120px;     /* v21.0.0 — antes 80px (2 segs) → 120px (3 segs) */
   height: calc(var(--hdr-u) * 1.05);
   background: var(--bg3); border-radius: 999px;
   display: flex; align-items: center; padding: 2px;
@@ -4260,16 +4287,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   font-family: var(--mono); font-size: 9px; font-weight: 700;
   letter-spacing: 0.08em; color: var(--ink3);
   z-index: 2; transition: color .2s; padding: 3px 0;
+  cursor: pointer;
 }
 .hdr-switch .hdr-seg.active { color: var(--ink); }
+.hdr-switch[data-pos="save"] .hdr-seg.active { color: #fff; }
 .hdr-switch .hdr-knob {
   position: absolute; top: 2px; bottom: 2px; left: 2px;
-  width: calc(50% - 2px); background: var(--card);
+  /* v21.0.0 — width 33.333% para 3 segmentos */
+  width: calc(33.333% - 2px); background: var(--card);
   border-radius: 999px;
   box-shadow: 0 1px 3px rgba(0,0,0,.18);
-  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  transition: transform .25s cubic-bezier(.4,0,.2,1), background .2s;
 }
 .hdr-switch[data-pos="song"] .hdr-knob { transform: translateX(100%); }
+.hdr-switch[data-pos="save"] .hdr-knob {
+  transform: translateX(200%);
+  background: linear-gradient(180deg, #c9a35a, #a07a2e);
+}
 
 /* Banda 2 */
 #hdr-band2 {
@@ -4277,10 +4311,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   background: var(--bg2);
   border-bottom: 0.5px solid var(--rule);
   display: grid;
-  /* v20.10.19 — 8 columnas: Tracks · BPM · KEY · ESTILO · PRO · UNDO · spacer · CONFIG
-     ESTILO y PRO son `auto` (toman SOLO el contenido, no se estiran).
-     El SPACER (1fr) absorbe el espacio sobrante → CONFIG queda anclado a la derecha. */
-  grid-template-columns: 34px 90px 75px auto auto 34px 1fr 34px;
+  /* v21.1.2 — 6 columnas: Tracks · BPM · KEY · Style · PRO | spacer 1fr
+     Removidos: undo (footer ya tiene undo) · config (movido a banda 1)
+     El último 1fr absorbe el espacio sobrante a la derecha. */
+  grid-template-columns: 34px 90px 75px auto auto 1fr;
   align-items: center;
   padding: 0 4px;
   gap: 2px;
@@ -6377,7 +6411,21 @@ body.mixer-dragging *{touch-action:none !important}
 </div>
 <div id="app-frame"><div id="app">
 
+<!-- v21.1.2 — Loading indicator HOME · vive acá por defecto.
+     renderEmptyTracks() lo MUEVE al primer track placeholder vacío cuando se renderiza.
+     Si no hay tracks vacíos (8/8 llenos), queda escondido acá (display:none por CSS). -->
+<div id="loading-anchor" aria-hidden="true">
+  <div id="loading-ind">
+    <span class="glyph" id="loading-glyph">🥁</span>
+    <span class="loading-text" id="loading-text">cargando</span>
+  </div>
+</div>
+
 <!-- ═══ Header Mobile v2 (v8.50) — convive con el nav/transport original ═══ -->
+<!-- v21.1.2 — Reorganización iPhone: loading-ind sale del header (se ubica en
+     el primer placeholder de track vacío), lupa eliminada (progresiones se
+     buscan con Prog del footer), undo eliminado (footer ya tiene undo), rueda
+     de config sube de banda 2 a banda 1 (donde estaba la lupa). -->
 <div id="hdr-band1">
   <div id="hdr-logo" onclick="switchView('seq')">
     <span class="hdr-only">Only</span>
@@ -6392,28 +6440,33 @@ body.mixer-dragging *{touch-action:none !important}
   <button class="hdr-btn hdr-play" id="hdr-play-btn" onclick="togglePlay()" aria-label="Play">
     <div id="hdr-play-ic" class="play-icon"></div>
   </button>
-  <!-- v20.10.23 — Loading indicator · aparece al apretar PLAY si hay samplers cargando.
-       MOVIDO del #transport (que está display:none) al #hdr-band1 visible.
-       v20.10.25 — Agregado texto "cargando" al lado del emoji (parpadea igual, desaparece en check). -->
-  <div id="loading-ind">
-    <span class="glyph" id="loading-glyph">🥁</span>
-    <span class="loading-text" id="loading-text">cargando</span>
-  </div>
   <div></div>
   <button class="hdr-btn hdr-live" id="hdr-live-btn" onclick="toggleLiveBar()" aria-label="Modo vivo">
     <span class="hdr-live-dot"></span>
     <span class="hdr-live-tag">LIVE</span>
   </button>
-  <div id="hdr-loopsong" class="hdr-switch" data-pos="loop" onclick="hdrToggleLoopSong()">
-    <span class="hdr-seg active">LOOP</span>
-    <span class="hdr-seg">SONG</span>
+  <!-- v21.0.0 — Switch de 3 estados: LOOP / SONG / SAVE.
+       LOOP y SONG son MODOS (toggle persistente).
+       SAVE es ACCIÓN: tap → abre diálogo → al cerrar vuelve al modo anterior. -->
+  <div id="hdr-loopsong" class="hdr-switch" data-pos="loop">
+    <span class="hdr-seg active" onclick="hdrSetLoopSong('loop')">LOOP</span>
+    <span class="hdr-seg" onclick="hdrSetLoopSong('song')">SONG</span>
+    <span class="hdr-seg" onclick="hdrSetLoopSong('save')">SAVE</span>
     <div class="hdr-knob"></div>
   </div>
-  <div></div>
-  <button class="hdr-btn" onclick="openSheet('prog-sheet')" aria-label="Buscar">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="10.5" cy="10.5" r="6.5"/>
-      <line x1="20" y1="20" x2="15.5" y2="15.5"/>
+  <!-- v21.1.2 — Rueda config movida acá desde banda 2 -->
+  <button class="hdr-ic hdr-config" onclick="hdrOpenConfig()" aria-label="Config">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 2 L13.2 2 L13.4 5 L10.6 5 L10.8 2 Z
+               M22 12 L22 13.2 L19 13.4 L19 10.6 L22 10.8 Z
+               M12 22 L10.8 22 L10.6 19 L13.4 19 L13.2 22 Z
+               M2 12 L2 10.8 L5 10.6 L5 13.4 L2 13.2 Z
+               M19.07 4.93 L19.9 5.76 L18 7.8 L16.2 6 L18 4 Z
+               M19.07 19.07 L18.2 19.9 L16.2 18 L18 16.2 L19.9 18 Z
+               M4.93 19.07 L4.1 18.2 L6 16.2 L7.8 18 L6 19.9 Z
+               M4.93 4.93 L5.76 4.1 L7.8 6 L6 7.8 L4 6 Z" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="12" r="5.5" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="12" r="2.3" class="hdr-config-hole"/>
     </svg>
   </button>
 </div>
@@ -6449,33 +6502,9 @@ body.mixer-dragging *{touch-action:none !important}
     <span class="hdr-lbl">Style</span>
     <span class="hdr-val is-empty" id="hdr-style-v">—</span>
   </button>
-  <!-- v20.10.18 — Botón PRO · al lado del ESTILO, alineado izquierda (no se va a la derecha) -->
+  <!-- v21.1.2 — Botón PRO: removida la estrella SVG · solo texto "PRO" (más compacto, no se corta en iPhone). -->
   <button class="hdr-pro-btn" id="hdr-pro-btn" onclick="togglePro()" aria-label="Enriquecer acordes (PRO)" title="Convierte acordes simples a versión PRO según estilo">
-    <svg width="10" height="10" viewBox="0 0 11 11" fill="none" aria-hidden="true">
-      <path d="M5.5 1 L6.8 4 L10 4.3 L7.5 6.4 L8.2 9.5 L5.5 7.9 L2.8 9.5 L3.5 6.4 L1 4.3 L4.2 4 Z" fill="currentColor"/>
-    </svg>
     <span>PRO</span>
-  </button>
-    <button class="hdr-ic" onclick="undoLast()" aria-label="Undo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9 14 L4 9 L9 4"/>
-      <path d="M4 9 L15 9 C18 9 20 11 20 14 C20 17 18 19 15 19 L10 19"/>
-    </svg>
-  </button>
-  <div></div>
-  <button class="hdr-ic hdr-config" onclick="hdrOpenConfig()" aria-label="Config">
-    <svg viewBox="0 0 24 24">
-      <path d="M12 2 L13.2 2 L13.4 5 L10.6 5 L10.8 2 Z
-               M22 12 L22 13.2 L19 13.4 L19 10.6 L22 10.8 Z
-               M12 22 L10.8 22 L10.6 19 L13.4 19 L13.2 22 Z
-               M2 12 L2 10.8 L5 10.6 L5 13.4 L2 13.2 Z
-               M19.07 4.93 L19.9 5.76 L18 7.8 L16.2 6 L18 4 Z
-               M19.07 19.07 L18.2 19.9 L16.2 18 L18 16.2 L19.9 18 Z
-               M4.93 19.07 L4.1 18.2 L6 16.2 L7.8 18 L6 19.9 Z
-               M4.93 4.93 L5.76 4.1 L7.8 6 L6 7.8 L4 6 Z" fill="currentColor" stroke="none"/>
-      <circle cx="12" cy="12" r="5.5" fill="currentColor" stroke="none"/>
-      <circle cx="12" cy="12" r="2.3" class="hdr-config-hole"/>
-    </svg>
   </button>
 </div>
 
@@ -9169,6 +9198,64 @@ let guitarKillGain = null, guitarCurrentTi = -1;
 // v18.0.1 — Storage de samplers de guitarra (4 packs CC0 R2). Cada inst es
 // single-timbre (un Tone.Sampler propio). El dispatcher lookup por inst key.
 try { window._guitarSamplers = { gtr_strat: null, gtr_tele: null, gtr_dist1: null, gtr_dist_chords: null }; } catch(e){}
+
+// ════════════════════════════════════════════════════════════════════
+// v21.1.0 — BASS SYNTH SUB + DRUM MACHINE TR-909 (síntesis pura Tone.js)
+// ════════════════════════════════════════════════════════════════════
+// Cero descarga · cero peso · latencia 0 · 100% legal (MIT) · sin R2.
+// Construir UNA VEZ al boot · idempotente. Si Tone.js no está listo
+// todavía (raro), volvemos a intentar en DOMContentLoaded.
+// ════════════════════════════════════════════════════════════════════
+function _buildBassSynthOnce() {
+  try {
+    if (window._bassSynth) return; // idempotente
+    if (typeof Tone === 'undefined') return;
+    // Sub Bass (Moog vintage) — onda sine + filtro low + envelope corto
+    window._bassSynth = new Tone.MonoSynth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.005, decay: 0.3, sustain: 0.5, release: 0.4 },
+      filter: { Q: 1, type: 'lowpass', frequency: 700 },
+      filterEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.3, baseFrequency: 80, octaves: 3 },
+      volume: -10
+    }).toDestination();
+  } catch(e) { console.warn('[bass_synth build]', e); }
+}
+
+function _buildDrum909Once() {
+  try {
+    if (window._drum909) return;
+    if (typeof Tone === 'undefined') return;
+    window._drum909 = {
+      kick: new Tone.MembraneSynth({
+        pitchDecay: 0.04, octaves: 4,
+        envelope: { attack: 0.001, decay: 0.25, sustain: 0.01, release: 0.4 },
+        volume: -6
+      }).toDestination(),
+      snare: new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: { attack: 0.001, decay: 0.2, sustain: 0 },
+        volume: -14
+      }).toDestination(),
+      hh: new Tone.MetalSynth({
+        frequency: 400,
+        envelope: { attack: 0.001, decay: 0.04, release: 0.005 },
+        harmonicity: 8, modulationIndex: 24, resonance: 6000, octaves: 1,
+        volume: -26
+      }).toDestination()
+    };
+  } catch(e) { console.warn('[drum_909 build]', e); }
+}
+
+// Build inmediato si Tone ya está · fallback DOMContentLoaded
+if (typeof Tone !== 'undefined') {
+  _buildBassSynthOnce();
+  _buildDrum909Once();
+} else {
+  document.addEventListener('DOMContentLoaded', () => {
+    _buildBassSynthOnce();
+    _buildDrum909Once();
+  });
+}
 
 // v16.5.2-clean — _buildEmbeddedSampler y _connectSamplerToBus ELIMINADOS.
 // El motor R2 (_initMeatbassSampler en línea ~7029) carga directo desde fetch +
@@ -35333,6 +35420,25 @@ function playChord(root, suffix, tech, bpm) {
     return;
   }
 
+  // v21.1.0 — Branch BASS SYNTH (Tone.MonoSynth Sub Bass)
+  // Síntesis pura · single-timbre. Toca la nota fundamental del acorde
+  // en la octava de bajo. Latencia 0 · sin cascada de técnicas.
+  if (currentSound === 'bass_synth') {
+    if (!window._bassSynth) return;
+    try {
+      const noteName = (typeof rootSuffixToBassNote === 'function')
+        ? rootSuffixToBassNote(root, 2)
+        : (root + '2');
+      const dur = (typeof bpm === 'number' && bpm > 0) ? Math.max(0.15, 60 / bpm * 0.9) : 0.5;
+      window._bassSynth.triggerAttackRelease(noteName, dur);
+    } catch(e) { console.warn('[bass_synth play]', e); }
+    return;
+  }
+
+  // v21.1.1 — drum_909 NO se maneja acá: el scheduler con t.drum=true llama
+  // a drumHit() para cada hit del patrón drum-sheet · drumHit detecta el
+  // inst del track activo y enruta al synth 909 (ver override más abajo).
+
   // Otros instrumentos: silencio explícito (no FM fallback hasta cargar samples)
   return;
 }
@@ -35397,6 +35503,44 @@ function drumHit(type,t,vol){
   const bus=getTrackBus(currentTrackIdx);
   if(!bus) return;
   const destination = bus.input;
+
+  // ════════════════════════════════════════════════════════════════
+  // v21.1.1 — DRUM 909 HOOK · enrutar al synth si el track activo
+  // tiene inst='drum_909'. type → synth mapping:
+  //   BD                  → kick
+  //   SD, RIM             → snare
+  //   HH                  → hh corto (32n)
+  //   HHO, RIDE, RIDE_BELL, CRASH, SPLASH → hh largo (16n)
+  //   TM1, TM2, FT        → kick con tone (pitch alto)
+  // ════════════════════════════════════════════════════════════════
+  try {
+    const _trk = G && G.tracks && G.tracks[currentTrackIdx];
+    if (_trk && _trk.inst === 'drum_909' && window._drum909) {
+      const kit = window._drum909;
+      const startT = ctx.currentTime + (t || 0);
+      const v = Math.max(0, Math.min(1, vol || 0.8));
+      if (type === 'BD') {
+        kit.kick.volume.value = -6 + (v - 0.5) * 12;
+        kit.kick.triggerAttackRelease('C1', '8n', startT);
+      } else if (type === 'SD' || type === 'RIM') {
+        kit.snare.volume.value = -14 + (v - 0.5) * 12;
+        kit.snare.triggerAttackRelease(type === 'RIM' ? '32n' : '16n', startT);
+      } else if (type === 'HH') {
+        kit.hh.volume.value = -26 + (v - 0.5) * 14;
+        kit.hh.triggerAttackRelease('32n', startT);
+      } else if (type === 'HHO' || type === 'RIDE' || type === 'RIDE_BELL' || type === 'CRASH' || type === 'SPLASH') {
+        kit.hh.volume.value = -22 + (v - 0.5) * 14;
+        kit.hh.triggerAttackRelease('16n', startT);
+      } else if (type === 'TM1' || type === 'TM2' || type === 'FT') {
+        // Toms con kick a distinto pitch
+        const tomNote = (type === 'TM1') ? 'G1' : (type === 'TM2' ? 'E1' : 'A0');
+        kit.kick.volume.value = -8 + (v - 0.5) * 10;
+        kit.kick.triggerAttackRelease(tomNote, '16n', startT);
+      }
+      return;
+    }
+  } catch(e) { console.warn('[drum_909 drumHit]', e); }
+
   // v20.8.0 — Path A: sample real Salamander (si está cargado)
   if (!_drumLoadAttempted) loadDrumBuffers().catch(()=>{});
   const sampleData = DRUM_BUFFERS[type];
@@ -35963,6 +36107,8 @@ function renderEmptyTracks(){
   if(!el) return;
   const realCount = G.tracks.length;
   const emptyCount = Math.max(0, MAX_TRACKS - realCount);
+  // v21.1.2 — Loading indicator se ubica en el primer placeholder vacío (T6 en plano).
+  const loadingInd = document.getElementById('loading-ind');
   for(let i = 0; i < emptyCount; i++){
     const placeholderIdx = realCount + i; // posición en el Excel (1-indexed display)
     const row = document.createElement('div');
@@ -35982,6 +36128,13 @@ function renderEmptyTracks(){
       }
     });
     el.appendChild(row);
+    // v21.1.2 — En el PRIMER placeholder (i===0), mover el loading-ind dentro.
+    // appendChild mueve el nodo sin destruirlo → preserva estado (.active, .state-check, etc.)
+    if (i === 0 && loadingInd) {
+      try {
+        row.appendChild(loadingInd);
+      } catch(_){}
+    }
   }
 }
 
@@ -38903,6 +39056,72 @@ const _STYLE_PRESET_BPM_BY_ID = {
   'pop_modern': 100,      // Bruno Mars / Dua Lipa
 };
 
+// ════════════════════════════════════════════════════════════════════
+// v20.10.28 — TONALIDADES CANÓNICAS por preset de estilo
+// ════════════════════════════════════════════════════════════════════
+// Los temas de PROGS ya traen p.key (Eb, Bm, A, etc.). Los style presets NO,
+// así que se mapean explícitamente al primer bar de la progresión + modo.
+// ════════════════════════════════════════════════════════════════════
+const _STYLE_PRESET_KEY_BY_ID = {
+  // ROCK — derivado del primer bar de cada progresión
+  'rock_acdc':     { key: 'A',  mode: 'major' },  // Highway to Hell — A maj
+  'rock_zeppelin': { key: 'D',  mode: 'minor' },  // Kashmir feel — Dm
+  'rock_maiden':   { key: 'E',  mode: 'minor' },  // The Trooper — Em
+  'rock_police':   { key: 'G',  mode: 'minor' },  // Roxanne — Gm
+  'rock_beatles':  { key: 'D',  mode: 'major' },  // Day Tripper — D maj
+  'rock_floyd':    { key: 'B',  mode: 'minor' },  // Money — Bm
+  // POP
+  'pop_beatles':   { key: 'C',  mode: 'major' },  // Let It Be — C maj
+  'pop_motown':    { key: 'F',  mode: 'major' },  // Motown classic — F maj
+  'pop_disco':     { key: 'A',  mode: 'minor' },  // Le Freak — Am
+  'pop_80s':       { key: 'A',  mode: 'minor' },  // Synth-pop minor — Am
+  'pop_smooth':    { key: 'G',  mode: 'major' },  // Norah Jones — G maj
+  'pop_modern':    { key: 'C',  mode: 'major' },  // Default pop — C maj
+};
+
+// Normaliza una nota al formato del array NOTES (Eb, Ab, Bb instead of D#, G#, A#).
+function _toNotesKey(n) {
+  if (!n) return null;
+  if (typeof NOTES === 'undefined') return n;
+  if (NOTES.indexOf(n) >= 0) return n;
+  const eq = { 'A#':'Bb', 'D#':'Eb', 'G#':'Ab', 'Db':'C#', 'Gb':'F#' };
+  return eq[n] || n;
+}
+
+// Helper canónico para cambiar tonalidad (encapsula G.key/keyIdx + ambos displays + render).
+function _setKeyCanonical(keyStr, keyMode) {
+  if (!keyStr || typeof NOTES === 'undefined') return false;
+  const norm = _toNotesKey(keyStr);
+  const idx = NOTES.indexOf(norm);
+  if (idx < 0) return false;
+  if (G.keyIdx === idx) return false; // no-op
+  G.keyIdx = idx;
+  G.key    = NOTES[idx];
+  if (keyMode === 'minor' || keyMode === 'major') G.keyMode = keyMode;
+  // Actualizar AMBOS displays (clásico oculto y header alt visible)
+  if (typeof NOTE_D !== 'undefined') {
+    const display = NOTE_D[idx];
+    const el1 = document.getElementById('key-txt');       if (el1) el1.textContent = display;
+    const el2 = document.getElementById('hdr-key-txt');   if (el2) el2.textContent = display;
+  }
+  // Re-render acordes con la nueva tonalidad
+  try { if (typeof renderAll === 'function') renderAll(); } catch(_){}
+  return true;
+}
+
+// Aplica la tonalidad de un preset de estilo (busca en tabla; fallback a auto-detect del primer bar)
+function _applyStylePresetKey(preset) {
+  if (!preset) return;
+  let entry = _STYLE_PRESET_KEY_BY_ID[preset.id];
+  // Fallback: auto-detectar desde el primer bar de la progresión
+  if (!entry && preset.progression && Array.isArray(preset.progression.bars) && preset.progression.bars[0]) {
+    const first = preset.progression.bars[0];
+    const mode = /^(minor|m($|7|9|11|6|maj7|add9|b5))/.test(first.s || '') ? 'minor' : 'major';
+    entry = { key: first.r, mode: mode };
+  }
+  if (entry) _setKeyCanonical(entry.key, entry.mode);
+}
+
 // Helper canónico para cambiar BPM (encapsula G.bpm + UI + applyBpm + restart)
 function _setBpmCanonical(newBpm) {
   if (typeof newBpm !== 'number' || !isFinite(newBpm) || newBpm < 40 || newBpm > 240) return false;
@@ -38957,21 +39176,11 @@ function loadProg(p){
   }
   // ──────────────────────────────────────────────────────────────
   // v19.2.0 — Setear G.key a la tonalidad ORIGINAL del tema.
-  // Las st de PROGS son relativas al grado (i=0, V=7, etc.). Para que
-  // los acordes salgan correctos, G.key debe ser p.key. Si el tema no
-  // tiene `key` (compat con datos viejos), se mantiene la key actual.
+  // v20.10.28 — Usa _setKeyCanonical (actualiza AMBOS displays:
+  // #key-txt clásico Y #hdr-key-txt del header alt visible).
   // ──────────────────────────────────────────────────────────────
   if (p.key) {
-    var _newKeyIdx = NOTES.indexOf(p.key);
-    if (_newKeyIdx >= 0) {
-      G.keyIdx = _newKeyIdx;
-      G.key    = NOTES[_newKeyIdx];
-      // Actualizar el botón de tonalidad del header
-      var _keyTxt = document.getElementById('key-txt');
-      if (_keyTxt && typeof NOTE_D !== 'undefined') {
-        _keyTxt.textContent = NOTE_D[_newKeyIdx];
-      }
-    }
+    _setKeyCanonical(p.key, p.keyMode);
   }
 
   // v19.2.1 — Title: "Tema — Artista  -  Key : X (modo)"
@@ -41779,24 +41988,14 @@ const INST_FAMILIES = [
     ]
   },
   // ════════════════════════════ B · BAJOS ════════════════════════════
-  // v16.5.33-clean — Reorganización plan A.1 (decisión de Horacio):
-  //   Slot 1: Bajo Eléctrico (vacío, sin foto, sin sampler — reservado)
-  //   Slot 2: Bajo Fretless  (vacío, sin foto, sin sampler — reservado)
-  //   Slot 3: Contrabajo     (foto bass + Karoryfer Meatbass vivo + 3 técnicas)
-  //   Slots 4-10: libres
-  // Las keys legacy meatbass_arco/_pizz/_perc se mantienen como aliases internos
-  // (loops viejos siguen funcionando) pero no aparecen en el placard.
-  // El selector arco/pizz/perc se va a integrar como sub-selector DENTRO del
-  // slot 3 en plan A.2 (próxima sesión).
-  // v17.3.15 — Plan v15.0.97b cerrado: los 3 inst de la familia bajo ya tienen
-  // sampler real (FluidR3 + MusyngKite MIT). Pasan de status='pte' a 'actual'
-  // con icon='bass' (placeholder hasta assets propios). Agregado bass_acoustic
-  // como slot 4 (era libre) — completa el cuarteto de la familia bajo.
+  // v21.1.0 — Reorganización: contrabass MUDADO a familia D (Cuerdas)
+  // porque pertenece a cuerda frotada (arco/pizz/etc.), no a bajo eléctrico.
+  // Slot 3 ahora ocupado por bass_synth (Sub Bass nativo Tone.MonoSynth).
   { id:'bajo', label:'Bajos', code:'B', repIcon:'contrabass',
     variants:[
       { key:'bass_electric', label:'Eléctrico',  model:'MusyngKite Pick', status:'actual', icon:'bass' },
       { key:'bass_fretless', label:'Fretless',   model:'FluidR3',         status:'actual', icon:'bass' },
-      { key:'contrabass',    label:'Contrabajo', model:'Meatbass',        status:'actual', icon:'bass' },
+      { key:'bass_synth',    label:'Sub Synth',  model:'Tone.MonoSynth',  status:'actual', icon:'bass' },
       { key:'bass_acoustic', label:'Acústico',   model:'FluidR3',         status:'actual', icon:'bass' },
       { key:'_pl_b5',        label:'libre (5)',  model:'',                status:'free',   icon:null   },
       { key:'_pl_b6',        label:'libre (6)',  model:'',                status:'free',   icon:null   },
@@ -41837,16 +42036,17 @@ const INST_FAMILIES = [
   // v17.3.16 — Familia activada con 2 inst (MusyngKite MIT, plan v17.3.16):
   //   Slot 1: strings_ensemble (plancha · default técnica PAD)
   //   Slot 2: strings_violin   (solista · default técnica MELODY)
-  //   Slots 3-4: viola/cello reservados (audición pendiente)
-  //   Slots 5-10: libres
-  // Sin fotos por ahora (Horacio explícito) — solo texto descriptivo.
+  // v21.1.0 — Slot 3 ocupado por CONTRABAJO (mudado desde familia B-Bajos).
+  // El sampler físico sigue en window._bassSamplers (16 técnicas Karoryfer +
+  // VSCO + pjcohen + DSP). Solo cambia el slot UI. _isBassFamily() sigue
+  // matcheando contrabass para que el dispatcher use _bassSamplers.
   { id:'cuerdas', label:'Cuerdas', code:'D', repIcon:null,
     variants:[
       { key:'strings_ensemble', label:'Ensamble',     model:'MusyngKite', status:'actual',   icon:null },
       { key:'strings_violin',   label:'Violín',       model:'MusyngKite', status:'actual',   icon:null },
+      { key:'contrabass',       label:'Contrabajo',   model:'Meatbass + VSCO + pjcohen', status:'actual', icon:'bass' },
       { key:'strings_viola',    label:'Viola',        model:'',           status:'audicion', icon:null },
       { key:'strings_cello',    label:'Violonchelo',  model:'',           status:'audicion', icon:null },
-      { key:'_pl_d5',           label:'libre (5)',    model:'',           status:'free',     icon:null },
       { key:'_pl_d6',           label:'libre (6)',    model:'',           status:'free',     icon:null },
       { key:'_pl_d7',           label:'libre (7)',    model:'',           status:'free',     icon:null },
       { key:'_pl_d8',           label:'libre (8)',    model:'',           status:'free',     icon:null },
@@ -41870,10 +42070,13 @@ const INST_FAMILIES = [
     ]
   },
   // ════════════════════════════ F · BATERIA ════════════════════════════
+  // v21.1.0 — Slot 2 ocupado por TR-909 (drum machine clásica · house/techno).
+  // Síntesis pura Tone.js (MembraneSynth + NoiseSynth + MetalSynth). Cero
+  // descarga, cero peso. NO toca el slot 1 (drums) que tiene drum-sheet R6.2.
   { id:'bateria', label:'Batería', code:'F', repIcon:'drums',
     variants:[
-      { key:'drums',  label:'Batería',    model:'Set completo', status:'actual', icon:'drums' },
-      { key:'_pl_f2', label:'libre (2)',  model:'',             status:'free',   icon:null    },
+      { key:'drums',     label:'Batería',    model:'Set completo',  status:'actual', icon:'drums' },
+      { key:'drum_909',  label:'TR-909',     model:'Tone synths',   status:'actual', icon:'drums' },
       { key:'_pl_f3', label:'libre (3)',  model:'',             status:'free',   icon:null    },
       { key:'_pl_f4', label:'libre (4)',  model:'',             status:'free',   icon:null    },
       { key:'_pl_f5', label:'libre (5)',  model:'',             status:'free',   icon:null    },
@@ -41891,7 +42094,10 @@ const INST_FAMILIES = [
 const INST_LIVE_KEYS = new Set([
   'salamander',
   'meatbass_arco','meatbass_pizz','meatbass_perc',
-  'drums'
+  'drums',
+  // v21.1.0 — Nuevos instrumentos síntesis nativa Tone.js
+  'bass_synth',
+  'drum_909'
 ]);
 function _isLiveInstKey(k){ return INST_LIVE_KEYS.has(k); }
 
@@ -41984,6 +42190,15 @@ function _instHasLoadedSampler(inst) {
   // Cada uno es independiente (no hay fallback al pool del contrabass).
   if (inst === 'bass_acoustic' || inst === 'bass_electric' || inst === 'bass_fretless') {
     return !!(window._bassSamplers && window._bassSamplers[inst]);
+  }
+  // v21.1.0 — Bass Synth (Tone.MonoSynth nativo · síntesis pura · siempre listo
+  // tras buildBassSynth() en boot · no requiere R2 ni samples)
+  if (inst === 'bass_synth') {
+    return !!window._bassSynth;
+  }
+  // v21.1.0 — Drum machine TR-909 (Tone synths nativos · siempre listo tras boot)
+  if (inst === 'drum_909') {
+    return !!window._drum909;
   }
   // Bass family contrabass: al menos un sampler físico (arco/pizz/perc) debe estar listo
   if (_isBassFamily(inst)) {
@@ -44612,6 +44827,8 @@ function applyStylePreset(presetId) {
 
   // v20.10.27 — Aplicar BPM canónico del preset (banda/era)
   try { _applyStylePresetBpm(presetId); } catch (e) { console.warn('[applyStylePreset bpm]', e); }
+  // v20.10.28 — Aplicar TONALIDAD canónica del preset (banda/era)
+  try { _applyStylePresetKey(preset); } catch (e) { console.warn('[applyStylePreset key]', e); }
 
   // Re-render: cada función en su propio try/catch para que el fallo
   // de una NO impida que las demás se ejecuten. El header label es
@@ -47737,19 +47954,46 @@ if ("serviceWorker" in navigator) {
 })();
 
 /* ═══ v8.50 — Header Mobile v2 JS ═══ */
+// v21.0.0 — Switch LOOP/SONG/SAVE (3 estados)
+// LOOP/SONG son MODOS persistentes. SAVE es ACCIÓN: abre diálogo y vuelve al modo previo.
+function hdrSetLoopSong(pos){
+  var sw = document.getElementById('hdr-loopsong');
+  if (!sw) return;
+  if (pos === 'save'){
+    // Snapshot del modo actual para restaurar al cerrar
+    var prevPos = (sw.dataset.pos === 'song') ? 'song' : 'loop';
+    sw.dataset.pos = 'save';
+    _updateLoopSongSegs(sw, 'save');
+    _openSaveDlg(function onCloseDlg(){
+      sw.dataset.pos = prevPos;
+      _updateLoopSongSegs(sw, prevPos);
+    });
+    return;
+  }
+  if (pos !== 'loop' && pos !== 'song') return;
+  sw.dataset.pos = pos;
+  _updateLoopSongSegs(sw, pos);
+  try {
+    if (pos === 'song') { if (typeof switchView === 'function') switchView('plan'); }
+    else { if (typeof switchView === 'function') switchView('seq'); }
+  } catch(e) {}
+}
+window.hdrSetLoopSong = hdrSetLoopSong;
+
+function _updateLoopSongSegs(sw, pos){
+  var segs = sw.querySelectorAll('.hdr-seg');
+  var order = ['loop','song','save'];
+  for (var i = 0; i < segs.length; i++){
+    segs[i].classList.toggle('active', order[i] === pos);
+  }
+}
+
+// Retrocompat: el cycle binario sigue disponible por si alguna llamada externa lo usa.
 function hdrToggleLoopSong(){
   var sw = document.getElementById('hdr-loopsong');
   if (!sw) return;
   var next = sw.dataset.pos === 'loop' ? 'song' : 'loop';
-  sw.dataset.pos = next;
-  var segs = sw.querySelectorAll('.hdr-seg');
-  for (var i = 0; i < segs.length; i++) {
-    segs[i].classList.toggle('active', (i === 0 && next === 'loop') || (i === 1 && next === 'song'));
-  }
-  try {
-    if (next === 'song') { if (typeof switchView === 'function') switchView('plan'); }
-    else { if (typeof switchView === 'function') switchView('seq'); }
-  } catch(e) {}
+  hdrSetLoopSong(next);
 }
 // ═══ Config Sheet — 2 columnas × 4 filas ═══
 // Izquierda: 4 botones-slider (mix global de parámetros 0-100%)
@@ -52857,6 +53101,7 @@ console.log('[v17.4.3] TECH_FORMULAS cargado · 113 fórmulas · helpers + hooks
     <div id="sp-dd-tabs">
       <button class="sp-dd-tab active" data-estilo="rock" onclick="_spddTab('rock')">Rock</button>
       <button class="sp-dd-tab" data-estilo="pop" onclick="_spddTab('pop')">Pop</button>
+      <button class="sp-dd-tab user" data-estilo="myloops" onclick="_spddTab('myloops')">PROPIOS</button>
     </div>
     <div id="sp-dd-sub">Tap un preset · el bajo, batería, piano, guitarra y cuerdas se alinean al estilo.</div>
     <div id="sp-dd-grid"></div>
@@ -53073,10 +53318,58 @@ function _spddRender() {
   document.querySelectorAll('.sp-dd-tab').forEach(el => {
     el.classList.toggle('active', el.getAttribute('data-estilo') === _spddTab_active);
   });
-  // Render grid
   const grid = document.getElementById('sp-dd-grid');
-  if (!grid || typeof STYLE_PRESETS === 'undefined') return;
+  if (!grid) return;
   grid.innerHTML = '';
+
+  // v21.0.0 — Tab PROPIOS · loops guardados por el usuario en localStorage
+  if (_spddTab_active === 'myloops') {
+    const userLoops = (typeof _loadUserLoops === 'function') ? _loadUserLoops() : [];
+    if (userLoops.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'sp-dd-empty';
+      empty.innerHTML = 'Todavía no guardaste ningún loop.<br>Tocá <b>SAVE</b> en el switch para guardar tu primera versión.';
+      grid.appendChild(empty);
+      return;
+    }
+    userLoops.forEach(loop => {
+      const card = document.createElement('button');
+      card.className = 'sp-dd-card user';
+      card.setAttribute('data-loop-id', loop.id);
+      const fecha = new Date(loop.createdAt || Date.now());
+      const fechaStr = fecha.getDate() + '/' + (fecha.getMonth()+1) + '/' + fecha.getFullYear();
+      const numTracks = (loop.tracks || []).length;
+      card.innerHTML =
+        '<div class="sp-dd-icon">⭐</div>' +
+        '<div class="sp-dd-text">' +
+          '<div class="sp-dd-label">' + (loop.label || 'Sin nombre') + '</div>' +
+          '<div class="sp-dd-cover">' + (loop.bpm || 120) + ' BPM · ' + (loop.key || 'A') + (loop.keyMode === 'minor' ? 'm' : '') + ' · ' + numTracks + ' tracks</div>' +
+          '<div class="sp-dd-desc">Guardado ' + fechaStr + '</div>' +
+        '</div>';
+      card.onclick = function(){
+        if (typeof _applyUserLoop === 'function') _applyUserLoop(loop.id);
+        setTimeout(_closeStyleDD, 200);
+      };
+      // Botón delete ✕
+      const del = document.createElement('button');
+      del.className = 'sp-dd-del';
+      del.textContent = '✕';
+      del.setAttribute('aria-label', 'Borrar loop');
+      del.onclick = function(e){
+        e.stopPropagation();
+        if (confirm('¿Borrar "' + (loop.label || 'este loop') + '"?')){
+          if (typeof _deleteUserLoop === 'function') _deleteUserLoop(loop.id);
+          _spddRender();
+        }
+      };
+      card.appendChild(del);
+      grid.appendChild(card);
+    });
+    return;
+  }
+
+  // Render tabs Rock/Pop (preset oficial del catálogo)
+  if (typeof STYLE_PRESETS === 'undefined') return;
   const presets = STYLE_PRESETS[_spddTab_active] || [];
   presets.forEach(p => {
     const card = document.createElement('button');
@@ -53119,7 +53412,333 @@ function _spddClear() {
   _closeStyleDD();
 }
 window._spddClear = _spddClear;
+
+// ════════════════════════════════════════════════════════════════════
+// v21.0.0 — MY LOOPS · SISTEMA DE PRESETS DE USUARIO (localStorage)
+// ════════════════════════════════════════════════════════════════════
+// Persistencia: localStorage clave 'ol_user_loops' · array JSON.
+// Capacidad ~5-10 MB (alcanza para 100-200 loops).
+// Vive en la app del usuario · permitido por Apple/Google Stores.
+// ════════════════════════════════════════════════════════════════════
+
+const _USER_LOOPS_KEY = 'ol_user_loops';
+
+// Lee la lista de loops del usuario · siempre array
+function _loadUserLoops(){
+  try {
+    const raw = localStorage.getItem(_USER_LOOPS_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch(e){
+    console.warn('[MY LOOPS] error parsing:', e);
+    return [];
+  }
+}
+
+// Guarda la lista entera
+function _saveUserLoopsList(arr){
+  try {
+    localStorage.setItem(_USER_LOOPS_KEY, JSON.stringify(arr));
+    return true;
+  } catch(e){
+    console.warn('[MY LOOPS] error saving:', e);
+    return false;
+  }
+}
+
+// Resuelve duplicados de nombre: "Mi loop" → "Mi loop (2)" si ya existe
+function _resolveUniqueName(name, existingNames){
+  let candidate = name;
+  let n = 2;
+  while (existingNames.indexOf(candidate) >= 0){
+    candidate = name + ' (' + n + ')';
+    n++;
+  }
+  return candidate;
+}
+
+// Captura el estado actual + lo guarda como user loop
+function _saveCurrentAsUserLoop(rawName){
+  if (!rawName || typeof rawName !== 'string') return false;
+  const name = rawName.trim();
+  if (!name) return false;
+
+  const list = _loadUserLoops();
+  const existing = list.map(l => l.label);
+  const finalName = _resolveUniqueName(name, existing);
+
+  // Deep clone de tracks para evitar referencias mutables
+  let tracksClone = [];
+  try { tracksClone = JSON.parse(JSON.stringify(G.tracks || [])); } catch(_){}
+
+  const loop = {
+    id: 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    label: finalName,
+    isUserSaved: true,
+    createdAt: Date.now(),
+    bpm: G.bpm || 120,
+    key: G.key || 'A',
+    keyMode: G.keyMode || 'major',
+    keyIdx: (typeof G.keyIdx === 'number') ? G.keyIdx : 9,
+    bars: G.bars || 4,
+    bpb: G.bpb || 4,
+    tracks: tracksClone,
+    activeStylePresetSource: G.activeStylePreset || null,
+  };
+
+  list.unshift(loop);   // nuevo arriba
+  const ok = _saveUserLoopsList(list);
+  if (!ok) return false;
+  if (typeof toast === 'function') toast('Guardado · ' + finalName);
+  return true;
+}
+window._saveCurrentAsUserLoop = _saveCurrentAsUserLoop;
+
+// Aplica un user loop (idéntico patrón a applyStylePreset pero desde data del usuario)
+function _applyUserLoop(loopId){
+  const list = _loadUserLoops();
+  const loop = list.find(l => l.id === loopId);
+  if (!loop){ if (typeof toast === 'function') toast('Loop no encontrado'); return false; }
+
+  if (typeof undoPush === 'function') undoPush('Cargar: ' + loop.label);
+
+  // Restaurar BPM y tonalidad vía helpers canónicos (actualizan ambos displays)
+  try { _setBpmCanonical(loop.bpm); } catch(_){}
+  try { _setKeyCanonical(loop.key, loop.keyMode); } catch(_){}
+
+  // Restaurar bars / bpb
+  if (typeof loop.bars === 'number') G.bars = loop.bars;
+  if (typeof loop.bpb === 'number') G.bpb = loop.bpb;
+  const barsEl = document.getElementById('bars-v'); if (barsEl) barsEl.textContent = G.bars;
+
+  // Restaurar tracks (deep clone para que ediciones futuras no afecten el preset guardado)
+  try { G.tracks = JSON.parse(JSON.stringify(loop.tracks || [])); } catch(_){ G.tracks = []; }
+
+  // El user loop no tiene preset oficial activo
+  G.activeStylePreset = null;
+
+  // Re-render
+  try { if (typeof buildTracks === 'function') buildTracks(); } catch(_){}
+  try { if (typeof rendAll === 'function') rendAll(); } catch(_){}
+  try { if (typeof renderAll === 'function') renderAll(); } catch(_){}
+  try { if (typeof _syncHeaderPresetLabel === 'function') _syncHeaderPresetLabel(); } catch(_){}
+  try { if (typeof syncAllTrackBuses === 'function') syncAllTrackBuses(); } catch(_){}
+
+  if (typeof toast === 'function') toast('Cargado · ' + loop.label);
+  return true;
+}
+window._applyUserLoop = _applyUserLoop;
+
+// Borra un user loop por id
+function _deleteUserLoop(loopId){
+  const list = _loadUserLoops();
+  const idx = list.findIndex(l => l.id === loopId);
+  if (idx < 0) return false;
+  const removed = list.splice(idx, 1)[0];
+  _saveUserLoopsList(list);
+  if (typeof toast === 'function') toast('Borrado · ' + removed.label);
+  return true;
+}
+window._deleteUserLoop = _deleteUserLoop;
+
+// ─── Diálogo Save (modal) ───
+let _saveDlgOnClose = null;  // callback cuando se cierra
+
+function _openSaveDlg(onClose){
+  _saveDlgOnClose = (typeof onClose === 'function') ? onClose : null;
+  const root = document.getElementById('save-dlg-root');
+  const input = document.getElementById('save-dlg-name-input');
+  if (!root) return;
+  // Limpiar input + actualizar resumen
+  if (input) input.value = '';
+  _refreshSaveDlgSummary();
+  root.classList.add('open');
+  setTimeout(() => { if (input) input.focus(); }, 120);
+  document.addEventListener('keydown', _saveDlgKeydown);
+}
+function _closeSaveDlg(){
+  const root = document.getElementById('save-dlg-root');
+  if (!root) return;
+  root.classList.remove('open');
+  document.removeEventListener('keydown', _saveDlgKeydown);
+  const cb = _saveDlgOnClose;
+  _saveDlgOnClose = null;
+  if (cb) setTimeout(cb, 50);
+}
+function _confirmSaveDlg(){
+  const input = document.getElementById('save-dlg-name-input');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name){
+    input.focus();
+    if (typeof toast === 'function') toast('Poné un nombre primero');
+    return;
+  }
+  const ok = _saveCurrentAsUserLoop(name);
+  if (ok) _closeSaveDlg();
+}
+function _saveDlgKeydown(e){
+  if (e.key === 'Escape') _closeSaveDlg();
+  if (e.key === 'Enter') _confirmSaveDlg();
+}
+function _refreshSaveDlgSummary(){
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set('save-sum-bpm', G.bpm || 120);
+  const keyTxt = (typeof NOTE_D !== 'undefined' && typeof G.keyIdx === 'number') ? NOTE_D[G.keyIdx] : (G.key || 'A');
+  const modeLbl = (G.keyMode === 'minor') ? ' minor' : ' major';
+  set('save-sum-key', keyTxt + modeLbl);
+  set('save-sum-bars', (G.bars || 4) + ' · ' + (G.bpb || 4) + '/4');
+  const numTracks = (G.tracks || []).length;
+  set('save-sum-tracks', numTracks + ' tracks');
+  let stylelbl = '—';
+  if (G.activeStylePreset && typeof _findStylePreset === 'function'){
+    const p = _findStylePreset(G.activeStylePreset);
+    if (p) stylelbl = p.label;
+  }
+  set('save-sum-style', stylelbl);
+}
+window._openSaveDlg = _openSaveDlg;
+window._closeSaveDlg = _closeSaveDlg;
+window._confirmSaveDlg = _confirmSaveDlg;
+
 </script>
+
+<!-- v21.0.0 — Diálogo modal para guardar loop -->
+<div id="save-dlg-root">
+  <div id="save-dlg-bd" onclick="_closeSaveDlg()"></div>
+  <div id="save-dlg-panel" role="dialog" aria-label="Guardar loop">
+    <div id="save-dlg-head">
+      <h3>Guardar tu loop</h3>
+      <div class="save-dlg-sub">Queda disponible en <b>Style · PROPIOS</b> · vive en este dispositivo.</div>
+    </div>
+    <div id="save-dlg-body">
+      <input id="save-dlg-name-input" placeholder="Nombrá tu loop..." maxlength="48" autocomplete="off">
+      <div id="save-dlg-summary">
+        <div class="sds-title">Resumen</div>
+        <div class="sds-row"><span class="sds-key">Estilo</span><span class="sds-val" id="save-sum-style">—</span></div>
+        <div class="sds-row"><span class="sds-key">BPM</span><span class="sds-val" id="save-sum-bpm">120</span></div>
+        <div class="sds-row"><span class="sds-key">Tonalidad</span><span class="sds-val" id="save-sum-key">A major</span></div>
+        <div class="sds-row"><span class="sds-key">Compases</span><span class="sds-val" id="save-sum-bars">4 · 4/4</span></div>
+        <div class="sds-row"><span class="sds-key">Tracks</span><span class="sds-val" id="save-sum-tracks">5 tracks</span></div>
+      </div>
+    </div>
+    <div id="save-dlg-foot">
+      <button class="save-dlg-btn" onclick="_closeSaveDlg()">Cancelar</button>
+      <button class="save-dlg-btn primary" onclick="_confirmSaveDlg()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* v21.0.0 — Save Dialog */
+#save-dlg-root { position: fixed; inset: 0; z-index: 99998; display: none; }
+#save-dlg-root.open { display: block; }
+#save-dlg-bd {
+  position: absolute; inset: 0;
+  background: rgba(18,16,12,.42);
+  opacity: 0; transition: opacity .22s ease-out;
+  cursor: pointer;
+}
+#save-dlg-root.open #save-dlg-bd { opacity: 1; }
+#save-dlg-panel {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%) scale(0.94);
+  width: min(440px, 92vw);
+  background: var(--card, #faf4e4);
+  border-radius: 16px;
+  box-shadow: 0 16px 60px rgba(18,16,12,.32);
+  opacity: 0;
+  transition: opacity .22s ease-out, transform .22s cubic-bezier(.32,.72,0,1);
+  overflow: hidden;
+}
+#save-dlg-root.open #save-dlg-panel { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+#save-dlg-head { padding: 18px 20px 14px; border-bottom: 0.5px solid var(--rule, rgba(0,0,0,.08)); }
+#save-dlg-head h3 {
+  font-family: var(--serif, Georgia, serif); font-style: italic;
+  font-size: 22px; font-weight: 500; color: var(--ink, #1a1611);
+}
+.save-dlg-sub { font-size: 11px; opacity: 0.65; margin-top: 3px; }
+#save-dlg-body { padding: 16px 20px; }
+#save-dlg-name-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rule, rgba(0,0,0,.12));
+  border-radius: 8px;
+  background: var(--bg, #f0e9d8);
+  font-family: var(--serif, Georgia, serif);
+  font-size: 18px; font-style: italic;
+  color: var(--ink, #1a1611);
+  outline: none;
+  transition: border-color 150ms;
+}
+#save-dlg-name-input:focus { border-color: #a07a2e; }
+#save-dlg-name-input::placeholder { color: var(--ink3, #9a8a6a); font-style: normal; font-family: var(--sans, sans-serif); font-size: 14px; }
+#save-dlg-summary {
+  margin-top: 14px; padding: 12px 14px;
+  background: var(--bg2, #e8dfc7); border-radius: 10px;
+}
+.sds-title {
+  font-family: var(--mono, monospace); font-size: 9px;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--ink2, #5a4d36); margin-bottom: 8px;
+}
+.sds-row {
+  display: flex; justify-content: space-between;
+  font-size: 12px; line-height: 1.6;
+}
+.sds-key { color: var(--ink2, #5a4d36); font-family: var(--mono, monospace); font-size: 10px; letter-spacing: 0.5px; }
+.sds-val { color: var(--ink, #1a1611); font-family: var(--serif, Georgia, serif); font-style: italic; }
+#save-dlg-foot {
+  padding: 14px 20px 18px;
+  display: flex; justify-content: flex-end; gap: 10px;
+  border-top: 0.5px solid var(--rule, rgba(0,0,0,.08));
+}
+.save-dlg-btn {
+  padding: 9px 18px; border-radius: 9px;
+  font-family: var(--sans, sans-serif); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.4px; cursor: pointer; border: 1px solid var(--rule, rgba(0,0,0,.12));
+  background: transparent; color: var(--ink, #1a1611);
+  transition: filter 100ms, transform 80ms;
+}
+.save-dlg-btn:active { transform: scale(0.97); }
+.save-dlg-btn.primary {
+  background: linear-gradient(180deg, #c9a35a, #a07a2e);
+  color: #fff; border-color: #a07a2e; font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 2px 6px rgba(160,122,46,.35);
+}
+.save-dlg-btn.primary:hover { filter: brightness(1.07); }
+
+/* v21.0.0 — Tab PROPIOS dorada + botón delete en cards de user loops */
+.sp-dd-tab.user {
+  border-color: #a07a2e;
+  color: #a07a2e;
+}
+.sp-dd-tab.user.active {
+  background: linear-gradient(180deg, #c9a35a, #a07a2e);
+  color: #fff;
+  border-color: #a07a2e;
+}
+.sp-dd-card.user {
+  border-color: rgba(201,163,90,.4);
+  background: rgba(201,163,90,.05);
+  position: relative;
+}
+.sp-dd-del {
+  position: absolute; top: 6px; right: 6px;
+  width: 22px; height: 22px; border-radius: 50%;
+  border: none; background: transparent;
+  color: var(--ink3, #9a8a6a); font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 100ms, color 100ms;
+}
+.sp-dd-del:hover { background: rgba(138,32,16,.12); color: var(--err, #8a2010); }
+.sp-dd-empty {
+  text-align: center; padding: 40px 20px;
+  color: var(--ink3, #9a8a6a); font-size: 12px; font-style: italic;
+  line-height: 1.6;
+}
+</style>
 
 </body>
 </html>
