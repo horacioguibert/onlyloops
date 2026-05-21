@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.26</title>
+<title>OnlyLoops · v27.27</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1951,7 +1951,11 @@ body.has-promoted-track #rewind-btn {
 .t-vol-track{width:100%;height:3px;background:var(--rule2);border-radius:2px;pointer-events:none}
 .t-vol-fill{position:absolute;left:0;height:3px;background:var(--ink);opacity:.6;border-radius:2px;pointer-events:none}
 .t-vol-thumb{position:absolute;width:11px;height:11px;background:var(--ink);border-radius:50%;border:1px solid var(--bg2);box-shadow:0 1px 2px rgba(0,0,0,.25);pointer-events:none}
-.ttl{flex:1;overflow-x:scroll;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative;scrollbar-width:none;background:var(--bg);overscroll-behavior:none;overscroll-behavior-x:none}
+.ttl{flex:1;overflow-x:scroll;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative;scrollbar-width:none;background:var(--bg);overscroll-behavior:none;overscroll-behavior-x:none;touch-action:pan-x pan-y}
+/* v27.27 — touch-action:pan-x pan-y permite que iOS asuma el scroll nativo
+   (horizontal en .ttl, vertical en #tracks) cuando el touch comienza en
+   zonas vacías del sequencer. Las clases override (.clip-dragging, .has-selection)
+   ponen touch-action:none para suspender el scroll durante drag de clip. */
 /* When actively dragging a clip/edge, suspend scroll so the canvas doesn't move along with the drag */
 .ttl.clip-dragging{overflow:hidden;touch-action:none;-webkit-overflow-scrolling:auto}
 /* When a clip is selected in this track, also suspend scroll so edits never fight the gesture */
@@ -7271,7 +7275,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.26</span>
+      <span class="title" id="dkv-title">Vista kit · v27.27</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -36915,6 +36919,33 @@ function clipGestureStart(e, ti){
     dragging: false,
     pointerId: e.pointerId,
   };
+
+  // v27.27 — UX FIX para iPhone: si el gesto comienza en zona VACÍA del
+  // sequencer (sin clip debajo), NO interferir con el scroll nativo del
+  // browser. NO hacer setPointerCapture, NO hacer preventDefault. iOS
+  // asumirá el scroll horizontal (en .ttl con overflow-x:scroll) o vertical
+  // (en #tracks con overflow-y:auto), según la dirección del gesto.
+  // Solo registramos pointerup/cancel para detectar tap puro y disparar el
+  // flow tap → activar track / crear clip. Si el usuario scrolleó, el
+  // clipGestureEnd ya detecta (línea ~37121) que .ttl.scrollLeft cambió o
+  // que totalDx/Dy > 10 y aborta sin hacer nada.
+  // En zonas CON clip, el comportamiento original se conserva (preventDefault
+  // + setPointerCapture) para que el drag/resize/tap del clip no sea robado
+  // por el scroll nativo.
+  if (zone === 'empty') {
+    const onMoveEmpty = (ev) => clipGestureMove(ev, state);
+    const onUpEmpty = (ev) => {
+      clipGestureEnd(ev, state);
+      tl.removeEventListener('pointermove', onMoveEmpty);
+      tl.removeEventListener('pointerup', onUpEmpty);
+      tl.removeEventListener('pointercancel', onUpEmpty);
+    };
+    tl.addEventListener('pointermove', onMoveEmpty);
+    tl.addEventListener('pointerup', onUpEmpty);
+    tl.addEventListener('pointercancel', onUpEmpty);
+    // SIN setPointerCapture y SIN preventDefault — iOS asume el scroll
+    return;
+  }
 
   try { tl.setPointerCapture(e.pointerId); } catch(_){}
   e.preventDefault();
