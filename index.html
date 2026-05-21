@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.31</title>
+<title>OnlyLoops · v27.35</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1951,7 +1951,11 @@ body.has-promoted-track #rewind-btn {
 .t-vol-track{width:100%;height:3px;background:var(--rule2);border-radius:2px;pointer-events:none}
 .t-vol-fill{position:absolute;left:0;height:3px;background:var(--ink);opacity:.6;border-radius:2px;pointer-events:none}
 .t-vol-thumb{position:absolute;width:11px;height:11px;background:var(--ink);border-radius:50%;border:1px solid var(--bg2);box-shadow:0 1px 2px rgba(0,0,0,.25);pointer-events:none}
-.ttl{flex:1;overflow-x:scroll;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative;scrollbar-width:none;background:var(--bg);overscroll-behavior:none;overscroll-behavior-x:none;touch-action:pan-x pan-y}
+.ttl{flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative;scrollbar-width:none;background:var(--bg);overscroll-behavior:none;overscroll-behavior-x:none;touch-action:pan-x pan-y}
+/* v27.34 — scrollbar-width:none restaurado para ocultar barras de cada track.
+   El scroll horizontal funciona via wrapper .ttl-inner que extiende scrollWidth.
+   En iPhone: iOS muestra indicator nativo auto-fade al swipe.
+   En desktop: scroll por gestos (trackpad, rueda+shift) sin barra visible. */
 /* v27.27 — touch-action:pan-x pan-y permite que iOS asuma el scroll nativo
    (horizontal en .ttl, vertical en #tracks) cuando el touch comienza en
    zonas vacías del sequencer. Las clases override (.clip-dragging, .has-selection)
@@ -1961,16 +1965,62 @@ body.has-promoted-track #rewind-btn {
 /* When a clip is selected in this track, also suspend scroll so edits never fight the gesture */
 .ttl.has-selection{touch-action:none}
 .ttl::-webkit-scrollbar{display:none}
+/* v27.34 — Restaurado el ocultamiento del scrollbar del .ttl (estética Apple minimalista).
+   El scroll horizontal SIGUE FUNCIONANDO porque overflow-x:auto está activo + el
+   wrapper .ttl-inner extiende correctamente el scrollWidth. Lo único que se oculta
+   es el scrollbar visual de cada track.
+   
+   En iPhone: iOS muestra el "scroll indicator" nativo (línea gris breve) al hacer
+   swipe horizontal, que aparece momentáneamente y se desvanece, igual que el
+   vertical. Es comportamiento nativo de iOS Safari que NO se desactiva con
+   ::-webkit-scrollbar:display:none (sólo afecta scrollbars persistentes de desktop).
+   
+   En desktop: el scroll funciona con gestos de trackpad, rueda+shift, o drag de
+   clip más allá del borde (auto-scroll).
+   
+   Si en el futuro se quiere UNA sola barra global al pie del sequencer (no una
+   por track), requiere refactor mayor: position:sticky en .tlbl + scroll horizontal
+   global en #tracks. Por ahora la solución gestural es suficiente. */
 .tc{position:absolute;display:block;top:0;left:0;height:100%}
-/* v27.31 — Vuelve a position:absolute (como original) porque la combinación
-   position:relative + canvas + iOS Safari resultó en scrollWidth no detectado.
-   En su lugar, usamos un SPACER DIV explícito en flow normal (.tc-spacer)
-   que se setea con el width total via JS. Esto fuerza al .ttl a tener el
-   scrollWidth correcto, y iOS Safari ya permite el scroll horizontal nativo
-   con touch-action:pan-x pan-y. El canvas absoluto se superpone al spacer
-   invisible (height:1px, visibility:hidden) y se mueve con el scroll porque
-   el padre .ttl es position:relative. */
-.tc-spacer{display:block;height:1px;visibility:hidden;pointer-events:none}
+/* v27.33 — Refactor DEFINITIVO: el canvas vuelve a position:absolute pero
+   DENTRO de un wrapper interno .ttl-inner que tiene width fijo en flow normal.
+   
+   Approach canónico de la industria (Figma, Excel web, Notion timelines, DAWs web):
+   
+     <div class="ttl">                  ← scroll container (overflow-x:auto)
+       <div class="ttl-inner">          ← width fijo en flow (9984px)
+         <canvas class="tc">            ← absolute dentro del inner (llena el área)
+       </div>
+     </div>
+   
+   El .ttl-inner es UN solo div de bloque con width:9984px en flow normal.
+   El navegador (iOS Safari, Chrome, todos) detecta scrollWidth = 9984px sin
+   ambigüedad. El .ttl con overflow-x:auto permite scroll horizontal nativo.
+   
+   El canvas dentro del inner es position:absolute con width 100% del inner
+   (= 9984px) y height 100%. Se mueve con el scroll porque el inner es
+   position:relative.
+   
+   v27.27 (touch-action), v27.28 (position:relative), v27.31 (spacer), v27.32
+   (inline-block) NO funcionaron porque mezclaban absolute + flow en el .ttl
+   directamente, lo que confunde el cálculo de scrollWidth en algunos browsers.
+   El wrapper interno elimina la ambigüedad. */
+.ttl-inner{position:relative;height:100%;display:block}
+
+/* v27.35 — Barra de scroll horizontal GLOBAL del sequencer.
+   Una sola barra al pie de todos los tracks, arriba del footer.
+   Sincroniza con todos los .ttl via syncScroll().
+   El pad izquierdo (var(--lbl-w)) la alinea con los .ttl (no con las .tlbl). */
+#hscroll-proxy{display:flex;flex-shrink:0;height:14px;background:var(--bg);border-top:1px solid var(--rule)}
+#hscroll-proxy-pad{width:var(--lbl-w);flex-shrink:0;background:var(--bg2);border-right:1.5px solid var(--rule2)}
+#hscroll-proxy-scroll{flex:1;overflow-x:auto;overflow-y:hidden;height:14px;position:relative}
+#hscroll-proxy-inner{height:1px;width:0}
+/* Estilizar el scrollbar para que sea elegante y delgado */
+#hscroll-proxy-scroll::-webkit-scrollbar{height:8px;background:transparent}
+#hscroll-proxy-scroll::-webkit-scrollbar-track{background:transparent}
+#hscroll-proxy-scroll::-webkit-scrollbar-thumb{background:var(--ink2);opacity:.35;border-radius:4px}
+#hscroll-proxy-scroll::-webkit-scrollbar-thumb:hover{background:var(--ink);opacity:.55}
+#hscroll-proxy-scroll{scrollbar-width:thin;scrollbar-color:var(--ink2) transparent}
 
 /* v14.2 — SABOR C: tracks vacíos (Excel funcional)
    Filas vacías abajo de los tracks reales, sutiles tipo Excel.
@@ -6991,9 +7041,22 @@ body.mixer-dragging *{touch-action:none !important}
           <line x1="42" y1="16" x2="46" y2="16"/>
         </svg>
       </div>
-      <div id="ruler-scroll"><canvas id="ruler-c"></canvas><div class="tc-spacer" id="ruler-spacer"></div></div>
+      <div id="ruler-scroll"><div class="ttl-inner" id="ruler-inner"><canvas id="ruler-c"></canvas></div></div>
     </div>
     <div id="tracks"></div>
+    <!-- v27.35 — Barra de scroll horizontal GLOBAL.
+         Una sola barra al pie de todos los tracks (arriba del footer).
+         El padding izquierdo (#hscroll-proxy-pad) está alineado con .tlbl
+         (mismo ancho var(--lbl-w)) para que la zona scrolleable arranque
+         exactamente donde arrancan los .ttl. Cualquier scroll de cualquier
+         .ttl actualiza el proxy, y el proxy actualiza todos los .ttl.
+         Los scrollbars individuales de cada .ttl están ocultos. -->
+    <div id="hscroll-proxy">
+      <div id="hscroll-proxy-pad"></div>
+      <div id="hscroll-proxy-scroll" onscroll="syncScroll(this)">
+        <div id="hscroll-proxy-inner"></div>
+      </div>
+    </div>
     <div id="ph"></div>
     <div id="mosquitos"></div>
     <div id="flying-ghost"></div>
@@ -7296,7 +7359,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.31</span>
+      <span class="title" id="dkv-title">Vista kit · v27.35</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -36111,8 +36174,9 @@ function buildTracks(){
         <div class="tlbl-zone tlbl-zone-open tr-drag-handle" onclick="if(this.parentElement.parentElement._inDragReorder)return;event.stopPropagation();_tlblZoneTap(${ti})" aria-label="Editor Instrumento"></div>
       </div>
       <div class="ttl" id="ttl-${ti}" data-ti="${ti}" onscroll="syncScroll(this)">
-        <canvas class="tc" id="tc-${ti}"></canvas>
-        <div class="tc-spacer" id="tcs-${ti}"></div>
+        <div class="ttl-inner" id="tinner-${ti}">
+          <canvas class="tc" id="tc-${ti}"></canvas>
+        </div>
       </div>`;
     el.appendChild(row);
     // v20.5.0 — Bind long-press + drag reorder al zone-open del track
@@ -36252,9 +36316,12 @@ function renderRuler(){
   const dpr=window.devicePixelRatio||1;
   const W=Math.max(cw.offsetWidth,TW()),H=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ruler-h'))||26;
   c.width=W*dpr;c.height=H*dpr;c.style.width=W+'px';c.style.height=H+'px';
-  // v27.31 — Setear width del spacer del ruler para forzar scrollWidth correcto en iOS
-  const _rspc=document.getElementById('ruler-spacer');
-  if(_rspc) _rspc.style.width=W+'px';
+  // v27.33 — Setear width del wrapper inner del ruler para forzar scrollWidth correcto
+  const _rinner=document.getElementById('ruler-inner');
+  if(_rinner) _rinner.style.width=W+'px';
+  // v27.35 — Setear width del inner de la barra global de scroll horizontal
+  const _proxyInner=document.getElementById('hscroll-proxy-inner');
+  if(_proxyInner) _proxyInner.style.width=W+'px';
   const ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
 
   // v27.2 — Loop region (zona amarilla GarageBand-style).
@@ -36330,10 +36397,10 @@ function renderTrack(ti){
   const W=Math.max(tl.offsetWidth,TW());
   c.width=W*dpr;c.height=H*dpr;
   c.style.width=W+'px';c.style.height=H+'px';
-  // v27.31 — Setear width del spacer (en flow normal) para que iOS detecte
-  // scrollWidth correctamente y permita scroll horizontal nativo.
-  const _spc=document.getElementById(`tcs-${ti}`);
-  if(_spc) _spc.style.width=W+'px';
+  // v27.33 — Setear width del wrapper .ttl-inner (en flow normal) para que el
+  // navegador detecte scrollWidth correcto y permita scroll horizontal nativo.
+  const _inner=document.getElementById(`tinner-${ti}`);
+  if(_inner) _inner.style.width=W+'px';
   const ctx=c.getContext('2d');
   ctx.scale(dpr,dpr);
   ctx.clearRect(0,0,W,H);
@@ -40953,8 +41020,12 @@ let syncing=false;
 function syncScroll(src){
   if(syncing)return;syncing=true;
   const l=src.scrollLeft;
-  document.querySelectorAll('.ttl').forEach(t=>{if(t!==src)t.scrollLeft=l;});
-  document.getElementById('ruler-scroll').scrollLeft=l;
+  document.querySelectorAll('.ttl').forEach(t=>{if(t!==src && t.scrollLeft!==l)t.scrollLeft=l;});
+  const ruler=document.getElementById('ruler-scroll');
+  if(ruler && ruler!==src && ruler.scrollLeft!==l) ruler.scrollLeft=l;
+  // v27.35 — Sincronizar también la barra de scroll global
+  const proxy=document.getElementById('hscroll-proxy-scroll');
+  if(proxy && proxy!==src && proxy.scrollLeft!==l) proxy.scrollLeft=l;
   syncing=false;
 }
 
