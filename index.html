@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.28</title>
+<title>OnlyLoops · v27.31</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1961,14 +1961,16 @@ body.has-promoted-track #rewind-btn {
 /* When a clip is selected in this track, also suspend scroll so edits never fight the gesture */
 .ttl.has-selection{touch-action:none}
 .ttl::-webkit-scrollbar{display:none}
-.tc{position:relative;display:block;top:0;left:0;height:100%}
-/* v27.28 — position:relative (antes absolute) para que el .ttl detecte el
-   ancho scrolleable real del canvas (9984px aprox.) y permita scroll horizontal
-   nativo en iOS. En iOS Safari, los hijos position:absolute NO siempre extienden
-   el scrollWidth del padre correctamente, lo que rompía el scroll hacia la
-   derecha. position:relative pone el canvas en flow normal y resuelve el bug.
-   El playhead, mosquitos y X-roja son position:fixed con coordenadas viewport
-   → no dependen del position del canvas. */
+.tc{position:absolute;display:block;top:0;left:0;height:100%}
+/* v27.31 — Vuelve a position:absolute (como original) porque la combinación
+   position:relative + canvas + iOS Safari resultó en scrollWidth no detectado.
+   En su lugar, usamos un SPACER DIV explícito en flow normal (.tc-spacer)
+   que se setea con el width total via JS. Esto fuerza al .ttl a tener el
+   scrollWidth correcto, y iOS Safari ya permite el scroll horizontal nativo
+   con touch-action:pan-x pan-y. El canvas absoluto se superpone al spacer
+   invisible (height:1px, visibility:hidden) y se mueve con el scroll porque
+   el padre .ttl es position:relative. */
+.tc-spacer{display:block;height:1px;visibility:hidden;pointer-events:none}
 
 /* v14.2 — SABOR C: tracks vacíos (Excel funcional)
    Filas vacías abajo de los tracks reales, sutiles tipo Excel.
@@ -2269,6 +2271,8 @@ body.has-promoted-track #rewind-btn {
 .bb-ic{width:34px;height:34px;border-radius:50%;border:1px solid var(--rule2);background:var(--bg2);color:var(--ink2);display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;cursor:pointer;transition:all .12s}
 .bb-ic:active{background:var(--bg3);transform:scale(.94)}
 .bb-ic.disabled{opacity:.35;cursor:default;pointer-events:none}
+/* v27.29 — Estado activo del botón zoom-compact: usa acento para indicar "modo compact" */
+#zoom-btn.on{background:var(--acc);color:var(--card);border-color:var(--acc)}
 @keyframes rb{0%{background:var(--err2)}40%{background:var(--err);color:var(--card)}100%{background:var(--err2);color:var(--err)}}
 
 /* ═══ WHEEL PICKER — iOS drum roll ═══ */
@@ -6987,7 +6991,7 @@ body.mixer-dragging *{touch-action:none !important}
           <line x1="42" y1="16" x2="46" y2="16"/>
         </svg>
       </div>
-      <div id="ruler-scroll"><canvas id="ruler-c"></canvas></div>
+      <div id="ruler-scroll"><canvas id="ruler-c"></canvas><div class="tc-spacer" id="ruler-spacer"></div></div>
     </div>
     <div id="tracks"></div>
     <div id="ph"></div>
@@ -7019,7 +7023,17 @@ body.mixer-dragging *{touch-action:none !important}
       <button class="bb-seg" onclick="openSheet('add-sheet')">＋ Track</button>
       <button class="bb-seg divider" onclick="removeLastTrack()" aria-label="Quitar track">−</button>
     </div>
-    <button class="bb" onclick="openSheet('prog-sheet')">♬ Prog.</button>
+    <!-- v27.29 — Botón ZOOM COMPACT (reemplaza el viejo "♬ Prog." que abría progresiones).
+         Comprime BW a la mitad: 4 compases entran en el ancho de iPhone donde antes entraban 2.
+         Vertical sin cambios. Toggle: click activa, click de nuevo vuelve a normal.
+         Icono: dos flechas convergiendo horizontalmente sobre línea central = "ajustar/comprimir horizontal". -->
+    <button class="bb-ic" id="zoom-btn" onclick="toggleZoomCompact()" aria-label="Comprimir horizontal (4 compases)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="3" x2="12" y2="21"/>
+        <polyline points="7 8 11 12 7 16"/>
+        <polyline points="17 8 13 12 17 16"/>
+      </svg>
+    </button>
     <button class="bb-ic" id="undo-btn" onclick="undoLast()" aria-label="Deshacer">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
     </button>
@@ -7282,7 +7296,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.28</span>
+      <span class="title" id="dkv-title">Vista kit · v27.31</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -35702,12 +35716,18 @@ function drumHit(type,t,vol){
 const APP_LOGICAL_WIDTH = 390;
 const GRID_COLS = 10;                     // 2 (instrumentos) + 8 (beats)
 const U = APP_LOGICAL_WIDTH / GRID_COLS;  // = 39px (unidad maestra modular)
-const BW = U;                             // 1 beat = 1 celda cuadrada U×U
+// v27.29 — BW ahora es LET (antes const) para permitir zoom compact (toggle).
+// En modo normal: BW = U = 39px → 1 beat = 39px → 2 compases (8 beats) entran en pantalla iPhone (312px).
+// En modo compact: BW = round(U/2) = 20px → 4 compases (16 beats) entran en pantalla (320px).
+// Toggle via toggleZoomCompact() que actualiza BW y re-renderiza todo.
+let BW = U;                               // 1 beat = 1 celda cuadrada U×U (modo normal)
 const BEATS_VISIBLE = 8;                  // 2 compases × 4 beats
 const G={
   view:'seq',bpm:120,bars:4,bpb:4,tiempo:'4/4',snap:4,
   notation:'Am',key:'A',keyIdx:9,
   playing:false,playPos:0,
+  // v27.29 — Estado del zoom horizontal compact (true = 4 compases visibles, false = 2 default)
+  zoomCompact:false,
   // v27.2 — Loop region (zona de cycle estilo GarageBand/Logic).
   //   active: si true, el playback loopea dentro de [start, end) en beats.
   //   start/end: en BEATS, ya snapped a compás entero (múltiplo de bpb).
@@ -36092,6 +36112,7 @@ function buildTracks(){
       </div>
       <div class="ttl" id="ttl-${ti}" data-ti="${ti}" onscroll="syncScroll(this)">
         <canvas class="tc" id="tc-${ti}"></canvas>
+        <div class="tc-spacer" id="tcs-${ti}"></div>
       </div>`;
     el.appendChild(row);
     // v20.5.0 — Bind long-press + drag reorder al zone-open del track
@@ -36231,6 +36252,9 @@ function renderRuler(){
   const dpr=window.devicePixelRatio||1;
   const W=Math.max(cw.offsetWidth,TW()),H=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ruler-h'))||26;
   c.width=W*dpr;c.height=H*dpr;c.style.width=W+'px';c.style.height=H+'px';
+  // v27.31 — Setear width del spacer del ruler para forzar scrollWidth correcto en iOS
+  const _rspc=document.getElementById('ruler-spacer');
+  if(_rspc) _rspc.style.width=W+'px';
   const ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
 
   // v27.2 — Loop region (zona amarilla GarageBand-style).
@@ -36306,6 +36330,10 @@ function renderTrack(ti){
   const W=Math.max(tl.offsetWidth,TW());
   c.width=W*dpr;c.height=H*dpr;
   c.style.width=W+'px';c.style.height=H+'px';
+  // v27.31 — Setear width del spacer (en flow normal) para que iOS detecte
+  // scrollWidth correctamente y permita scroll horizontal nativo.
+  const _spc=document.getElementById(`tcs-${ti}`);
+  if(_spc) _spc.style.width=W+'px';
   const ctx=c.getContext('2d');
   ctx.scale(dpr,dpr);
   ctx.clearRect(0,0,W,H);
@@ -36386,7 +36414,14 @@ function renderTrack(ti){
       // (~50% de rootFs). En notaciones simples solo se renderea el primary.
       // v15.0.12 — FIX: restauradas declaraciones rootFs/_clipFont/chordY
       // (eliminadas por error en v15.0.11 → ReferenceError en cada render).
-      const rootFs=Math.min(43,Math.max(15,w*.18));
+      // v27.30 — FIX zoom compact: la fuente del acorde NO debe achicarse cuando
+      // BW se reduce a la mitad. Usamos el ancho LÓGICO (cl.lb * U) en lugar del
+      // ancho físico (w = cl.lb * BW). Resultado: el "B^m"/"Bmaj7"/etc. mantiene
+      // el mismo tamaño de letra en modo normal y en modo compact (4 compases).
+      // La letra debe seguir cabiendo: 1 compás compact = 80px ancho, suficiente
+      // para "B" (18px) + "maj7" superscript (28px) = ~46px < 80px. ✓
+      const _logicalW = (cl.lb||1) * U;   // ancho que el clip tendría a BW normal
+      const rootFs=Math.min(43,Math.max(15,_logicalW*.18));
       const _clipFont = (G && G.clipFont) ? G.clipFont : "'Cormorant Garamond',serif";
       const chordY=H/2-2;
 
@@ -54935,6 +54970,36 @@ function clearLoop(){
   if (typeof renderRuler === 'function') renderRuler();
 }
 window.clearLoop = clearLoop;
+
+// ════════════════════════════════════════════════════════════════════
+// v27.29 — ZOOM COMPACT (toggle horizontal del sequencer).
+//
+// En modo normal: BW = U = 39px → 2 compases entran en pantalla iPhone (8 beats × 39 = 312px).
+// En modo compact: BW = round(U/2) = 20px → 4 compases entran en pantalla (16 beats × 20 = 320px).
+//
+// Toggle del botón en el footer (zoom-btn, reemplaza el viejo "♬ Prog.").
+// Vertical NO cambia (las filas de tracks siguen igual de altas).
+// Estado guardado en G.zoomCompact (boolean).
+//
+// Re-render forzado: ruler + todos los tracks. El playhead, los clips
+// y el ruler se redibujan con el nuevo BW automáticamente porque todas
+// las funciones de render leen BW como variable (let, no const).
+// ════════════════════════════════════════════════════════════════════
+function toggleZoomCompact(){
+  G.zoomCompact = !G.zoomCompact;
+  BW = G.zoomCompact ? Math.round(U/2) : U;
+  // Reflejar estado visual en el botón
+  const btn = document.getElementById('zoom-btn');
+  if (btn) btn.classList.toggle('on', G.zoomCompact);
+  // Re-render del ruler y de todos los tracks
+  if (typeof renderRuler === 'function') renderRuler();
+  if (typeof renderAll === 'function') renderAll();
+  // Reset del scrollLeft para no quedar en una zona invisible tras el zoom
+  document.querySelectorAll('.ttl').forEach(t => { t.scrollLeft = 0; });
+  const rs = document.getElementById('ruler-scroll');
+  if (rs) rs.scrollLeft = 0;
+}
+window.toggleZoomCompact = toggleZoomCompact;
 
 // ════════════════════════════════════════════════════════════════════
 // v27.10 — AUTO-SCROLL PAGINADO REACTIVO A VIEWPORT.
