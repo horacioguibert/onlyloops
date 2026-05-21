@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.25</title>
+<title>OnlyLoops · v27.26</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1138,10 +1138,18 @@
 }
 #dkv-overlay.on{
   display:flex;
-  /* v23.5 — MODAL: cuando el DKV está abierto, captura TODOS los eventos para
-     que NO atraviesen al chord-sheet de abajo. Sin background visible — sigue
-     viéndose el sequencer detrás, pero los clicks NO le llegan. */
-  pointer-events:auto;
+  /* v27.26 — NO-MODAL: el DKV NO bloquea el resto de la pantalla.
+     El área transparente del overlay (todo lo que no es el panel) deja
+     pasar los clicks al sequencer detrás. Esto permite usar PLAY/REWIND/
+     UNDO/zoom/etc del header y editar clips del sequencer mientras el
+     DKV está abierto. Solo el panel del DKV (#dkv-panel pointer-events:auto)
+     captura los clicks que están sobre él (kit, grip, botón cerrar).
+     Reemplaza a la regla v23.5 que ponía pointer-events:auto y bloqueaba
+     todo. La aislación del chord-sheet ya la garantiza:
+       1. El bloqueador v23.6 (stopPropagation en panel)
+       2. La excepción v27.25 en el tap-outside del PANEL-TWINS
+     Ya no es necesario capturar TODA la pantalla. */
+  pointer-events:none;
 }
 #dkv-panel{
   width:100%;max-width:780px;
@@ -7263,7 +7271,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.25</span>
+      <span class="title" id="dkv-title">Vista kit · v27.26</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -50693,6 +50701,14 @@ function bpmNudge(dir){
       //      sequencer). Antes el click del ✕ cerraba también el chord-sheet
       //      por culpa de este listener.
       if(e.target.closest && e.target.closest('#dkv-overlay')) return;
+      // v27.26 — EXCEPCIÓN TRANSPORT + UNDO: los botones de transport
+      // (Play/Pause/Rewind/Loop) y Undo son ACCIONES que el usuario
+      // dispara MIENTRAS está editando un clip o instrumento. NO cerrar
+      // el editor al tocarlos — el usuario quiere escuchar el cambio,
+      // rebobinar para reauditar, activar loop, o deshacer un paso sin
+      // perder el editor abierto. Mismo principio que .ttl/track-row:
+      // mantener el editor "sticky" durante el flujo de composición.
+      if(e.target.closest && e.target.closest('#play-btn, #rewind-btn, #loop-btn, #hdr-play-btn, #undo-btn')) return;
       // Para el config: no cerrar si el tap fue sobre el propio botón ⚙
       // (que ya hace toggle por su cuenta — sino doble-cierre)
       if(twin.id === 'hdr-config-menu' && e.target.closest && e.target.closest('.hdr-config')) return;
