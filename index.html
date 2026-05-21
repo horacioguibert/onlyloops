@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.27</title>
+<title>OnlyLoops · v27.28</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1961,7 +1961,14 @@ body.has-promoted-track #rewind-btn {
 /* When a clip is selected in this track, also suspend scroll so edits never fight the gesture */
 .ttl.has-selection{touch-action:none}
 .ttl::-webkit-scrollbar{display:none}
-.tc{position:absolute;top:0;left:0;height:100%}
+.tc{position:relative;display:block;top:0;left:0;height:100%}
+/* v27.28 — position:relative (antes absolute) para que el .ttl detecte el
+   ancho scrolleable real del canvas (9984px aprox.) y permita scroll horizontal
+   nativo en iOS. En iOS Safari, los hijos position:absolute NO siempre extienden
+   el scrollWidth del padre correctamente, lo que rompía el scroll hacia la
+   derecha. position:relative pone el canvas en flow normal y resuelve el bug.
+   El playhead, mosquitos y X-roja son position:fixed con coordenadas viewport
+   → no dependen del position del canvas. */
 
 /* v14.2 — SABOR C: tracks vacíos (Excel funcional)
    Filas vacías abajo de los tracks reales, sutiles tipo Excel.
@@ -7275,7 +7282,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.27</span>
+      <span class="title" id="dkv-title">Vista kit · v27.28</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
