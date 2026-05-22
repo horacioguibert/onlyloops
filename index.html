@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.46</title>
+<title>OnlyLoops · v27.47</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -7369,7 +7369,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.46</span>
+      <span class="title" id="dkv-title">Vista kit · v27.47</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55088,7 +55088,11 @@ window.clearLoop = clearLoop;
 // ════════════════════════════════════════════════════════════════════
 function toggleZoomCompact(){
   G.zoomCompact = !G.zoomCompact;
-  BW = G.zoomCompact ? Math.round(U/2) : U;
+  // v27.47 — BW compact: Math.round(U/2)=20 → Math.floor(U/2)=19.
+  // Total 4 compases: 4*4*20=320px → 4*4*19=304px (16px menos).
+  // Garantiza que los 4 compases enteren completos en iPhones de viewport
+  // estrecho (375-393pt menos var(--lbl-w) ≈ 297-315px disponibles).
+  BW = G.zoomCompact ? Math.floor(U/2) : U;
   // Reflejar estado visual en el botón
   const btn = document.getElementById('zoom-btn');
   if (btn) btn.classList.toggle('on', G.zoomCompact);
