@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.64</title>
+<title>OnlyLoops · v27.65</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -2343,7 +2343,18 @@ body.has-promoted-track #rewind-btn {
 
 /* ═══ BOT ═══ */
 /* v15.0-DEMO — APPLE: padding-bottom respeta home indicator iPhone X+ */
-#bot{height:calc(54px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1.5px solid var(--rule2);display:flex;align-items:center;padding:0 10px env(safe-area-inset-bottom,0px);gap:6px;flex-shrink:0;box-shadow:0 -2px 8px rgba(18,16,12,.05);z-index:102;position:relative}
+#bot{height:calc(54px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1.5px solid var(--rule2);display:flex;align-items:center;padding:0 10px env(safe-area-inset-bottom,0px);gap:6px;flex-shrink:0;box-shadow:0 -2px 8px rgba(18,16,12,.05);z-index:102;position:relative;
+  /* v27.65 — `transform: translateZ(0)` fuerza al footer a tener su propio
+     compositing layer en GPU. En iOS Safari, cuando el inst-sheet o el mixer
+     usan `transform: translateY(...)` para drag, crean un compositing layer
+     que puede romper la jerarquía de z-index (bug conocido de WebKit). Con
+     translateZ(0) en el footer, este queda en su propio layer y SIEMPRE se
+     compone arriba del sheet por z-index, sin importar transforms del sheet.
+     El chord-sheet no presentaba el problema porque su DOM order o transitions
+     interactuaban distinto; el inst-sheet sí lo presentaba al hacer drag-down.
+     Solución uniforme: forzar el layer del footer para que sea predecible. */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0)}
 .bb{height:34px;border-radius:17px;padding:0 12px;border:1px solid var(--rule2);background:var(--bg2);color:var(--ink2);font-size:10px;font-weight:700;letter-spacing:.3px;display:flex;align-items:center;gap:5px;transition:all .12s;white-space:nowrap;cursor:pointer}
 .bb:active{background:var(--bg3);transform:scale(.97)}
 .bb.prim{background:var(--ink);color:var(--card);border-color:var(--ink);box-shadow:0 2px 6px rgba(18,16,12,.22)}
@@ -2438,7 +2449,16 @@ body.has-promoted-track #rewind-btn {
 .native-confirm .nc-destructive{background:#c0392b;color:#fff;border-color:#c0392b}
 .native-confirm .nc-destructive:active{background:#a93023}
 
-.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:18px 18px 0 0;z-index:101;transform:translateY(100vh);transition:transform .28s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(18,16,12,.18);max-height:78vh;padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:18px 18px 0 0;z-index:101;transform:translateY(100vh);transition:transform .28s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(18,16,12,.18);max-height:78vh}
+/* v27.65 — Eliminado `padding-bottom: env(safe-area-inset-bottom, 0px)` del .sheet.
+   Era un padding interno del sheet del color HUESO (var(--card)) que creaba una
+   franja blanca de ~25-34px (según iPhone) entre el último wheel (Octavador en
+   inst-sheet, Duración en chord-sheet) y el footer. Como el footer también es
+   HUESO, visualmente parecía que el sheet "tapaba" o "se mezclaba" con el footer.
+   El env-bottom NO es necesario en el .sheet porque el footer ya está pegado al
+   safe-area-bottom (su `padding: 0 10px env(...)` ya gestiona el home indicator
+   del iPhone). El sheet termina arriba del footer, y el footer maneja el área
+   del home indicator. */
 /* v20.10.12 — translateY(100vh) en lugar de translateY(100%) para garantizar
    que el sheet quede SIEMPRE oculto en cualquier viewport. El 100% se basa
    en la altura del propio sheet; en sheets con top:calc(...) específicos
@@ -7500,7 +7520,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.64</span>
+      <span class="title" id="dkv-title">Vista kit · v27.65</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
