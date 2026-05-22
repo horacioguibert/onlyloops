@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.35</title>
+<title>OnlyLoops · v27.46</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1835,7 +1835,14 @@ body.loop-active #seq{background:linear-gradient(180deg, rgba(255,214,10,0.04) 0
 }
 #ruler-scroll{flex:1;overflow:hidden;position:relative;overscroll-behavior:none}
 #ruler-c{display:block;height:var(--ruler-h)}
-#tracks{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:none}
+#tracks{flex:1;min-height:0;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none}
+/* v27.37 — UN SOLO scroll container, igual que el vertical.
+   overflow-y:auto + overflow-x:auto en el mismo elemento (#tracks).
+   Los .ttl individuales YA NO son scroll containers (overflow:visible).
+   Las .tlbl quedan fijas a la izquierda con position:sticky;left:0.
+   Cada track-row se extiende con width:max-content para que el scroll-x
+   funcione sobre todo el contenido. iOS Safari y todos los browsers
+   manejan UN solo scroll con touch nativo perfecto, igual que el vertical. */
 /* v20.5.0 — Track promote + drag reorder */
 /* v20.5.4 — Con track promovido, backdrop deja pasar clicks a los clips
    de los tracks (permite navegar entre clips sin cerrar el sheet).
@@ -1910,7 +1917,11 @@ body.has-promoted-track #rewind-btn {
   background: var(--rule);
 }
 
-.track-row{display:flex;height:var(--track-h);flex:0 0 var(--track-h);min-height:var(--track-h);border-bottom:1px solid var(--rule);transition:background-color .2s ease}
+.track-row{display:flex;height:var(--track-h);flex:0 0 var(--track-h);min-height:var(--track-h);border-bottom:1px solid var(--rule);transition:background-color .2s ease;width:max-content;min-width:100%}
+/* v27.37 — width:max-content + min-width:100%: cada track-row se extiende
+   al ancho de su contenido (tlbl + ttl con canvas), permitiendo que el padre
+   #tracks tenga scroll-x sobre el contenido completo. min-width:100% asegura
+   que las rows vacías ocupen al menos el viewport. */
 /* Track destacado: diferenciación tonal sutil pero perceptible.
    Clase aplicada vía JS en setSelectedClip(). */
 .track-row.destacado{
@@ -1929,7 +1940,10 @@ body.has-promoted-track #rewind-btn {
   background-color: rgba(18,16,12,0.10) !important;
 }
 .track-row:last-child{border-bottom:none}
-.tlbl{width:var(--lbl-w);flex-shrink:0;background:var(--bg2);border-right:1.5px solid var(--rule2);display:flex;flex-direction:column;justify-content:space-between;padding:8px 5px 8px 8px;box-sizing:border-box;position:relative;cursor:pointer;transition:background .12s;overflow:hidden}
+.tlbl{width:var(--lbl-w);flex-shrink:0;background:var(--bg2);border-right:1.5px solid var(--rule2);display:flex;flex-direction:column;justify-content:space-between;padding:8px 5px 8px 8px;box-sizing:border-box;position:sticky;left:0;z-index:5;cursor:pointer;transition:background .12s;overflow:hidden}
+/* v27.37 — position:sticky;left:0 mantiene la columna de labels FIJA a la
+   izquierda mientras el sequencer scrolea horizontalmente. z-index:5 la pone
+   sobre los clips para que tape lo que pasa por debajo. */
 .tlbl:active{background:var(--bg2)}
 .t-stripe{position:absolute;left:0;top:0;bottom:0;width:3.5px}
 .t-top{display:flex;align-items:center;gap:2px;min-width:0}
@@ -1951,11 +1965,11 @@ body.has-promoted-track #rewind-btn {
 .t-vol-track{width:100%;height:3px;background:var(--rule2);border-radius:2px;pointer-events:none}
 .t-vol-fill{position:absolute;left:0;height:3px;background:var(--ink);opacity:.6;border-radius:2px;pointer-events:none}
 .t-vol-thumb{position:absolute;width:11px;height:11px;background:var(--ink);border-radius:50%;border:1px solid var(--bg2);box-shadow:0 1px 2px rgba(0,0,0,.25);pointer-events:none}
-.ttl{flex:1;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;position:relative;scrollbar-width:none;background:var(--bg);overscroll-behavior:none;overscroll-behavior-x:none;touch-action:pan-x pan-y}
-/* v27.34 — scrollbar-width:none restaurado para ocultar barras de cada track.
-   El scroll horizontal funciona via wrapper .ttl-inner que extiende scrollWidth.
-   En iPhone: iOS muestra indicator nativo auto-fade al swipe.
-   En desktop: scroll por gestos (trackpad, rueda+shift) sin barra visible. */
+.ttl{flex:0 0 auto;overflow:visible;position:relative;background:var(--bg);touch-action:auto}
+/* v27.37 — .ttl YA NO es scroll container. El scroll horizontal lo maneja
+   #tracks (UN solo scroll). flex:0 0 auto toma el ancho de su contenido
+   (ttl-inner con width fijo). overflow:visible permite que el canvas se
+   muestre normal. touch-action:auto deja que el browser maneje gestos. */
 /* v27.27 — touch-action:pan-x pan-y permite que iOS asuma el scroll nativo
    (horizontal en .ttl, vertical en #tracks) cuando el touch comienza en
    zonas vacías del sequencer. Las clases override (.clip-dragging, .has-selection)
@@ -2006,21 +2020,6 @@ body.has-promoted-track #rewind-btn {
    directamente, lo que confunde el cálculo de scrollWidth en algunos browsers.
    El wrapper interno elimina la ambigüedad. */
 .ttl-inner{position:relative;height:100%;display:block}
-
-/* v27.35 — Barra de scroll horizontal GLOBAL del sequencer.
-   Una sola barra al pie de todos los tracks, arriba del footer.
-   Sincroniza con todos los .ttl via syncScroll().
-   El pad izquierdo (var(--lbl-w)) la alinea con los .ttl (no con las .tlbl). */
-#hscroll-proxy{display:flex;flex-shrink:0;height:14px;background:var(--bg);border-top:1px solid var(--rule)}
-#hscroll-proxy-pad{width:var(--lbl-w);flex-shrink:0;background:var(--bg2);border-right:1.5px solid var(--rule2)}
-#hscroll-proxy-scroll{flex:1;overflow-x:auto;overflow-y:hidden;height:14px;position:relative}
-#hscroll-proxy-inner{height:1px;width:0}
-/* Estilizar el scrollbar para que sea elegante y delgado */
-#hscroll-proxy-scroll::-webkit-scrollbar{height:8px;background:transparent}
-#hscroll-proxy-scroll::-webkit-scrollbar-track{background:transparent}
-#hscroll-proxy-scroll::-webkit-scrollbar-thumb{background:var(--ink2);opacity:.35;border-radius:4px}
-#hscroll-proxy-scroll::-webkit-scrollbar-thumb:hover{background:var(--ink);opacity:.55}
-#hscroll-proxy-scroll{scrollbar-width:thin;scrollbar-color:var(--ink2) transparent}
 
 /* v14.2 — SABOR C: tracks vacíos (Excel funcional)
    Filas vacías abajo de los tracks reales, sutiles tipo Excel.
@@ -2454,7 +2453,12 @@ body.has-promoted-track #rewind-btn {
 #cs-title .cs-num{font-size:32px;font-weight:600;font-style:italic;letter-spacing:-.5px;color:var(--ink);margin:0 2px;line-height:1;display:inline-block;vertical-align:baseline}
 /* Chord editor header: tighter horizontal padding to fit longer titles */
 #chord-sheet .s-head{padding-left:10px;padding-right:10px;gap:6px;align-items:baseline}
-.shbtn{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;border:1px solid var(--rule);background:var(--bg2);color:var(--ink2);transition:all .12s;cursor:pointer}
+.shbtn{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;border:1px solid var(--rule);background:var(--bg2);color:var(--ink2);transition:all .12s;cursor:pointer;position:relative}
+/* v27.40 — Halo de tap REDUCIDO a -5px (era -10px) y con background invisible
+   forzado para iOS Safari hit-test. Total ~42px (cumple Apple HIG 44 cuando
+   el botón es 32+, y 46 cuando es 36+). No overlap con .s-handle::before que
+   tiene bottom:-14px (la cruz quedaba en territorio de su halo). */
+.shbtn::before{content:'';position:absolute;top:-5px;right:-5px;bottom:-5px;left:-5px;border-radius:50%;background:rgba(0,0,0,0.001)}
 .shbtn:active{transform:scale(.88)}
 .shbtn.ok{background:var(--ok2);border-color:var(--ok3);color:var(--ok)}
 .shbtn.ok:active{background:var(--ok);color:var(--card)}
@@ -6665,17 +6669,36 @@ body.mixer-dragging *{touch-action:none !important}
   justify-content: flex-end;
 }
 .cs-icons-row .shbtn {
-  /* v17.5.11 — botones +20%: 30→36 px, font 14→17 px. Mismo lugar y alineación. */
-  width: 36px; height: 36px;
+  /* v27.40 — Botón del chord-editor 36→40 (+11%, dentro del rango 10-15%
+     pedido). Posición fija en la esquina superior derecha del header.
+     Position relative para que el ::before halo se posicione correctamente. */
+  width: 40px; height: 40px;
   border-radius: 50%;
   border: 0.5px solid var(--rule, rgba(0,0,0,.18));
   background: var(--card, #fff);
   color: var(--ink, #1a1a1a);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  font-size: 17px;
+  font-size: 19px;
   padding: 0;
+  position: relative;
   transition: transform .1s, background .15s;
+}
+/* v27.40 — Halo de tap ASIMÉTRICO para los botones del chord-editor.
+   Top:-3 (poco hacia arriba, evita overlap con .s-handle::before que se
+   extiende 14px hacia abajo del handle). Right:-10 y bottom:-10 (mucho
+   hacia afuera del sheet — hay espacio del padding). Left:-3 (poco hacia
+   izquierda para no robarle taps al botón vecino). El gap entre botones
+   es 6px → halo de 3px de cada lado deja 0px de overlap entre halos. */
+.cs-icons-row .shbtn::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -10px;
+  bottom: -10px;
+  left: -3px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.001);
 }
 .cs-icons-row .shbtn:active { transform: scale(.92); }
 .cs-icons-row .shbtn.ok { color: var(--ok, #2a8a44); }
@@ -7043,20 +7066,7 @@ body.mixer-dragging *{touch-action:none !important}
       </div>
       <div id="ruler-scroll"><div class="ttl-inner" id="ruler-inner"><canvas id="ruler-c"></canvas></div></div>
     </div>
-    <div id="tracks"></div>
-    <!-- v27.35 — Barra de scroll horizontal GLOBAL.
-         Una sola barra al pie de todos los tracks (arriba del footer).
-         El padding izquierdo (#hscroll-proxy-pad) está alineado con .tlbl
-         (mismo ancho var(--lbl-w)) para que la zona scrolleable arranque
-         exactamente donde arrancan los .ttl. Cualquier scroll de cualquier
-         .ttl actualiza el proxy, y el proxy actualiza todos los .ttl.
-         Los scrollbars individuales de cada .ttl están ocultos. -->
-    <div id="hscroll-proxy">
-      <div id="hscroll-proxy-pad"></div>
-      <div id="hscroll-proxy-scroll" onscroll="syncScroll(this)">
-        <div id="hscroll-proxy-inner"></div>
-      </div>
-    </div>
+    <div id="tracks" onscroll="syncMainScroll(this)"></div>
     <div id="ph"></div>
     <div id="mosquitos"></div>
     <div id="flying-ghost"></div>
@@ -7359,7 +7369,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.35</span>
+      <span class="title" id="dkv-title">Vista kit · v27.46</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -36173,7 +36183,7 @@ function buildTracks(){
              todas sus funciones migran al inst-sheet. -->
         <div class="tlbl-zone tlbl-zone-open tr-drag-handle" onclick="if(this.parentElement.parentElement._inDragReorder)return;event.stopPropagation();_tlblZoneTap(${ti})" aria-label="Editor Instrumento"></div>
       </div>
-      <div class="ttl" id="ttl-${ti}" data-ti="${ti}" onscroll="syncScroll(this)">
+      <div class="ttl" id="ttl-${ti}" data-ti="${ti}">
         <div class="ttl-inner" id="tinner-${ti}">
           <canvas class="tc" id="tc-${ti}"></canvas>
         </div>
@@ -36224,7 +36234,9 @@ function renderEmptyTracks(){
         <span class="tlbl-v2-num">T${placeholderIdx+1}</span>
         <span class="tlbl-empty-add" aria-hidden="true">+</span>
       </div>
-      <div class="ttl ttl-empty" aria-label="Celda vacía: tap para agregar instrumento"></div>`;
+      <div class="ttl ttl-empty" aria-label="Celda vacía: tap para agregar instrumento">
+        <div class="ttl-inner ttl-empty-inner"></div>
+      </div>`;
     // Tap en track vacío → abre add-sheet (mismo flujo que botón "+ Track" del footer)
     row.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -36255,6 +36267,13 @@ function renderEmptyTracks(){
 function renderAll(){
   if (typeof _syncBarsToContent === 'function') _syncBarsToContent();
   renderRuler();G.tracks.forEach((_,i)=>renderTrack(i));if(typeof updateNowPlaying==='function')updateNowPlaying();
+  // v27.36 — Sincronizar también los ttl-inner de los tracks vacíos para que
+  // sean scrolleables horizontalmente. Permite swipe en cualquier zona del
+  // sequencer (incluido T5, T6, T7 vacíos) sin necesidad de barra visible.
+  const _Wtot = Math.max(0, (typeof TW === 'function') ? TW() : 0);
+  if(_Wtot > 0){
+    document.querySelectorAll('.ttl-empty-inner').forEach(el=>{ el.style.width = _Wtot+'px'; });
+  }
 }
 
 // v27.8 — Sincronización TOTAL: G.bars = compases reales del sequencer.
@@ -36319,9 +36338,6 @@ function renderRuler(){
   // v27.33 — Setear width del wrapper inner del ruler para forzar scrollWidth correcto
   const _rinner=document.getElementById('ruler-inner');
   if(_rinner) _rinner.style.width=W+'px';
-  // v27.35 — Setear width del inner de la barra global de scroll horizontal
-  const _proxyInner=document.getElementById('hscroll-proxy-inner');
-  if(_proxyInner) _proxyInner.style.width=W+'px';
   const ctx=c.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
 
   // v27.2 — Loop region (zona amarilla GarageBand-style).
@@ -36487,10 +36503,27 @@ function renderTrack(ti){
       // el mismo tamaño de letra en modo normal y en modo compact (4 compases).
       // La letra debe seguir cabiendo: 1 compás compact = 80px ancho, suficiente
       // para "B" (18px) + "maj7" superscript (28px) = ~46px < 80px. ✓
-      const _logicalW = (cl.lb||1) * U;   // ancho que el clip tendría a BW normal
-      const rootFs=Math.min(43,Math.max(15,_logicalW*.18));
+      // v27.45 — Auto-ajuste con rango ACOTADO: 100% a 75%.
+      //   · lb >= 4 → 100% del tamaño (logicalW = 4*U)
+      //   · lb = 1 → 75% del tamaño  (logicalW = 3*U)
+      //   · lb = 2 o 3 → lineal entre 75% y 100%
+      // Fórmula lineal: logicalW = U * (lb + 8) / 3  (para lb ∈ [1, 4]).
+      // Antes (v27.44): logicalW FIJO = 4*U → sin ajuste, letra cortada en clips chicos.
+      // Antes (legacy): logicalW = lb * U → ajuste demasiado amplio, letra muy chica.
+      const _lbForScale = Math.min(4, Math.max(1, cl.lb || 1));
+      const _logicalW = U * (_lbForScale + 8) / 3;
+      // v27.41 — Root +20%: factor .18→.22, max 43→52, min 15→18.
+      // _oldRootFs queda para mantener tamaño del secondary (bVI) y baseline
+      // de la técnica (ARPEGGIO) sin cambio (Horacio: solo agranda el acorde).
+      const rootFs=Math.min(52,Math.max(18,_logicalW*.22));
+      const _oldRootFs=Math.min(43,Math.max(15,_logicalW*.18));
       const _clipFont = (G && G.clipFont) ? G.clipFont : "'Cormorant Garamond',serif";
       const chordY=H/2-2;
+      // v27.41 — rootBaselineY: para centrar ÓPTICAMENTE la letra del acorde
+      // en H/2 (mitad vertical exacta del clip). En Cormorant Garamond con
+      // textBaseline='alphabetic', el centro óptico de la cap height está
+      // ~0.35*fontSize por encima del baseline → baseline = H/2 + 0.35*rootFs.
+      const rootBaselineY = H/2 + rootFs*0.35;
 
       const isComboNotation = (G.notation==='AmI' || G.notation==='IAm');
       const dynGrade = disp.grade ? (disp.grade + (disp.gradeSuf||'')) : null;
@@ -36510,37 +36543,41 @@ function renderTrack(ti){
         secondaryFull = (G.notation==='AmI' && dynGrade) ? dynGrade : null;
       }
 
-      // PRIMARY — root grande (font-size escala con ancho del clip)
+      // PRIMARY — root grande (font-size escala con ancho del clip).
+      // v27.41 — baseline = rootBaselineY (centra ópticamente la letra en H/2).
+      // textAlign='left' y x=x+p+7 SE MANTIENEN (Horacio: alineado a la izquierda).
       ctx.font=`600 ${rootFs}px ${_clipFont}`;
       ctx.fillStyle=clipTextRGBA(.92);
       ctx.textAlign='left';ctx.textBaseline='alphabetic';
       const primRootW=ctx.measureText(primaryRoot).width;
-      ctx.fillText(primaryRoot,x+p+7,chordY+rootFs*.22);
+      ctx.fillText(primaryRoot,x+p+7,rootBaselineY);
 
-      // PRIMARY — suffix superscript
+      // PRIMARY — suffix superscript (relativo al nuevo rootBaselineY)
       let afterPrimaryX = x+p+7+primRootW+1;
       if(primarySuf){
         const sufFs=Math.max(9,rootFs*.52);
         ctx.font=`600 ${sufFs}px ${_clipFont}`;
         ctx.fillStyle=clipTextRGBA(.96);
         ctx.textBaseline='alphabetic';
-        ctx.fillText(primarySuf,afterPrimaryX,chordY+rootFs*.22-rootFs*.42);
+        ctx.fillText(primarySuf,afterPrimaryX,rootBaselineY-rootFs*.42);
         afterPrimaryX += ctx.measureText(primarySuf).width;
       }
 
-      // SECONDARY — el otro elemento (cifrado o grado) en mediano (~52% del rootFs).
-      // Misma fuente Cormorant, misma genética. Posicionado a la derecha del clip.
-      // v15.0.13 — alineado al PIE del clip (no al medio), según pedido del arquitecto.
-      // El baseline va al mismo nivel que el techLabel pero al lado opuesto (derecha).
+      // SECONDARY — grado (bVI/IV/etc) ARRIBA IZQUIERDA del clip (v27.41).
+      // Antes: abajo-derecha. Ahora: arriba-izquierda, alineado a la X del root.
+      // Tamaño preservado (secFs basado en _oldRootFs, no del nuevo rootFs).
+      // Padding superior simétrico al inferior de ARPEGGIO (~7px del borde).
+      // v27.42 — Sangría +2px hacia la derecha: 7 → 9
+      // v27.43 — Achicar 20%: factor .52→.416, min 11→9
       if(secondaryFull && w > 50){
-        const secFs = Math.max(11, rootFs*.52);
+        const secFs = Math.max(9, _oldRootFs*.416);
         ctx.font = `600 ${secFs}px ${_clipFont}`;
-        ctx.fillStyle = clipTextRGBA(.78); // un poco más tenue que primary
-        ctx.textAlign = 'right';
+        ctx.fillStyle = clipTextRGBA(.78);
+        ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
-        // Pie del clip: H - p - 4 (mismo nivel que el techLabel: chordY+rootFs*.22+15)
-        const secY = H - p - 4;
-        const secX = x + w - p - 7;
+        // baseline = 7px (espacio top) + cap height aprox (0.75 * secFs)
+        const secY = 7 + secFs*0.75;
+        const secX = x + p + 9;
         ctx.fillText(secondaryFull, secX, secY);
       }
 
@@ -36577,9 +36614,13 @@ function renderTrack(ti){
           ctx.font = '700 10px DM Sans,sans-serif';
           ctx.textBaseline = 'alphabetic';
           ctx.textAlign = 'left';
-          const yLine = chordY + rootFs*.22 + 15;
-          const xStart = x + p + 7;
-          const availW = w - p*2 - 14;
+          // v27.41 — ARPEGGIO baja 7px de su posición actual. Usa _oldRootFs
+          // para que el aumento del root (rootFs +20%) no mueva la técnica.
+          // Antes: chordY + rootFs*.22 + 15. Ahora: chordY + _oldRootFs*.22 + 22.
+          const yLine = chordY + _oldRootFs*.22 + 22;
+          // v27.42 — Sangría +2px hacia la derecha: xStart 7 → 9, availW -2
+          const xStart = x + p + 9;
+          const availW = w - p*2 - 16;
 
           const fullStr = _parts.join('/');
           ctx.fillStyle = inkRGBA(.55);
@@ -36602,13 +36643,23 @@ function renderTrack(ti){
       }
 
 
-      // LEGACY grade chico — solo si NO es notación combinada y el clip tiene
-      // cl.grade hardcoded (clips viejos del demo). Mantiene compatibilidad.
-      if(!isComboNotation && cl.grade && w>55){
-        ctx.fillStyle=hexA(col,.62);
-        ctx.font='500 11px DM Mono,monospace';
-        ctx.textAlign='right';ctx.textBaseline='bottom';
-        ctx.fillText(cl.grade,x+w-p-6,H-p-4);
+      // v27.46 — LEGACY grade unificado al estilo y posición del SECONDARY.
+      // Antes: abajo-derecha, font DM Mono 11px, color hexA(col,.62) — estilo
+      //   legacy v15.x. Quedó descoordinado del rediseño v27.41.
+      // Ahora: arriba-izquierda, font Cormorant (igual que SECONDARY), tamaño
+      //   proporcional al clip (igual que SECONDARY: _oldRootFs*.416, min 9).
+      //   Así no importa la notación (AmI/IAm/simple), el bVI siempre se ve
+      //   en el mismo lugar y con el mismo estilo. Resuelve el caso vista
+      //   compact (4 compases) que no tomaba la reubicación.
+      if(!isComboNotation && cl.grade && w>50){
+        const legFs = Math.max(9, _oldRootFs*.416);
+        ctx.font = `600 ${legFs}px ${_clipFont}`;
+        ctx.fillStyle = clipTextRGBA(.78);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        const legY = 7 + legFs*0.75;
+        const legX = x + p + 9;
+        ctx.fillText(cl.grade, legX, legY);
       }
       
       // v16.3.8 — Badge de octava per-clip. Solo se renderiza si clip.oct
@@ -36649,14 +36700,14 @@ function renderTrack(ti){
 
       // Close (X) top-right — drawn AFTER the resize handles so it sits on top
       // when the clip is selected.
-      // • If the clip is SELECTED: the X lives ON TOP of the right resize handle band,
-      //   so it always follows the bar regardless of clip width (sixteenth-note clips included).
-      // • If NOT selected: show only when the clip is wide enough to host it without crowding.
+      // v27.40 — POSICIÓN UNIFICADA: la X siempre en el mismo lugar (10px inset
+      // desde el borde derecho), NO sobre el handle de resize. Esto garantiza
+      // que la cruz esté en la misma posición exacta en TODOS los clips
+      // (seleccionado o no), sin desfasajes visuales.
+      // Mostrar siempre que el clip sea seleccionado o lo suficientemente ancho.
       const showX = isSel || w > 40;
       if(showX){
-        // When selected, center the X over the right band (~2.5px inset from right edge,
-        // matches the band's own centerline). When not selected, use a comfortable 10px inset.
-        const cx = isSel ? (x + w - p - 2.5) : (x + w - p - 10);
+        const cx = x + w - p - 10;
         const cy = p + 9;
         ctx.save();
         ctx.fillStyle = 'rgba(255,255,255,.55)';
@@ -36808,10 +36859,11 @@ function renderDrum(ctx,W,H,t,ti){
       ctx.fillRect(x + w - p - bandW, p, bandW, H - p*2);
       ctx.restore();
     }
-    // X close estándar arriba-der (idem clips de acordes L17002-17027).
+    // X close estándar arriba-der.
+    // v27.40 — Posición unificada (10px inset desde borde derecho), nunca sobre el handle.
     const showX = isSel || w > 40;
     if (showX) {
-      const cx = isSel ? (x + w - p - 2.5) : (x + w - p - 10);
+      const cx = x + w - p - 10;
       const cy = p + 9;
       ctx.save();
       ctx.fillStyle = 'rgba(255,255,255,.55)';
@@ -36942,9 +36994,11 @@ function clipGestureStart(e, ti){
   }
 
   // X delete-button hit test — checked BEFORE anything else.
-  // Hit zone: ~14px radius centered on where we draw the × glyph.
-  // Selected clips: X sits ON TOP of the right resize handle (cx ≈ rightPx - p - 2.5).
-  // Unselected clips (wide enough): X sits 10px inset from right edge.
+  // v27.40 — POSICIÓN UNIFICADA y HIT ZONE AGRANDADO:
+  // · La X siempre está en la misma posición (10px inset desde borde derecho),
+  //   coincidente con el centro visual del botón en TODOS los clips.
+  // · Radio de hit-test = 13px (era 9) → área de tap 38% más grande para
+  //   capturar mejor el toque del dedo sin requerir precisión quirúrgica.
   if(hitCi >= 0){
     const cl = t.clips[hitCi];
     const rightPx = (cl.sb + cl.lb) * BW;
@@ -36952,11 +37006,12 @@ function clipGestureStart(e, ti){
     const selNow = G.selectedClip && G.selectedClip.ti===ti && G.selectedClip.ci===hitCi;
     const xVisible = selNow || clipW > 40;
     if(xVisible){
-      const xCenterOffset = selNow ? 2.5 + 3 : 10 + 3;  // +3 is the clip inner padding `p`
+      // Centro de la X: 10px inset + 3px de padding interno del clip = 13px desde borde derecho
+      const xCenterOffset = 13;
       const xDx = rightPx - x0 - xCenterOffset;
       const xDy = y0 - (3 + 9);   // y center: clip padding + 9
-      // Circular hit-test with 9px radius — generous touch target, independent of visual size
-      if(xDx*xDx + xDy*xDy <= 9*9){
+      // Circular hit-test con 13px radius — área generosa para tap en iPhone
+      if(xDx*xDx + xDy*xDy <= 13*13){
         // Tapped the X → delete this clip (and only this clip)
         e.preventDefault();
         try { tl.setPointerCapture(e.pointerId); } catch(_){}
@@ -37020,7 +37075,7 @@ function clipGestureStart(e, ti){
   const state = {
     ti, hitCi, zone, tl, rect,
     sx: e.clientX, sy: e.clientY,
-    startScroll: tl.scrollLeft,
+    startScroll: (_mainScrollEl() ? _mainScrollEl().scrollLeft : 0),
     beat0,
     // Snapshot of clip at drag start
     startSb: hitCi >= 0 ? t.clips[hitCi].sb : 0,
@@ -37095,15 +37150,15 @@ function clipGestureMove(e, st){
     // We also save the current scrollLeft so we can keep it stable throughout the drag.
     if(st.zone==='body' || st.zone==='left' || st.zone==='right'){
       st.tl.classList.add('clip-dragging');
-      st.frozenScroll = st.tl.scrollLeft;
+      st.frozenScroll = (_mainScrollEl() ? _mainScrollEl().scrollLeft : 0);
     }
   }
 
   if(st.zone==='body' || st.zone==='left' || st.zone==='right'){
     e.preventDefault();
     // Belt-and-suspenders: if iOS inertial scroll or anything else moved scrollLeft, pin it back
-    if(st.frozenScroll !== undefined && st.tl.scrollLeft !== st.frozenScroll){
-      st.tl.scrollLeft = st.frozenScroll;
+    if(st.frozenScroll !== undefined && _mainScrollEl() && _mainScrollEl().scrollLeft !== st.frozenScroll){
+      if(_mainScrollEl()) _mainScrollEl().scrollLeft = st.frozenScroll;
     }
     const t = G.tracks[st.ti];
     const cl = t.clips[st.hitCi];
@@ -37188,7 +37243,7 @@ function showDragGuide(ti, beatX){
   const lw = sbHidden ? 0 : (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--lbl-w'))||90);
   // Track's internal horizontal scroll (same used by ruler/tracks)
   const tl = document.getElementById(`ttl-${ti}`);
-  const scrollLeft = tl ? tl.scrollLeft : 0;
+  const scrollLeft = _mainScrollEl() ? _mainScrollEl().scrollLeft : 0;
   const leftPx = lw + (beatX * BW) - scrollLeft;
   g.style.left = leftPx + 'px';
   g.style.display = 'block';
@@ -37258,7 +37313,7 @@ function clipGestureEnd(e, st){
 
   // Si el .ttl scrolleó durante el gesto, el usuario hizo scroll horizontal
   // (no tap). No seleccionar, no abrir editor, no crear clip. Nada.
-  if(st.tl && Math.abs(st.tl.scrollLeft - st.startScroll) > 2){
+  if(_mainScrollEl() && Math.abs(_mainScrollEl().scrollLeft - st.startScroll) > 2){
     return;
   }
 
@@ -37281,106 +37336,78 @@ function clipGestureEnd(e, st){
   const prevSel = G.selectedClip;
 
   if(st.zone === 'empty'){
-    // Tap en zona vacía de un track. MISMA lógica que los acordes:
-    // 1er click → activa track (selecciona la zona)
-    // 2do click (consecutivo, en mismo track) → abre editor para crear acorde
-    // La "consecutividad" se rompe si el usuario toca otro track o un clip.
-    const alreadyActiveHere = (G.activeTi === st.ti && !G.selectedClip);
-
-    if(alreadyActiveHere){
-      // 2do click consecutivo → crear clip placeholder + abrir editor
-      // v14.2: zona Excel funcional → clip se puede crear en cualquier celda hasta TB()
-      // v20.8.1 — Clip nuevo del TAMAÑO DEL ESPACIO LIBRE disponible en el
-      // compás del tap (antes era siempre snapLen = típicamente 1 beat, lo que
-      // dejaba el compás semivacío). Si el tap cae sobre un clip o el bloque
-      // libre es 0, _calcAvailableClipSpace devuelve null y no se crea nada.
-      const _slot = _calcAvailableClipSpace(t, st.beat0);
-      if (!_slot) return;
-      const sb = _slot.sb;
-      const lb = _slot.lb;
-      undoPush('Acorde agregado');
-      // v15.0.87-DEMO: tech default según instrumento del track (piano → BALADA, guitarra → ARPEGIO)
-      const _dt = _defaultTechForInst(t.inst || 'nylon');
-      // v20.10.0 CIRUGÍA — Para BASS family: arrancar con tech del catálogo
-      // STYLE_CATALOG[estilo].bajo.techs (PATCH_1 / Pumping AC/DC para rock).
-      // El clip nace style-aware → el sequencer/preview lo dispara con el
-      // motor nuevo (bassPlayClip). Sin esto, _dt.tech sería 'ROOT_5' legacy
-      // y bassPlayClip retornaría null → silencio.
-      let _clipTech = _dt.tech, _clipV = _dt.v, _clipEstilo = undefined;
-      const _isBassTrack = (typeof _isBassFamily === 'function' && _isBassFamily(t.inst));
-      if (_isBassTrack && typeof STYLE_CATALOG !== 'undefined') {
-        const _estilo = (t.defaultEstilo || 'rock');
-        let _entry = STYLE_CATALOG[_estilo] && STYLE_CATALOG[_estilo].bajo;
-        // Fallback a rock si el estilo no tiene bajo cargado
-        if (!_entry || !Array.isArray(_entry.techs) || _entry.techs.length === 0) {
-          _entry = STYLE_CATALOG.rock && STYLE_CATALOG.rock.bajo;
-          _clipEstilo = 'rock';
-        } else {
-          _clipEstilo = _estilo;
-        }
-        if (_entry && Array.isArray(_entry.techs) && _entry.techs.length > 0) {
-          // Buscar PATCH_1 (groove principal); si no, primer disponible
-          const _firstPatch = _entry.techs.find(tk => tk.key === 'PATCH_1') || _entry.techs[0];
-          if (_firstPatch && Array.isArray(_firstPatch.vars) && _firstPatch.vars.length > 0) {
-            _clipTech = _firstPatch.key;
-            _clipV = _firstPatch.vars[0].n;
-          }
-        }
-      }
-      // v20.10.0 CIRUGÍA — Para bass family bypasseamos _createClipWithDefaults
-      // (overridea tech/v con track.defaultTech). Aplicamos directo los defaults
-      // del catálogo nuevo. Para resto de inst, flow legacy intacto.
-      // v27.13 — Defaults musicales de vecindad:
-      //   · ACORDE (r/s/grade): tomar del MISMO COMPÁS en el track de arriba.
-      //     Si no hay, del track de abajo. Si tampoco, G.key/major/I.
-      //   · TÉCNICA (tech/v): tomar del CLIP DE LA IZQUIERDA en el mismo track.
-      //     Si no hay, usar default del catálogo (lógica existente).
-      const _neighbor = (typeof _findChordFromNeighborTrack === 'function')
-        ? _findChordFromNeighborTrack(st.ti, sb) : null;
-      const _leftClip = (typeof _findTechFromLeftClip === 'function')
-        ? _findTechFromLeftClip(st.ti, sb) : null;
-      // Resolver acorde
-      const _ncR = _neighbor ? _neighbor.r : G.key;
-      const _ncS = _neighbor ? _neighbor.s : 'major';
-      const _ncGrade = _neighbor ? (_neighbor.grade || '') : 'I';
-      // Resolver técnica: si hay clip a la izquierda en el mismo track, copia su tech/v
-      let _ncTech = _clipTech, _ncV = _clipV;
-      if (_leftClip && _leftClip.tech) { _ncTech = _leftClip.tech; _ncV = _leftClip.v || _ncV; }
-      let nc;
-      if (_isBassTrack && _clipEstilo) {
-        nc = { r:_ncR, s:_ncS, sb, lb, tech:_ncTech, v:_ncV, grade:_ncGrade, estilo:_clipEstilo };
+    // v27.38 — Tap en zona vacía = CREA CLIP AUTOMÁTICO directo.
+    // Fórmula: acorde del track de arriba (mismo compás) + técnica del clip
+    // a la izquierda en el mismo track. Permite rellenar el "Excel" rápido
+    // con taps simples. NO abre el editor (no tapa la vista). NO promueve
+    // el track (la promoción es solo cuando se abre el editor o doble-tap
+    // en la barra lateral del instrumento).
+    // v14.2: zona Excel funcional → clip se puede crear en cualquier celda hasta TB()
+    const _slot = _calcAvailableClipSpace(t, st.beat0);
+    if (!_slot) return;
+    const sb = _slot.sb;
+    const lb = _slot.lb;
+    undoPush('Acorde agregado');
+    // v15.0.87-DEMO: tech default según instrumento del track (piano → BALADA, guitarra → ARPEGIO)
+    const _dt = _defaultTechForInst(t.inst || 'nylon');
+    // v20.10.0 CIRUGÍA — Para BASS family: arrancar con tech del catálogo
+    // STYLE_CATALOG[estilo].bajo.techs (PATCH_1 / Pumping AC/DC para rock).
+    let _clipTech = _dt.tech, _clipV = _dt.v, _clipEstilo = undefined;
+    const _isBassTrack = (typeof _isBassFamily === 'function' && _isBassFamily(t.inst));
+    if (_isBassTrack && typeof STYLE_CATALOG !== 'undefined') {
+      const _estilo = (t.defaultEstilo || 'rock');
+      let _entry = STYLE_CATALOG[_estilo] && STYLE_CATALOG[_estilo].bajo;
+      if (!_entry || !Array.isArray(_entry.techs) || _entry.techs.length === 0) {
+        _entry = STYLE_CATALOG.rock && STYLE_CATALOG.rock.bajo;
+        _clipEstilo = 'rock';
       } else {
-        nc = (typeof _createClipWithDefaults === 'function')
-          ? _createClipWithDefaults(t, { r:_ncR, s:_ncS, sb, lb, tech:_ncTech, v:_ncV, grade:_ncGrade })
-          : { r:_ncR, s:_ncS, sb, lb, tech:_ncTech, v:_ncV, grade:_ncGrade };
-        // Si tenemos tech del clip izquierdo, sobreescribir lo que _createClipWithDefaults puso
-        if (_leftClip && _leftClip.tech) {
-          nc.tech = _leftClip.tech;
-          if (_leftClip.v) nc.v = _leftClip.v;
+        _clipEstilo = _estilo;
+      }
+      if (_entry && Array.isArray(_entry.techs) && _entry.techs.length > 0) {
+        const _firstPatch = _entry.techs.find(tk => tk.key === 'PATCH_1') || _entry.techs[0];
+        if (_firstPatch && Array.isArray(_firstPatch.vars) && _firstPatch.vars.length > 0) {
+          _clipTech = _firstPatch.key;
+          _clipV = _firstPatch.vars[0].n;
         }
       }
-      t.clips.push(nc);
-      const ci = t.clips.length - 1;
-      G.editRef = { ti:st.ti, ci, clip:nc };
-      nc._placeholder = true;
-      setSelectedClip({ ti:st.ti, ci });
-      const ps = currentSound; currentSound = t.inst || 'nylon';
-      const po = currentOctShift; currentOctShift = t.octShift || 0;
-      const pti = currentTrackIdx; currentTrackIdx = st.ti;
-      playChord(nc.r, nc.s, nc.tech, G.bpm);
-      currentSound = ps; currentOctShift = po; currentTrackIdx = pti;
-      renderTrack(st.ti);
-      openChordSheet(nc, st.ti, ci);
-      return;
     }
-
-    // 1er click → activar track, deseleccionar clip, no crear nada
-    setSelectedClip(null);
+    // v27.13 — Defaults musicales de vecindad:
+    //   · ACORDE (r/s/grade): tomar del MISMO COMPÁS en el track de arriba.
+    //     Si no hay, del track de abajo. Si tampoco, G.key/major/I.
+    //   · TÉCNICA (tech/v): tomar del CLIP DE LA IZQUIERDA en el mismo track.
+    //     Si no hay, usar default del catálogo (lógica existente).
+    const _neighbor = (typeof _findChordFromNeighborTrack === 'function')
+      ? _findChordFromNeighborTrack(st.ti, sb) : null;
+    const _leftClip = (typeof _findTechFromLeftClip === 'function')
+      ? _findTechFromLeftClip(st.ti, sb) : null;
+    const _ncR = _neighbor ? _neighbor.r : G.key;
+    const _ncS = _neighbor ? _neighbor.s : 'major';
+    const _ncGrade = _neighbor ? (_neighbor.grade || '') : 'I';
+    let _ncTech = _clipTech, _ncV = _clipV;
+    if (_leftClip && _leftClip.tech) { _ncTech = _leftClip.tech; _ncV = _leftClip.v || _ncV; }
+    let nc;
+    if (_isBassTrack && _clipEstilo) {
+      nc = { r:_ncR, s:_ncS, sb, lb, tech:_ncTech, v:_ncV, grade:_ncGrade, estilo:_clipEstilo };
+    } else {
+      nc = (typeof _createClipWithDefaults === 'function')
+        ? _createClipWithDefaults(t, { r:_ncR, s:_ncS, sb, lb, tech:_ncTech, v:_ncV, grade:_ncGrade })
+        : { r:_ncR, s:_ncS, sb, lb, tech:_ncTech, v:_ncV, grade:_ncGrade };
+      if (_leftClip && _leftClip.tech) {
+        nc.tech = _leftClip.tech;
+        if (_leftClip.v) nc.v = _leftClip.v;
+      }
+    }
+    t.clips.push(nc);
+    const ci = t.clips.length - 1;
+    setSelectedClip({ ti:st.ti, ci });
     G.activeTi = st.ti;
-    if(prevSel) renderTrack(prevSel.ti);
-    document.querySelectorAll('.track-row.destacado').forEach(r => r.classList.remove('destacado'));
-    const row = document.getElementById(`tr-${st.ti}`);
-    if(row) row.classList.add('destacado');
+    // Preview de audio del clip recién creado
+    const ps = currentSound; currentSound = t.inst || 'nylon';
+    const po = currentOctShift; currentOctShift = t.octShift || 0;
+    const pti = currentTrackIdx; currentTrackIdx = st.ti;
+    playChord(nc.r, nc.s, nc.tech, G.bpm);
+    currentSound = ps; currentOctShift = po; currentTrackIdx = pti;
+    renderTrack(st.ti);
     if(typeof updateNowPlaying === 'function') updateNowPlaying();
     return;
   }
@@ -38502,7 +38529,7 @@ function rewind(){
   G.playPos=0;
   // Reset scroll to beginning
   document.getElementById('ruler-scroll').scrollLeft=0;
-  document.querySelectorAll('.ttl').forEach(t=>{t.scrollLeft=0;});
+  if(_mainScrollEl()) _mainScrollEl().scrollLeft = 0;
   updatePH();
   if(G.playing){stopPB();startPB();}
 }
@@ -41016,18 +41043,21 @@ function switchView(v){
   if(v==='seq')setTimeout(renderAll,40);
 }
 
+// v27.37 — UN solo scroll container (#tracks). syncMainScroll sincroniza
+// el ruler-scroll con el #tracks. Los .ttl ya NO son scroll containers.
 let syncing=false;
-function syncScroll(src){
+function syncMainScroll(src){
   if(syncing)return;syncing=true;
   const l=src.scrollLeft;
-  document.querySelectorAll('.ttl').forEach(t=>{if(t!==src && t.scrollLeft!==l)t.scrollLeft=l;});
   const ruler=document.getElementById('ruler-scroll');
-  if(ruler && ruler!==src && ruler.scrollLeft!==l) ruler.scrollLeft=l;
-  // v27.35 — Sincronizar también la barra de scroll global
-  const proxy=document.getElementById('hscroll-proxy-scroll');
-  if(proxy && proxy!==src && proxy.scrollLeft!==l) proxy.scrollLeft=l;
+  if(ruler && ruler.scrollLeft!==l) ruler.scrollLeft=l;
   syncing=false;
 }
+// Helper: el scroll container principal del sequencer
+function _mainScrollEl(){ return document.getElementById('tracks'); }
+// syncScroll legacy: alias para compatibilidad con código viejo. Ahora todos
+// los scroll van por el #tracks, así que ignoramos src y usamos el main.
+function syncScroll(src){ syncMainScroll(_mainScrollEl() || src); }
 
 document.addEventListener('click',e=>{
   const pop=document.getElementById('notation-popup');
@@ -48236,7 +48266,7 @@ const FLY = {
     if(!t || t.drum) return;
 
     const rect = tl.getBoundingClientRect();
-    const x0 = e.clientX - rect.left + (tl.scrollLeft || 0);
+    const x0 = e.clientX - rect.left + (_mainScrollEl() ? _mainScrollEl().scrollLeft : 0);
     const beat0 = x0 / BW;
     const ci = t.clips.findIndex(cl => beat0 >= cl.sb && beat0 < cl.sb + cl.lb);
     if(ci < 0) return;
@@ -48371,7 +48401,7 @@ const FLY = {
     if(ghostLeftViewportX < destRect.left){
       destX = 0;
     } else {
-      destX = ghostLeftViewportX - destRect.left + (destTtl.scrollLeft || 0);
+      destX = ghostLeftViewportX - destRect.left + (_mainScrollEl() ? _mainScrollEl().scrollLeft : 0);
     }
 
     const rawBeat = destX / BW;
@@ -55066,7 +55096,7 @@ function toggleZoomCompact(){
   if (typeof renderRuler === 'function') renderRuler();
   if (typeof renderAll === 'function') renderAll();
   // Reset del scrollLeft para no quedar en una zona invisible tras el zoom
-  document.querySelectorAll('.ttl').forEach(t => { t.scrollLeft = 0; });
+  if(_mainScrollEl()) _mainScrollEl().scrollLeft = 0;
   const rs = document.getElementById('ruler-scroll');
   if (rs) rs.scrollLeft = 0;
 }
@@ -55112,7 +55142,7 @@ function _applyPagedScroll(){
   const currentScroll = rulerScroll.scrollLeft || 0;
   if (Math.abs(currentScroll - targetScroll) > 0.5) {
     rulerScroll.scrollLeft = targetScroll;
-    document.querySelectorAll('.ttl').forEach(t => { t.scrollLeft = targetScroll; });
+    if(_mainScrollEl()) _mainScrollEl().scrollLeft = targetScroll;
   }
 }
 window._applyPagedScroll = _applyPagedScroll;
