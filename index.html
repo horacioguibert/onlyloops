@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.61</title>
+<title>OnlyLoops · v27.62</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -2449,7 +2449,13 @@ body.has-promoted-track #rewind-btn {
 /* v15.0-DEMO — track-sheet con drag libre (sin posiciones fijas). */
 .track-sheet-v110{
   border-radius: 14px 14px 0 0;
-  max-height: none !important;
+  /* v27.62 — Eliminado `max-height: none !important;`. Estaba sobrescribiendo
+     el max-height: calc(...) del style inline del inst-sheet, haciendo que el
+     sheet se extendiera hasta el final de la pantalla y tapara el footer.
+     El chord-sheet NO tenía esa regla → por eso ahí el footer SÍ se veía.
+     Ahora el inst-sheet y el mixer respetan su max-height inline (que descuenta
+     bot-h) → el footer queda visible debajo. El ::after sigue funcionando
+     porque tiene position:absolute + el overflow:visible !important de abajo. */
   border-top: 1px solid var(--rule2);
   box-shadow: 0 -4px 18px rgba(18,16,12,.12);
   transition: transform .28s cubic-bezier(.32,.72,0,1);
@@ -6797,6 +6803,15 @@ body.mixer-dragging *{touch-action:none !important}
 }
 #is-tech-formula:empty { display: none; }
 #is-tech-formula-block:empty { display: none; }
+/* v27.62 — Ocultar el bloque entero cuando el #is-tech-formula interno está
+   vacío. La regla anterior (#is-tech-formula-block:empty) NO funcionaba
+   porque el padre tiene hijos (el label "TECNICA" y un div hijo vacío),
+   por lo que NO matcheaba :empty. Con :has() detectamos que el contenedor
+   interno sí está vacío y ocultamos el bloque completo. Soportado en iOS
+   Safari 15.4+ y Chrome 105+ (cubre todos los targets). */
+#is-tech-formula-block:has(#is-tech-formula:empty) {
+  display: none !important;
+}
 
 /* Ajustar el botón play para que no rompa la nueva grid (queda dentro de col-left) */
 .cs-header-3col .cs-play {
@@ -7465,7 +7480,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.61</span>
+      <span class="title" id="dkv-title">Vista kit · v27.62</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
