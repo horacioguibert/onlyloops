@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.58</title>
+<title>OnlyLoops · v27.60</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -3240,12 +3240,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 /* COL IZQ — CARD vertical de identidad del track */
 .is-card{
   /* v15.0.22 — Sin fondo color hueso, solo borde sutil.
-     v27.58 — padding-top 10→2 para reducir altura ~26px. Los textos
-     "TRACK N" y "Compás N" pasan a position:absolute como overlay sobre
-     la foto (con z-index) → liberan ese espacio vertical. La foto NO
-     cambia de tamaño (mantiene aspect-ratio:3/4 del .is-card-img-wrap). */
+     CSS LEGACY — esta clase ya no se usa en el inst-sheet actual (que usa
+     .is-slot desde v23.16). Se conserva por compatibilidad con código viejo.
+     v27.60 — Revertidos cambios v27.58/v27.59 que fueron por error a este
+     CSS legacy sin afectar el inst-sheet real. */
   display:flex;flex-direction:column;align-items:center;
-  padding:2px 8px 8px 8px;
+  padding:10px 8px 8px 8px;
   background:transparent;border:1px solid var(--rule);border-radius:14px;
   cursor:pointer;
   transition:transform .14s, border-color .14s, box-shadow .14s;
@@ -3257,26 +3257,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .is-card-track{
   font-family:var(--sans);font-size:10px;font-weight:700;
   letter-spacing:1.6px;text-transform:uppercase;color:var(--acc);
-  /* v27.58 — Overlay absoluto sobre la foto. Antes ocupaba flow ~14px
-     + margin-bottom:1px. Ahora flota sobre el .is-card-img-wrap (z:2). */
-  position:absolute;
-  top:4px;
-  left:0;right:0;
-  z-index:2;
-  text-align:center;
-  margin-bottom:0;
+  margin-bottom:1px;
 }
 .is-card-cmp{
   font-family:var(--mono);font-size:9px;color:var(--ink2);
-  letter-spacing:.2px;
-  /* v27.58 — Overlay absoluto debajo del .is-card-track. Antes ocupaba
-     flow ~12px + margin-bottom:8px. Ahora flota sobre la foto (z:2). */
-  position:absolute;
-  top:16px;
-  left:0;right:0;
-  z-index:2;
-  text-align:center;
-  margin-bottom:0;
+  letter-spacing:.2px;margin-bottom:8px;
 }
 .is-card-img-wrap{
   width:100%;
@@ -7480,7 +7465,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.58</span>
+      <span class="title" id="dkv-title">Vista kit · v27.60</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55492,7 +55477,8 @@ window._applyPagedScroll = _applyPagedScroll;
 .is-stage-fixed{
   display:flex; flex-direction:column;
   gap:6px;
-  padding:8px 12px 4px;
+  /* v27.60 — padding 8/4 → 4/2 (-6px verticales) para subir los wheels. */
+  padding:4px 12px 2px;
 }
 .is-stage-hdr{
   display:flex; justify-content:space-between; align-items:baseline;
@@ -55512,8 +55498,11 @@ window._applyPagedScroll = _applyPagedScroll;
   /* v25.4 — Altura FIJA del contenedor entre fam-row (6 botones) y wheel
      ESTILO. Resiste cualquier viewport/iPhone/app nativa. La foto se centra
      naturalmente con flex dentro del slot, sin necesitar transform offsets.
-     150px da respiración suficiente sobre los wheels sin desbordar. */
-  height:150px;
+     v27.60 — 150 → 120 (-30px) para subir los wheels Técnica/Subtécnica/
+     Octavador y que entren completos en iPhone sin que el Octavador se
+     corte. La foto SIGUE centrada (flex padre + justify+align center) y
+     mantiene proporciones (height:75% del nuevo 120 = 90px visual). */
+  height:120px;
 }
 .is-slot{
   appearance:none; -webkit-appearance:none;
