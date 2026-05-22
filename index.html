@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.62</title>
+<title>OnlyLoops · v27.64</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -2473,8 +2473,18 @@ body.has-promoted-track #rewind-btn {
    Cubre TODO el espacio entre el panel y el footer cuando sube con drag.
    Altura: 100vh (clipeada por overflow:hidden de #app).
    El espacio es para botones futuros. NO afecta altura de apertura.
-   v15.0-DEMO — chord-sheet TRILLIZO: misma extensión inferior. */
-.track-sheet-v110::after,
+   v15.0-DEMO — chord-sheet TRILLIZO: misma extensión inferior.
+   v27.63 — `.track-sheet-v110::after` ELIMINADO. Esa pseudo-capa con
+   `background: var(--card)` y `height: 100vh` era la "capa blanca de ~70px"
+   que tapaba el footer Y la mitad del Octavador en iPhone (el footer tiene
+   z-index:102 vs el sheet z-index:101, pero al estar AMBOS con el mismo
+   background `var(--card)` y el ::after extendiéndose 100vh debajo del
+   sheet hasta el final del #app, visualmente cubría el área del footer
+   y absorbía cualquier contenido que sobresalía del sheet por overflow:visible.
+   Ahora el inst-sheet y el mixer no tienen extensión visual inferior.
+   Si en algún momento el sheet se sube con drag-up, se verá el sequencer
+   detrás (aceptable). El chord-sheet conserva su ::after porque allí no
+   genera el problema (footer se ve bien según Horacio). */
 #chord-sheet::after {
   content: '';
   position: absolute;
@@ -6812,6 +6822,16 @@ body.mixer-dragging *{touch-action:none !important}
 #is-tech-formula-block:has(#is-tech-formula:empty) {
   display: none !important;
 }
+/* v27.64 — OCULTAR PERMANENTEMENTE el bloque entero. Aunque las reglas
+   anteriores intentaban ocultarlo solo cuando #is-tech-formula estaba
+   vacío, en iPhone se quedaba visible (probablemente el contenido se
+   llena con algo invisible o whitespace que evita el :empty match).
+   Horacio: "ABAJO DEL OCTAVADOR TIENES LA GRILLA DE TECNICA QUE SE
+   QUEDÓ PEGADA AHÍ DE ANTES, ELIMINA ESA GRILLA". Queda forzado a no
+   renderizarse nunca. */
+#is-tech-formula-block {
+  display: none !important;
+}
 
 /* Ajustar el botón play para que no rompa la nueva grid (queda dentro de col-left) */
 .cs-header-3col .cs-play {
@@ -7480,7 +7500,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.62</span>
+      <span class="title" id="dkv-title">Vista kit · v27.64</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
