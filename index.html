@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.60</title>
+<title>OnlyLoops · v27.61</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -7465,7 +7465,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.60</span>
+      <span class="title" id="dkv-title">Vista kit · v27.61</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55528,8 +55528,18 @@ window._applyPagedScroll = _applyPagedScroll;
      + object-fit:contain + flex parent (justify+align center) garantiza centrado
      vertical Y horizontal SIN transform. El transform: translateY(-55px) anterior
      era un parche que desalineaba la foto cuando cambiaba el preset/preset/dpi.
-     Eliminado. La foto se centra automáticamente en el slot de 150px. */
-  width:auto; height:75%; max-width:85%;
+     Eliminado. La foto se centra automáticamente en el slot de 150px.
+     v27.61 — height de PORCENTAJE (75%) a PIXEL FIJO (90px). En iOS Safari los
+     <button> con display:flex tienen altura intrínseca distinta a la calculada
+     por grid (.is-slots height:120px), entonces 75% en iPhone resultaba en una
+     foto más grande que se desbordaba del slot y se superponía con los wheels
+     de Técnica/Subtécnica. Con 90px fijo el tamaño es idéntico en cualquier
+     browser. max-height:75% queda como tope de seguridad si el slot fuese más
+     chico (ej. iPhone SE landscape). */
+  width:auto;
+  height:90px;
+  max-height:75%;
+  max-width:85%;
   object-fit:contain;
   pointer-events:none;
 }
