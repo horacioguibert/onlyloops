@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.47</title>
+<title>OnlyLoops · v27.56</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1261,13 +1261,22 @@
   /* Desktop / iPad horizontal — limitar ancho máximo del kit visible */
   #dkv-kit-svg { max-width:720px; }
 }
-/* v23.8 — TODO descendiente del overlay captura eventos */
-#dkv-overlay, #dkv-overlay * {
-  pointer-events:auto !important;
-}
-#dkv-overlay.on {
-  pointer-events:auto !important;
-}
+/* v27.49 — REGLA v23.8 ELIMINADA.
+   Antes (v23.8): `#dkv-overlay, #dkv-overlay * { pointer-events:auto !important }`
+   y `#dkv-overlay.on { pointer-events:auto !important }` sobrescribían con
+   !important la regla v27.26 (NO-MODAL). Resultado: el overlay capturaba
+   TODOS los eventos de TODA la pantalla, bloqueando play/rewind/undo del
+   header y la edición del sequencer cuando el DKV estaba abierto.
+
+   La regla v23.8 era REDUNDANTE: el panel (#dkv-panel línea 1167) ya tiene
+   `pointer-events:auto`, y sus descendientes (.dkv-piece, botones, grip,
+   etc.) lo heredan automáticamente. No hace falta forzar el overlay entero.
+
+   Ahora prevalece la regla v27.26 (línea 1139-1153):
+   - #dkv-overlay.on: pointer-events:none → deja pasar clicks al header
+     y al sequencer.
+   - #dkv-panel: pointer-events:auto → captura solo lo que está sobre el panel.
+*/
 .dkv-piece{
   cursor:pointer;transform-origin:center;transform-box:fill-box;
   transition:transform .08s ease-out,filter .12s;
@@ -1792,6 +1801,31 @@ body.loop-active #seq{background:linear-gradient(180deg, rgba(255,214,10,0.04) 0
 .np-item.on .np-name{color:var(--acc)}
 .np-name{font-size:12px;font-weight:600;color:var(--ink)}
 .np-ex{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--ink2)}
+/* v27.53/55 — Notación combinada (AmI/IAm) en los wheels: 2 líneas verticales
+   (chica arriba, grande abajo) en lugar de "x/y" con slash horizontal.
+   v27.55 — Tamaños RELATIVOS al contexto (em) para que la línea principal
+   coincida con el tamaño de los items vecinos del wheel donde está embebida:
+   - Popup (.np-ex 16px): bot=16, top=8.8
+   - Config wheel (.cfg-w-item 22px / active 30px): bot=22/30, top=12/16.5
+   font-weight y font-style heredan para respetar el italic del config wheel. */
+.np-ex-combo{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:center;
+  line-height:1.02;
+  gap:0;
+}
+.np-ex-combo .np-ex-top{
+  font-size:0.55em;
+  font-weight:inherit;
+  font-style:inherit;
+  opacity:.72;
+}
+.np-ex-combo .np-ex-bot{
+  font-size:1em;
+  font-weight:inherit;
+  font-style:inherit;
+}
 
 /* Audio dot */
 #ast-dot{width:5px;height:5px;border-radius:50%;background:var(--ok);flex-shrink:0;animation:adot 2s ease-in-out infinite}
@@ -2047,7 +2081,8 @@ body.has-promoted-track #rewind-btn {
 }
 .tlbl-empty-add{
   color: var(--ink3, var(--ink2));
-  font-size: 14px;
+  /* v27.48 — Doble tamaño (14→28) para que el + sea fácil de tapear con el dedo */
+  font-size: 28px;
   font-weight: 300;
   line-height: 1;
   opacity: .55;
@@ -2219,7 +2254,12 @@ body.has-promoted-track #rewind-btn {
 .np-close:active{transform:scale(.9)}
 /* Live button — show as active when the bar is visible */
 #live-btn.active{background:var(--acc2);border-color:var(--acc3);color:var(--acc)}
-.np-side{flex:0 0 94px;text-align:center;opacity:.48;transition:opacity .25s,transform .25s}
+/* v27.52 — Transición SOLO de opacity, NO de transform.
+   Antes: transition: opacity .25s, transform .25s → los laterales prev/next
+   se animaban 0.25s después de cada cambio inline de transform, generando
+   desfase respecto al .np-center durante el drag horizontal. La opacity
+   sigue animándose para el fade-in del bar. */
+.np-side{flex:0 0 94px;text-align:center;opacity:.48;transition:opacity .25s}
 .np-prev{text-align:right;padding-right:4px}
 .np-next{text-align:left;padding-left:4px}
 .np-chord{font-size:46px;font-weight:600;line-height:1;color:var(--ink);font-family:var(--serif)}
@@ -3935,14 +3975,33 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 /* v16.3.12 — track height 72→60px y sel top/bot 8→2px para mantener
    el recuadro en sus 56px originales (60-2-2=56). Ahorra 12px×7 wheels=84px
    sin tocar el tamaño del recuadro ni los fonts. */
-.cew-hw-row{border-bottom:1px solid var(--rule)}
+.cew-hw-row{border-bottom:1px solid var(--rule);position:relative}
 .cew-hw-row:last-child{border-bottom:none}
+/* v27.56 — Labels en layer ABSOLUTO sobre el wheel, alineadas con el borde
+   superior del recuadro. Antes (v17.5.9): position:relative, top:3px — el
+   label empujaba el wheel hacia abajo. Ahora: position:absolute, top:0 — el
+   label se superpone al wheel sin tomar espacio vertical, liberando altura
+   para que el editor entre completo en iPhone. */
 .cew-hw-lbl{font-size:7px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);padding:2px 14px 0;display:block;
-  /* v17.5.9 — labels bajadas 3px en layer superior; no empujan el wheel. */
-  position:relative;top:3px;z-index:3}
+  position:absolute;top:0;left:0;z-index:3;pointer-events:none}
 .cew-hw-track{
   position:relative;height:60px;
   overflow:hidden;cursor:ew-resize;touch-action:none;
+}
+/* v27.56 — Achicar 25% altura del recuadro de los wheels SIMPLES
+   (Tónica/Familia/Sufijo/Octava/Duración: hw1, hw2, hw3, hw4, hw7).
+   60px → 45px. Los wheels de TÉCNICA (hw5) y SUBTÉCNICA (hw6) quedan
+   en 60px para acomodar nombres largos en 2-3 líneas. Los items dentro
+   heredan la altura para que el centrado vertical funcione. */
+#cew-hw1-track, #cew-hw2-track, #cew-hw3-track, #cew-hw4-track, #cew-hw7-track {
+  height: 45px;
+}
+#cew-hw1-track .cew-hw-item,
+#cew-hw2-track .cew-hw-item,
+#cew-hw3-track .cew-hw-item,
+#cew-hw4-track .cew-hw-item,
+#cew-hw7-track .cew-hw-item {
+  height: 45px;
 }
 .cew-hw-track::before,.cew-hw-track::after{
   content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2;pointer-events:none;
@@ -5899,7 +5958,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 #np-bar.dragging .np-center {
   box-shadow: 0 0 0 1px var(--rule), 0 8px 30px rgba(0,0,0,.18), 0 0 0 3px var(--acc2);
   transform: scale(1.02);
-  transition: transform 0.1s;
+  /* v27.52 — Transición SOLO de box-shadow, NO de transform.
+     Antes: transition: transform 0.1s → el center se animaba 0.1s después
+     de cada cambio inline de transform, generando desfase visible respecto
+     a .np-prev y .np-next que se movían instantáneamente. */
+  transition: box-shadow 0.15s;
 }
 /* Cuando la barra LIVE está sobre los tracks: la barra queda OPACA, el
    sequencer detrás se oscurece con un velo para que la barra domine la vista */
@@ -6522,14 +6585,16 @@ body.mixer-dragging *{touch-action:none !important}
 }
 .tf-cell {
   position: relative;
-  padding: 6px 2px;
+  /* v27.56 — Reducir altura para que la grilla técnica entre en la misma
+     línea vertical que el acorde. min-height: 60 → 28, padding: 6px → 4px. */
+  padding: 4px 2px;
   text-align: center;
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
   justify-content: center;
   gap: 1px;
-  min-height: 60px;
+  min-height: 28px;
   color: var(--ink, #1a1a1a);
 }
 .tf-cell::after {
@@ -6552,6 +6617,9 @@ body.mixer-dragging *{touch-action:none !important}
   line-height: 1;
 }
 .tf-held {
+  /* v27.56 — Ocultado. Antes mostraba "────── sostenido N beats ──────"
+     debajo de la grilla técnica. Se eliminó para reducir altura del header. */
+  display: none !important;
   font-size: 9px;
   color: var(--ink-soft, rgba(0,0,0,.5));
   font-family: 'DM Mono','SF Mono',Menlo,Monaco,Consolas,monospace;
@@ -6560,7 +6628,9 @@ body.mixer-dragging *{touch-action:none !important}
   min-height: 12px;
 }
 .tf-tk {
-  display: grid;
+  /* v27.56 — Ocultado. Antes mostraba "1 2 3 4" (beats) debajo de la grilla.
+     Eliminado para reducir altura del header. */
+  display: none !important;
   grid-template-columns: repeat(4, 1fr);
   font-size: 9px;
   color: var(--ink-soft, rgba(0,0,0,.5));
@@ -6652,6 +6722,13 @@ body.mixer-dragging *{touch-action:none !important}
   text-overflow: ellipsis;
 }
 #cs-meta-track { text-align: right; }
+/* v27.56 — cs-meta-compas movido a cs-col-center, debajo de la grilla técnica.
+   Texto centrado horizontalmente y con un margen superior pequeño para que
+   no quede pegado a la grilla. */
+.cs-col-center #cs-meta-compas {
+  text-align: center;
+  margin-top: 4px;
+}
 
 /* Esconder el cs-title viejo: ahora la metadata vive en cs-meta-* */
 #cs-title { display: none !important; }
@@ -7092,9 +7169,14 @@ body.mixer-dragging *{touch-action:none !important}
     </div>
   </div>
   <div id="bot">
-    <div class="bb-grp">
-      <button class="bb-seg" onclick="openSheet('add-sheet')">＋ Track</button>
-      <button class="bb-seg divider" onclick="removeLastTrack()" aria-label="Quitar track">−</button>
+    <!-- v27.48 — Eliminado botón "+ Track" del footer (la única vía de agregar
+         track es el "+" lateral en la barra de instrumentos vacíos).
+         El grupo restante "Track −" se alinea EXACTAMENTE bajo la columna de
+         instrumentos (var(--lbl-w) = 78px) con margin-left:-10px anulando el
+         padding del footer. "Track" como label a la izquierda, "−" a la derecha. -->
+    <div class="bb-grp" style="width:var(--lbl-w);margin-left:-10px;justify-content:space-between">
+      <span class="bb-seg" style="padding:0 10px;cursor:default;pointer-events:none">Track</span>
+      <button class="bb-seg divider" onclick="removeLastTrack()" style="padding:0 10px" aria-label="Quitar track">−</button>
     </div>
     <!-- v27.29 — Botón ZOOM COMPACT (reemplaza el viejo "♬ Prog." que abría progresiones).
          Comprime BW a la mitad: 4 compases entran en el ancho de iPhone donde antes entraban 2.
@@ -7220,7 +7302,9 @@ body.mixer-dragging *{touch-action:none !important}
           <div class="cd-drum-label" id="cs-drum-label">Batería</div>
           <div class="cd-int" id="cs-int">T · 3m · 5 · 7m</div>
         </div>
-        <div id="cs-meta-compas">Track 1 - Compás 1</div>
+        <!-- v27.56 — #cs-meta-compas movido a cs-col-center debajo de la grilla
+             técnica, para que "Track 1 - Compás 1" quede en la misma línea
+             horizontal que "T · 3m · 5" (cs-int). -->
       </div>
       <div class="cs-col-center">
         <div id="cs-tech-formula"><div class="tf-compact" style="opacity:.25">— —</div></div>
@@ -7234,12 +7318,17 @@ body.mixer-dragging *{touch-action:none !important}
           <img id="cs-drum-kit-img" alt="" draggable="false">
           <span class="cs-drum-kit-btn-label">Vista kit</span>
         </button>
+        <!-- v27.56 — #cs-meta-compas reubicado aquí (era col-left).
+             Queda debajo de la grilla técnica en la misma línea horizontal
+             que "T · 3m · 5" (cs-int) del col-left. -->
+        <div id="cs-meta-compas">Track 1 - Compás 1</div>
       </div>
       <div class="cs-col-right">
         <div class="cs-icons-row">
-          <button class="shbtn ok" onclick="applyEdit()" aria-label="Aplicar">✓</button>
+          <button class="shbtn ok" onclick="applyEdit()" aria-label="Aplicar y cerrar">✓</button>
           <button class="shbtn del" onclick="deleteClip()" aria-label="Eliminar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
-          <button class="shbtn" onclick="closeSheet('chord-sheet')" aria-label="Cerrar">✕</button>
+          <!-- v27.56 — Botón ✕ ELIMINADO. La salida es via ✓ (aplicar y cerrar)
+               + swipe-down sobre el handle + tap-fuera del sheet. -->
         </div>
         <button class="cs-play" id="cs-play-btn" onclick="previewChord()" style="display:none">
           <div class="cs-play-ic"></div>
@@ -7369,7 +7458,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.47</span>
+      <span class="title" id="dkv-title">Vista kit · v27.56</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -36237,13 +36326,19 @@ function renderEmptyTracks(){
       <div class="ttl ttl-empty" aria-label="Celda vacía: tap para agregar instrumento">
         <div class="ttl-inner ttl-empty-inner"></div>
       </div>`;
-    // Tap en track vacío → abre add-sheet (mismo flujo que botón "+ Track" del footer)
-    row.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if(typeof openSheet === 'function'){
-        openSheet('add-sheet');
-      }
-    });
+    // v27.48 — Click SOLO en .tlbl-empty (el "+" de la barra lateral).
+    // Antes: click en todo el row abría add-sheet → se confundía con el swipe
+    // horizontal del sequencer. Ahora el único punto para agregar instrumento
+    // desde el sequencer es el "+" lateral (donde está el T1, T2, etc.).
+    const tlblEl = row.querySelector('.tlbl-empty');
+    if(tlblEl){
+      tlblEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(typeof openSheet === 'function'){
+          openSheet('add-sheet');
+        }
+      });
+    }
     el.appendChild(row);
     // v21.1.2 — En el PRIMER placeholder (i===0), mover el loading-ind dentro.
     // appendChild mueve el nodo sin destruirlo → preserva estado (.active, .state-check, etc.)
@@ -38768,7 +38863,19 @@ function buildNotationPopup(){
   NOTATIONS.forEach(n=>{
     const item=document.createElement('div');
     item.className='np-item'+(G.notation===n.id?' on':'');
-    item.innerHTML=`<span class="np-name">${n.n}</span><span class="np-ex">${n.ex}</span>`;
+    // v27.53 — AmI/IAm con 2 líneas verticales en lugar de "x/y" slash.
+    // AmI (Cifrado + Grado): cifrado grande abajo, grado chico arriba.
+    // IAm (Grado + Cifrado): grado grande abajo, cifrado chico arriba.
+    // Coherente con el render del clip en el sequencer.
+    let exHTML;
+    if(n.id === 'AmI'){
+      exHTML = `<span class="np-ex np-ex-combo"><span class="np-ex-top">iv</span><span class="np-ex-bot">D⁷</span></span>`;
+    } else if(n.id === 'IAm'){
+      exHTML = `<span class="np-ex np-ex-combo"><span class="np-ex-top">D⁷</span><span class="np-ex-bot">iv</span></span>`;
+    } else {
+      exHTML = `<span class="np-ex">${n.ex}</span>`;
+    }
+    item.innerHTML=`<span class="np-name">${n.n}</span>${exHTML}`;
     item.onclick=()=>{
       G.notation=n.id;
       document.getElementById('nb-ex').textContent=n.ex;
@@ -41699,8 +41806,11 @@ const NOTATION_ITEMS = [
   // IAm = Grado arriba (con línea separadora) + Cifrado abajo (grande).
   // v15.0.14 — Label con jerarquía visual: primary grande, secondary ~50%
   // (mismo principio que el render del clip). htmlLabel:true habilita innerHTML.
-  { v:'AmI', htmlLabel:true, label:'Am⁷<small>⁄ii</small>',  desc:'Cifrado + Grado — acorde grande con grado chico' },
-  { v:'IAm', htmlLabel:true, label:'ii<small>⁄Am⁷</small>',  desc:'Grado + Cifrado — grado grande, cifrado chico' },
+  // v27.54 — Apilar en 2 líneas (chico arriba, grande abajo) en lugar de
+  // slash horizontal, para reflejar el render real del clip en el sequencer.
+  // Usa las clases .np-ex-combo definidas globalmente en el CSS de la notación.
+  { v:'AmI', htmlLabel:true, label:'<span class="np-ex-combo"><span class="np-ex-top">ii</span><span class="np-ex-bot">Am⁷</span></span>',  desc:'Cifrado + Grado — acorde grande con grado chico' },
+  { v:'IAm', htmlLabel:true, label:'<span class="np-ex-combo"><span class="np-ex-top">Am⁷</span><span class="np-ex-bot">ii</span></span>',  desc:'Grado + Cifrado — grado grande, cifrado chico' },
 ];
 
 // ── Tiempo items ──
@@ -48094,9 +48204,16 @@ const LIVE_DRAG = {
     /* Resetear posición para que la próxima vez que se abra LIVE
        arranque debajo del último track */
     bar.style.top = '';
-    /* v15.0.67 — Resetear translateX del .np-center también */
+    /* v15.0.67 — Resetear translateX horizontal.
+       v27.51 — Reseteamos los 3 children (prev/center/next) + el bar por
+       si quedó de v27.50, para empezar limpio en la próxima sesión. */
+    bar.style.transform = '';
     const center = bar.querySelector('.np-center');
     if (center) center.style.transform = '';
+    const prev = bar.querySelector('.np-prev');
+    if (prev) prev.style.transform = '';
+    const next = bar.querySelector('.np-next');
+    if (next) next.style.transform = '';
     LIVE_DRAG.enabled = false;
   },
 
@@ -48133,7 +48250,9 @@ const LIVE_DRAG = {
     const rect = bar.getBoundingClientRect();
     const parentRect = bar.parentElement.getBoundingClientRect();
     LIVE_DRAG.startTop = rect.top - parentRect.top;
-    /* v15.0.67 — Leer translateX actual del .np-center (horizontal) */
+    /* v15.0.67 — Leer translateX actual (horizontal).
+       v27.50/51 — Los 3 children (.np-prev/.np-center/.np-next) comparten
+       el mismo translateX. Leemos del center como representativo. */
     const center = bar.querySelector('.np-center');
     LIVE_DRAG.startTranslateX = LIVE_DRAG.getCurrentTranslateX(center);
     bar.classList.add('dragging');
@@ -48171,11 +48290,17 @@ const LIVE_DRAG = {
     reqTop = Math.max(0, Math.min(maxTop, reqTop));
 
     /* v15.0.67 — Horizontal: mover .np-center con transform:translateX.
-       El bar entero ocupa left:0;right:0 (full width). Movemos solo el
-       cuadro central dentro de ese ancho. Clamp simétrico: el cuadro
-       puede ir desde -(maxOffset) hasta +(maxOffset) donde maxOffset es
-       el espacio sobrante a cada lado del cuadro centrado. */
+       v27.50 — FIX: mover el BAR ENTERO en vez de solo .np-center, para que
+       los acordes ANTERIOR y PRÓXIMO acompañen el movimiento horizontal.
+       v27.51 — REFINADO: aplicar el transform a los 3 CHILDREN individuales
+       (.np-prev, .np-center, .np-next) en lugar del bar entero. Razón:
+       el ::after del bar (velo gris fijo sobre el sequencer) se transformaba
+       junto con el bar y se movía con los acordes, mareando visualmente.
+       Ahora el bar y su ::after se quedan QUIETOS, solo los 3 acordes se
+       desplazan juntos por el viewport. */
     const center = bar.querySelector('.np-center');
+    const prev = bar.querySelector('.np-prev');
+    const next = bar.querySelector('.np-next');
     let translateX = 0;
     if (center) {
       const centerWidth = center.offsetWidth;
@@ -48183,7 +48308,12 @@ const LIVE_DRAG = {
       const maxOffset = Math.max(0, (parentRect.width - centerWidth) / 2);
       translateX = LIVE_DRAG.startTranslateX + dx;
       translateX = Math.max(-maxOffset, Math.min(maxOffset, translateX));
-      center.style.transform = `translateX(${translateX}px)`;
+      const tx = `translateX(${translateX}px)`;
+      if (prev) prev.style.transform = tx;
+      center.style.transform = tx;
+      if (next) next.style.transform = tx;
+      /* Limpiar transform del bar por si quedó de v27.50 */
+      bar.style.transform = '';
     }
 
     /* v15.0-DEMO: La clase .over-tracks se mantiene siempre mientras LIVE
