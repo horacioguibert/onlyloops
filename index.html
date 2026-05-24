@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.141</title>
+<title>OnlyLoops · v27.143</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1299,6 +1299,80 @@
 /* v22.2 — Loading UI permanently hidden (todo embebido) */
 #loading-anchor, #loading-ind, .loading-text, #loading-glyph { display:none !important; visibility:hidden !important; }
 .tlbl-loading, .tr-loading, .inst-loading { display:none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v27.143 — LANDSCAPE iPHONE MODE
+   ═══════════════════════════════════════════════════════════════════════
+   Cuando el usuario gira el iPhone a horizontal, la app cambia el look:
+   · Logo "Only Loops" → ELIMINADO (gana espacio horizontal)
+   · Footer #bot completo → ELIMINADO (gana espacio vertical)
+   · Botones del footer (zoom-btn ✱ y new-loop-btn 📄+) → MOVIDOS al header
+     vía clones .hdr-landscape-only que existen siempre en el DOM pero solo
+     se muestran en landscape. Mismas funciones, sincronización de estado
+     vía data-zoom-btn.
+   · Header en UNA SOLA FILA: band2 (≡/BPM/KEY/Style/PRO) a la izquierda,
+     band1 (rewind/play/✱/📄+/LIVE/LOOPSONG/⚙) a la derecha.
+   · Padding-left = env(safe-area-inset-left) en #app y #hdr-row para que
+     el notch/cámara del iPhone NO invada el sequencer. El body con
+     background:var(--bg) llena ese espacio como "franja muerta".
+
+   Trigger: orientation:landscape AND max-height ≤ 500px
+   · iPhones en landscape: altura 390-430px → MATCH
+   · iPads en landscape: altura 768-1024px → NO MATCH (mantiene layout actual)
+   · Desktops: orientación es landscape pero altura > 500 → NO MATCH
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Default: clones del footer ocultos en portrait y desktop */
+.hdr-landscape-only { display: none !important; }
+
+/* Wrapper hdr-row: default portrait = column (band1 arriba, band2 abajo, IGUAL que hoy) */
+#hdr-row {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  /* 1) Logo "Only Loops" oculto: gana espacio para los 7+ botones de la fila */
+  #hdr-logo { display: none !important; }
+
+  /* 2) Footer entero oculto: gana espacio vertical para los tracks */
+  #bot { display: none !important; }
+  /* El padding-bottom de #seq compensaba la altura del footer; lo anulamos */
+  #seq, .seq-wrap, #tracks-wrap {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+
+  /* 3) Header en UNA fila: band2 (izq) + band1 (der) */
+  #hdr-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  #hdr-band2 {
+    flex: 0 0 auto;
+    order: 1; /* band2 primero (izquierda) */
+  }
+  #hdr-band1 {
+    flex: 1 1 auto;
+    order: 2; /* band1 después (derecha) */
+    justify-content: flex-end; /* empuja todo a la derecha */
+  }
+
+  /* 4) Mostrar los clones zoom-btn-h y new-loop-btn-h en el header */
+  .hdr-landscape-only { display: inline-flex !important; align-items: center; justify-content: center; }
+
+  /* 5) Fondo muerto a la izquierda: el padding-left del #app deja ver el
+        body color hueso donde está el notch. NO es un div extra, es el
+        propio fondo del body asomando por el padding. */
+  #app, #app-frame {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    box-sizing: border-box;
+  }
+}
 </style>
 <style>
 /* ═══════════════════════════════════════════════
@@ -7267,6 +7341,12 @@ body.mixer-dragging *{touch-action:none !important}
      el primer placeholder de track vacío), lupa eliminada (progresiones se
      buscan con Prog del footer), undo eliminado (footer ya tiene undo), rueda
      de config sube de banda 2 a banda 1 (donde estaba la lupa). -->
+<!-- v27.143 — Wrapper #hdr-row envuelve band1 + band2.
+     Portrait (default): flex-direction:column → bandas apiladas (igual que hoy).
+     Landscape iPhone (max-height ≤ 500px): flex-direction:row → band2 a la
+     izquierda (≡/BPM/KEY/Style/PRO), band1 a la derecha (rewind/play/extras/
+     LIVE/LOOPSONG/config). Cero impacto en portrait. -->
+<div id="hdr-row">
 <div id="hdr-band1">
   <div id="hdr-logo" onclick="switchView('seq')">
     <span class="hdr-only">Only</span>
@@ -7310,6 +7390,26 @@ body.mixer-dragging *{touch-action:none !important}
       <circle cx="12" cy="12" r="2.3" class="hdr-config-hole"/>
     </svg>
   </button>
+  <!-- v27.143 — Clones de zoom-btn y new-loop-btn del footer.
+       Solo visibles en landscape iPhone (.hdr-landscape-only via CSS @media).
+       Llaman a las MISMAS funciones que los originales del footer.
+       data-zoom-btn permite a toggleZoomCompact sincronizar el estado .on
+       en ambos botones (original del footer + clon del header). -->
+  <button class="hdr-ic hdr-landscape-only" id="zoom-btn-h" onclick="toggleZoomCompact()" data-zoom-btn aria-label="Comprimir horizontal (4 compases)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="3" x2="12" y2="21"/>
+      <polyline points="7 8 11 12 7 16"/>
+      <polyline points="17 8 13 12 17 16"/>
+    </svg>
+  </button>
+  <button class="hdr-ic hdr-landscape-only" id="new-loop-btn-h" onclick="newLoop()" aria-label="Nuevo loop (limpiar todos los clips)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="12" y1="12" x2="12" y2="18"/>
+      <line x1="9" y1="15" x2="15" y2="15"/>
+    </svg>
+  </button>
 </div>
 
 <div id="hdr-band2">
@@ -7348,6 +7448,7 @@ body.mixer-dragging *{touch-action:none !important}
     <span>PRO</span>
   </button>
 </div>
+</div><!-- /#hdr-row -->
 
 <div id="hdr-config-menu" onclick="if(event.target===this)hdrCloseConfig()">
   <div class="hdr-config-panel">
@@ -7944,7 +8045,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.141</span>
+      <span class="title" id="dkv-title">Vista kit · v27.143</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -50757,7 +50858,7 @@ window._renderColorEnginePreviewClip = _renderColorEnginePreviewClip;
  */
 function _captureClipThumbnail(){
   // Buscar el primer track no-drum con clips válidos
-  let srcCanvas = null, srcClip = null;
+  let srcTi = -1, srcClip = null, srcTrack = null;
   if (typeof G !== 'undefined' && G && Array.isArray(G.tracks)){
     for (let ti = 0; ti < G.tracks.length; ti++){
       const t = G.tracks[ti];
@@ -50765,44 +50866,230 @@ function _captureClipThumbnail(){
       const valid = t.clips.filter(c => c && c.r !== undefined && (c.lb||0) > 0);
       if (!valid.length) continue;
       valid.sort((a,b) => (a.sb||0) - (b.sb||0));
-      const cand = document.getElementById('tc-' + ti);
-      if (cand && cand.width > 0){
-        srcCanvas = cand;
-        srcClip = valid[0];
-        break;
-      }
+      srcTi = ti;
+      srcClip = valid[0];
+      srcTrack = t;
+      break;
     }
   }
-  if (!srcCanvas || !srcClip) return null;
+  if (srcTi < 0 || !srcClip || !srcTrack) return null;
 
   const dpr = window.devicePixelRatio || 1;
   const tlblU = parseFloat(
     getComputedStyle(document.documentElement).getPropertyValue('--tlbl-u')
   ) || 32.5;
-  const Wlog = tlblU * 3;
+  const Wlog = tlblU * 3;   // = 97.5 (idéntico al botón COLOR)
   const Hlog = 72;
 
-  // Canvas off-screen del tamaño del cell, en píxeles físicos
+  // Canvas off-screen del tamaño exacto del cell
   const tmp = document.createElement('canvas');
   tmp.width  = Math.round(Wlog * dpr);
   tmp.height = Math.round(Hlog * dpr);
   const ctx = tmp.getContext('2d');
+  ctx.scale(dpr, dpr);
 
-  const BW_v = (typeof BW !== 'undefined' && BW > 0) ? BW : 52;
-  const sx = (srcClip.sb || 0) * BW_v * dpr;
-  const sw = (srcClip.lb || 4) * BW_v * dpr;
-  const sh = srcCanvas.height; // alto físico del canvas real
-
-  // Copia 1:1 sin escalar (mismo método que _renderClipFromSequencer con noScale=true)
-  const copyW = Math.min(sw, tmp.width);
-  const copyH = Math.min(sh, tmp.height);
+  // v27.142 — Re-render OFFLINE del clip directamente en el canvas del thumb
+  // con BW_thumb = Wlog/lb (el clip ocupa TODO el cell horizontalmente) y
+  // p=0 (sin padding interno). Antes hacíamos drawImage del canvas real
+  // tc-N, lo que dejaba: (a) margen izquierdo de 3px logical por el padding
+  // interno que renderTrack pinta en x+p / x+w-p, y (b) margen derecho en
+  // zoom compact (BW chico) cuando lb*BW < Wlog.
+  //
+  // El re-render local elimina ambos márgenes y NO deforma la tipografía:
+  // rootFs depende de U (constante) vía _logicalW = U*(lb+8)/3, no de BW,
+  // por lo que las letras conservan EXACTAMENTE el mismo tamaño en píxeles
+  // que en el sequencer real.
   try {
-    ctx.drawImage(srcCanvas, sx, 0, copyW, copyH, 0, 0, copyW, copyH);
+    _paintClipForThumb(ctx, srcClip, srcTrack, srcTi, Wlog, Hlog);
   } catch(_){ return null; }
 
   return tmp.toDataURL('image/png');
 }
 window._captureClipThumbnail = _captureClipThumbnail;
+
+/**
+ * v27.142 — Pinta UN clip en un contexto 2D arbitrario, replicando la
+ * lógica visual de renderTrack pero con BW_thumb dinámico (calculado para
+ * que cl.lb * BW_thumb = W) y p=0 (sin padding interno). Resultado: el
+ * clip ocupa todo el área W×H sin márgenes, conservando el tamaño de
+ * tipografía (rootFs no depende de BW).
+ *
+ * Las coordenadas internas del texto (x+p+7 para root, x+p+9 para
+ * secondary/técnica/grade) se calculan con p=0, por lo que el texto queda
+ * 3px más a la izquierda que en el clip real del sequencer. La alineación
+ * relativa (izquierda) se conserva.
+ *
+ * No pinta resize handles ni clip-glow (no aplicables a un thumb estático).
+ * Sí pinta el bullet "X" arriba-derecha (se ve igual que en el sequencer).
+ *
+ * @param {CanvasRenderingContext2D} ctx - Contexto destino (ya escalado por dpr)
+ * @param {Object} cl - Clip data ({r, s, sb, lb, tech, v, oct, ...})
+ * @param {Object} t - Track data ({inst, octShift, ...})
+ * @param {number} ti - Track index (para color via T_COLS)
+ * @param {number} W - Ancho lógico del destino
+ * @param {number} H - Alto lógico del destino
+ */
+function _paintClipForThumb(ctx, cl, t, ti, W, H){
+  if (!ctx || !cl || cl.r === undefined) return;
+
+  const lb = cl.lb || 4;
+  const p = 0;
+  const x = 0;
+  const w = W;
+  const col = T_COLS[ti % T_COLS.length];
+
+  // ─── Layer 1: fondo (bg opaco + tinte de color) + borde ──────────────
+  ctx.save();
+  const _bgHex = (function(){
+    try {
+      const v = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+      if (v) return v;
+    } catch(_){}
+    return '#fcf9f0';
+  })();
+  ctx.fillStyle = _bgHex;
+  ctx.beginPath(); rr(ctx, x+p, p, w-p*2, H-p*2, 6); ctx.fill();
+  ctx.fillStyle = hexA(col, .05);
+  ctx.beginPath(); rr(ctx, x+p, p, w-p*2, H-p*2, 6); ctx.fill();
+  ctx.strokeStyle = hexA(col, .52);
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); rr(ctx, x+p, p, w-p*2, H-p*2, 6); ctx.stroke();
+  ctx.restore();
+
+  // ─── Layer 2: textos (root, suf, secondary, técnica, legacy grade) ──
+  const disp = chordDisplay(cl.r, cl.s);
+  const rootStr = disp.root, sufStr = disp.suf;
+
+  ctx.save();
+  ctx.beginPath();
+  rr(ctx, x+p, p, w-p*2, H-p*2, 6);
+  ctx.clip();
+
+  // Tamaños replicados de renderTrack (v27.45 / v27.41 / v27.90)
+  const _lbForScale = Math.min(4, Math.max(1, lb));
+  const _logicalW = U * (_lbForScale + 8) / 3;
+  const rootFs = Math.min(52, Math.max(18, _logicalW * .22));
+  const _oldRootFs = Math.min(43, Math.max(15, _logicalW * .18));
+  const _clipFont = (typeof G !== 'undefined' && G.clipFont)
+                    ? G.clipFont : "'Cormorant Garamond',serif";
+  const chordY = H/2 - 2;
+  const rootBaselineY = H/2 + rootFs*0.35;
+
+  const isComboNotation = (G.notation === 'AmI' || G.notation === 'IAm');
+  const dynGrade = disp.grade ? (disp.grade + (disp.gradeSuf||'')) : null;
+
+  let primaryRoot, primarySuf, secondaryFull;
+  if (G.notation === 'IAm' && dynGrade){
+    primaryRoot = disp.grade;
+    primarySuf  = disp.gradeSuf || '';
+    secondaryFull = rootStr + (sufStr||'');
+  } else {
+    primaryRoot = rootStr;
+    primarySuf  = sufStr;
+    secondaryFull = (G.notation === 'AmI' && dynGrade) ? dynGrade : null;
+  }
+
+  // PRIMARY root grande
+  ctx.font = `600 ${rootFs}px ${_clipFont}`;
+  ctx.fillStyle = clipInkRGBA(.92);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const primRootW = ctx.measureText(primaryRoot).width;
+  ctx.fillText(primaryRoot, x+p+7, rootBaselineY);
+
+  // PRIMARY suffix superscript
+  let afterPrimaryX = x+p+7+primRootW+1;
+  if (primarySuf){
+    const sufFs = Math.max(9, rootFs*.52);
+    ctx.font = `600 ${sufFs}px ${_clipFont}`;
+    ctx.fillStyle = clipTextRGBA(.96);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(primarySuf, afterPrimaryX, rootBaselineY - rootFs*.42);
+    afterPrimaryX += ctx.measureText(primarySuf).width;
+  }
+
+  // SECONDARY (bVI / cifrado al lado del grado)
+  if (secondaryFull && w > 50){
+    const secFs = Math.max(11, _oldRootFs*.5);
+    ctx.font = `600 ${secFs}px ${_clipFont}`;
+    ctx.fillStyle = clipTextRGBA(.78);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    const secY = 7 + secFs*0.75;
+    const secX = x + p + 9;
+    ctx.fillText(secondaryFull, secX, secY);
+  }
+
+  // Technique label (PAD/sost..., etc) abajo-izquierda, una línea
+  if (w > 60){
+    const _parts = (typeof _clipLabelParts === 'function')
+                   ? _clipLabelParts(cl, t) : [];
+    if (_parts.length > 0){
+      ctx.font = '700 10px DM Sans,sans-serif';
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+      const yLine = chordY + _oldRootFs*.22 + 22;
+      const xStart = x + p + 9;
+      const availW = w - p*2 - 16;
+      const fullStr = _parts.join('/');
+      ctx.fillStyle = inkRGBA(.55);
+      if (ctx.measureText(fullStr).width <= availW){
+        ctx.fillText(fullStr, xStart, yLine);
+      } else {
+        let truncStr = fullStr;
+        while (truncStr.length > 0 &&
+               ctx.measureText(truncStr + '…').width > availW){
+          truncStr = truncStr.slice(0, -1);
+        }
+        if (truncStr.length > 0) ctx.fillText(truncStr + '…', xStart, yLine);
+      }
+    }
+  }
+
+  // Legacy grade (top-left, accent) — sólo en notaciones no-combo
+  const _dynGradeLg = disp.grade ? (disp.grade + (disp.gradeSuf||'')) : null;
+  if (!isComboNotation && _dynGradeLg && w > 50){
+    const legFs = Math.max(11, _oldRootFs*.5);
+    ctx.font = `600 ${legFs}px ${_clipFont}`;
+    ctx.fillStyle = clipTextRGBA(.78);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    const legY = 7 + legFs*0.75;
+    const legX = x + p + 9;
+    ctx.fillText(_dynGradeLg, legX, legY);
+  }
+
+  // Octava badge top-right (sólo si difiere del track)
+  if (typeof cl.oct === 'number' && cl.oct !== (t.octShift||0) && w > 40){
+    const octStr = cl.oct === 0 ? '0' : (cl.oct > 0 ? '+' + cl.oct : String(cl.oct));
+    ctx.font = '700 10px DM Mono,monospace';
+    ctx.fillStyle = clipTextRGBA(.65);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(octStr, x + w - p - 6, p + 4);
+  }
+
+  ctx.restore(); // end of text clip region
+
+  // ─── Layer 3: X close button arriba-derecha (mismo que renderTrack) ──
+  const showX = w > 40;
+  if (showX){
+    const cx = x + w - p - 10;
+    const cy = p + 9;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 6.5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = inkRGBA(.42);
+    ctx.lineWidth = 1.4;
+    ctx.lineCap = 'round';
+    const r = 2.8;
+    ctx.beginPath();
+    ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r);
+    ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+window._paintClipForThumb = _paintClipForThumb;
 
 /**
  * v27.134 — Dibuja un thumbnail (dataURL PNG previamente capturado) en un
@@ -56664,6 +56951,13 @@ function toggleZoomCompact(){
   // estrecho (375-393pt menos var(--lbl-w) ≈ 297-315px disponibles).
   BW = G.zoomCompact ? Math.floor(U/2) : U;
   // Reflejar estado visual en el botón
+  // v27.143 — Sincronizar .on en TODOS los botones marcados con data-zoom-btn
+  // (original #zoom-btn del footer + clon #zoom-btn-h del header en landscape).
+  // Antes solo tocaba #zoom-btn; en landscape iPhone el footer está oculto y
+  // el usuario interactúa con #zoom-btn-h, que necesitaba reflejar el estado.
+  document.querySelectorAll('[data-zoom-btn], #zoom-btn, #zoom-btn-h').forEach(b => {
+    if (b) b.classList.toggle('on', G.zoomCompact);
+  });
   const btn = document.getElementById('zoom-btn');
   if (btn) btn.classList.toggle('on', G.zoomCompact);
   // Re-render del ruler y de todos los tracks
