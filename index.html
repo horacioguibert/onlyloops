@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.146</title>
+<title>OnlyLoops · v27.147</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1301,157 +1301,154 @@
 .tlbl-loading, .tr-loading, .inst-loading { display:none !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   v27.146 — LANDSCAPE iPHONE MODE (4 correcciones sobre v27.145)
+   v27.147 — LANDSCAPE MODE (detección JS, no @media)
    ═══════════════════════════════════════════════════════════════════════
-   1) DESALINEACIÓN VERTICAL DE 5px: el CSS original (línea ~4904) tiene
-      #hdr-band1 { padding-top: env(safe-area-inset-top, 0px) }. En iPhone
-      landscape ese inset puede valer 5-15px → todo band1 bajaba. Anulo
-      con padding-top:0 !important en landscape. Ahora band1 y band2 tienen
-      EXACTAMENTE el mismo top → una línea horizontal por el centro pasa
-      por los 12 elementos al mismo nivel.
-   2) REWIND PEGADO AL PLAY: el <div></div> spacer (era el 1fr del grid
-      original) ahora marcado con clase .hdr-spacer y ocultado en landscape.
-      El cluster rewind+play+zoom+new-loop+live+loopsong+config queda
-      compacto, sin gap raro entre play y zoom.
-   3) BLOQUE DERECHO MOVIDO 25px A LA IZQUIERDA: padding-right:25px en
-      #hdr-band1. Con justify-content:flex-end ya pegado al borde derecho
-      del wrapper, el padding empuja todo el cluster 25px hacia la izquierda.
-   4) HEADER MÁS COMPACTO: bands de calc(--hdr-u * 1.05) = 34px (antes 39px),
-      items de calc(--hdr-u * 0.85) = 27.6px ≈ 28px (antes 30px). Iconos
-      SVG reducidos de 24 a 20px. ~5px más de espacio vertical para el
-      sequencer.
+   v27.146 reportó "no veo cambios" → diagnóstico:
+   @media (orientation:landscape) and (max-height:500px) no disparaba en
+   algunos iPhones con barras del browser visibles (viewport > 500px),
+   en iPad mini landscape, o en DevTools de desktop simulando móvil.
 
-   Trigger: orientation:landscape AND max-height ≤ 500px (iPhones).
+   SOLUCIÓN: detectar landscape via JS y agregar `body.landscape-mode`.
+   El JS está al final del archivo (función _updateLandscapeMode + listeners
+   de resize y orientationchange). El criterio es:
+     window.innerWidth > window.innerHeight && window.innerHeight < 600
+
+   Cada regla CSS pasa de `@media {...}` a `body.landscape-mode {selector}`.
+   Specificity sube de 100 (#hdr-band1) a 111 (body.landscape-mode #hdr-band1)
+   → gana automáticamente al CSS original (línea ~4984) sin depender del
+   orden de declaración. Mantengo !important para reforzar.
+
+   Cambios visuales (idénticos a v27.146):
+   1) Header unificado var(--card), una sola franja
+   2) 12 elementos a 28px de altura, alineados al centro
+   3) Bloque derecho desplazado 25px a la izquierda
+   4) Rewind pegado al play (spacer oculto)
+   5) Padding-top:0 (anula safe-area-inset-top que bajaba band1)
+   6) Padding-left 22px (10px más que v27.144)
+   7) Header compacto: bands 34px (antes 39px) → ~5px gana el sequencer
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* Default: clones del footer ocultos en portrait y desktop */
+/* Default: clones del footer ocultos */
 .hdr-landscape-only { display: none !important; }
 
-/* Wrapper hdr-row: default portrait = column (band1 arriba, band2 abajo, IGUAL que hoy) */
+/* Wrapper hdr-row: default portrait = column (igual que hoy) */
 #hdr-row {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
 }
 
-/* El spacer del band1 no afecta portrait (el grid original lo trataba como
-   1fr para empujar los items a los lados). En portrait su display normal
-   está bien; solo lo ocultamos en landscape (regla más abajo). */
+/* ─── Eliminaciones ─────────────────────────────────────────────── */
+body.landscape-mode #hdr-logo { display: none !important; }
+body.landscape-mode #bot { display: none !important; }
+body.landscape-mode #seq,
+body.landscape-mode .seq-wrap,
+body.landscape-mode #tracks-wrap {
+  padding-bottom: 0 !important;
+}
+body.landscape-mode #hdr-band1 > .hdr-spacer {
+  display: none !important;
+}
 
-@media (orientation: landscape) and (max-height: 500px) {
-  /* ─── Eliminaciones ─────────────────────────────────────────────── */
-  #hdr-logo { display: none !important; }
-  #bot { display: none !important; }
-  #seq, .seq-wrap, #tracks-wrap {
-    padding-bottom: 0 !important;
-  }
-  /* 2) Spacer del band1 oculto → rewind+play+clones+live+... como un solo
-     cluster compacto, sin gap raro de 10px entre play y zoom. */
-  #hdr-band1 > .hdr-spacer {
-    display: none !important;
-  }
+/* ─── Desplazamiento horizontal ─────────────────────────────────── */
+body.landscape-mode #app,
+body.landscape-mode #app-frame {
+  padding-left: 22px;
+  padding-right: 12px;
+  box-sizing: border-box;
+}
 
-  /* ─── 3) Desplazamiento horizontal: 22px izq ─────────────────────── */
-  #app, #app-frame {
-    padding-left: 22px;
-    padding-right: 12px;
-    box-sizing: border-box;
-  }
+/* ─── Header UNIFICADO ──────────────────────────────────────────── */
+body.landscape-mode #hdr-row {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  background: var(--card) !important;
+  border-bottom: 0.5px solid var(--rule);
+  padding: 0;
+}
+body.landscape-mode #hdr-band1,
+body.landscape-mode #hdr-band2 {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  height: calc(var(--hdr-u) * 1.05) !important;  /* = 34px franja total */
+  background: var(--card) !important;
+  border-bottom: none !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  gap: 5px;
+}
+body.landscape-mode #hdr-band2 {
+  flex: 0 0 auto;
+  order: 1;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+body.landscape-mode #hdr-band1 {
+  flex: 1 1 auto;
+  order: 2;
+  justify-content: flex-end;
+  padding-left: 4px !important;
+  padding-right: 25px !important;
+}
 
-  /* ─── Header UNIFICADO: una sola franja, un solo color ───────────── */
-  #hdr-row {
-    flex-direction: row;
-    align-items: stretch;
-    gap: 0;
-    background: var(--card) !important;
-    border-bottom: 0.5px solid var(--rule);
-    padding: 0;
-  }
-  #hdr-band1, #hdr-band2 {
-    display: flex !important;
-    flex-direction: row;
-    align-items: center;
-    /* 4) Bandas más compactas: 34px (antes 39px) → ~5px gana el sequencer */
-    height: calc(var(--hdr-u) * 1.05);  /* = 34.1px */
-    background: var(--card) !important;
-    border-bottom: none !important;
-    /* 1) Anular safe-area-inset-top del band1 que causaba desalineación vertical */
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    gap: 5px;
-  }
-  #hdr-band2 {
-    flex: 0 0 auto;
-    order: 1;
-    padding-left: 4px;
-    padding-right: 4px;
-  }
-  #hdr-band1 {
-    flex: 1 1 auto;
-    order: 2;
-    justify-content: flex-end;
-    padding-left: 4px;
-    /* 3) 25px de aire a la derecha → todo el cluster se corre 25px a la izq */
-    padding-right: 25px;
-  }
+/* ─── Alturas UNIFICADAS de los 12 elementos ─────────────────────── */
+body.landscape-mode #hdr-row > div > .hdr-btn,
+body.landscape-mode #hdr-row > div > .hdr-ic,
+body.landscape-mode #hdr-row > div > .hdr-play,
+body.landscape-mode #hdr-row > div > .hdr-stepper,
+body.landscape-mode #hdr-row > div > .hdr-style-btn,
+body.landscape-mode #hdr-row > div > .hdr-pro-btn,
+body.landscape-mode #hdr-row > div > .hdr-switch,
+body.landscape-mode #hdr-row > div > #hdr-loopsong {
+  height: calc(var(--hdr-u) * 0.85) !important;  /* = 28px */
+  align-self: center;
+}
+body.landscape-mode #hdr-row .hdr-stepper .hdr-lbl,
+body.landscape-mode #hdr-row .hdr-stepper .hdr-val,
+body.landscape-mode #hdr-row .hdr-style-btn .hdr-lbl,
+body.landscape-mode #hdr-row .hdr-style-btn .hdr-val {
+  height: auto !important;
+  line-height: 1.15;
+}
+body.landscape-mode #hdr-row #hdr-loopsong {
+  background: var(--bg2) !important;
+  width: 105px;
+}
 
-  /* ─── 4) Alturas UNIFICADAS más compactas para los 12 elementos ──── */
-  #hdr-row > div > .hdr-btn,
-  #hdr-row > div > .hdr-ic,
-  #hdr-row > div > .hdr-play,
-  #hdr-row > div > .hdr-stepper,
-  #hdr-row > div > .hdr-style-btn,
-  #hdr-row > div > .hdr-pro-btn,
-  #hdr-row > div > .hdr-switch,
-  #hdr-row > div > #hdr-loopsong {
-    height: calc(var(--hdr-u) * 0.85) !important;  /* = 27.6px ≈ 28px */
-    align-self: center;
-  }
-  #hdr-row .hdr-stepper .hdr-lbl,
-  #hdr-row .hdr-stepper .hdr-val,
-  #hdr-row .hdr-style-btn .hdr-lbl,
-  #hdr-row .hdr-style-btn .hdr-val {
-    height: auto !important;
-    line-height: 1.15;
-  }
-  #hdr-row #hdr-loopsong {
-    background: var(--bg2) !important;
-    width: 105px;
-  }
+/* ─── Iconos SVG más chicos ──────────────────────────────────────── */
+body.landscape-mode #hdr-row .hdr-ic svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+body.landscape-mode #hdr-row .hdr-btn svg {
+  width: 20px !important;
+  height: 20px !important;
+}
 
-  /* Iconos SVG más chicos: de 24px a 20px (alineados con items de 28px) */
-  #hdr-row .hdr-ic svg {
-    width: 20px;
-    height: 20px;
-  }
-  #hdr-row .hdr-btn svg {
-    width: 20px;
-    height: 20px;
-  }
+/* ─── Play redondo 28×28 ─────────────────────────────────────────── */
+body.landscape-mode #hdr-row .hdr-play {
+  width: calc(var(--hdr-u) * 0.85) !important;  /* = 28px → círculo */
+  box-shadow: 0 2px 4px rgba(18,16,12,.22);
+}
+body.landscape-mode #hdr-row .hdr-play .play-icon {
+  border-width: 4px 0 4px 7px;
+  margin-left: 2px;
+}
+body.landscape-mode #hdr-row .hdr-play .pause-bar {
+  width: 3px;
+  height: 8px;
+}
+body.landscape-mode #hdr-row .hdr-play .pause-icon {
+  gap: 2px;
+}
 
-  /* Play redondo 28×28 con iconos re-escalados al tamaño chico */
-  #hdr-row .hdr-play {
-    width: calc(var(--hdr-u) * 0.85) !important;  /* = 28px → círculo */
-    box-shadow: 0 2px 4px rgba(18,16,12,.22);
-  }
-  #hdr-row .hdr-play .play-icon {
-    border-width: 4px 0 4px 7px;
-    margin-left: 2px;
-  }
-  #hdr-row .hdr-play .pause-bar {
-    width: 3px;
-    height: 8px;
-  }
-  #hdr-row .hdr-play .pause-icon {
-    gap: 2px;
-  }
-
-  /* Clones zoom-btn-h y new-loop-btn-h visibles en el header */
-  .hdr-landscape-only {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-  }
+/* ─── Clones visibles ────────────────────────────────────────────── */
+body.landscape-mode .hdr-landscape-only {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
 }
 </style>
 <style>
@@ -8126,7 +8123,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.146</span>
+      <span class="title" id="dkv-title">Vista kit · v27.147</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -57383,6 +57380,40 @@ window._applyPagedScroll = _applyPagedScroll;
 }
 
 </style>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     v27.147 — LANDSCAPE MODE DETECTION
+     ═══════════════════════════════════════════════════════════════════════
+     Las reglas CSS landscape (sección "v27.147 — LANDSCAPE MODE" arriba)
+     se activan cuando body tiene la clase .landscape-mode. Este script
+     detecta orientación real vía JS (más confiable que @media en algunos
+     iPhones con barras del browser, iPad mini landscape, o DevTools de
+     desktop simulando móvil) y togglea la clase automáticamente.
+
+     Criterio: width > height (landscape físico) AND height < 600px (móvil,
+     no iPad fullscreen ni desktop). Listeners: resize, orientationchange.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  function _updateLandscapeMode(){
+    try {
+      var w = window.innerWidth;
+      var h = window.innerHeight;
+      var isLandscape = (w > h) && (h < 600);
+      document.body.classList.toggle('landscape-mode', isLandscape);
+    } catch(e) {
+      console.warn('[landscape-mode] update error:', e);
+    }
+  }
+  // Initial check (DOM ya listo porque este script está al final del body)
+  _updateLandscapeMode();
+  // Re-check en eventos relevantes
+  window.addEventListener('resize', _updateLandscapeMode, { passive: true });
+  window.addEventListener('orientationchange', _updateLandscapeMode, { passive: true });
+  // Exponer para debug manual si Horacio necesita verificar
+  window._updateLandscapeMode = _updateLandscapeMode;
+})();
+</script>
 
 </body>
 </html>
