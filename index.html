@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.143</title>
+<title>OnlyLoops · v27.144</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1301,25 +1301,23 @@
 .tlbl-loading, .tr-loading, .inst-loading { display:none !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   v27.143 — LANDSCAPE iPHONE MODE
+   v27.144 — LANDSCAPE iPHONE MODE (corregido tras review del plano)
    ═══════════════════════════════════════════════════════════════════════
-   Cuando el usuario gira el iPhone a horizontal, la app cambia el look:
-   · Logo "Only Loops" → ELIMINADO (gana espacio horizontal)
-   · Footer #bot completo → ELIMINADO (gana espacio vertical)
-   · Botones del footer (zoom-btn ✱ y new-loop-btn 📄+) → MOVIDOS al header
-     vía clones .hdr-landscape-only que existen siempre en el DOM pero solo
-     se muestran en landscape. Mismas funciones, sincronización de estado
-     vía data-zoom-btn.
-   · Header en UNA SOLA FILA: band2 (≡/BPM/KEY/Style/PRO) a la izquierda,
-     band1 (rewind/play/✱/📄+/LIVE/LOOPSONG/⚙) a la derecha.
-   · Padding-left = env(safe-area-inset-left) en #app y #hdr-row para que
-     el notch/cámara del iPhone NO invada el sequencer. El body con
-     background:var(--bg) llena ese espacio como "franja muerta".
+   Correcciones sobre v27.143:
+   1) Padding-left fijo de 12px (no env(safe-area-inset-left): en iPhone con
+      notch eso es ~44-59px → quedaba "demasiado espacio para la cámara").
+   2) Background unificado var(--card) en ambas bands + sin border-bottom
+      entre bands → una sola franja de header continua (como en el plano).
+   3) Play achicado de 47×47 (calc(--hdr-u * 1.45)) a 32×32 → misma altura
+      que rewind/LIVE/loopsong/config. Iconos play/pause re-escalados.
+   4) Bands cambiadas de display:grid (7 cols fijas) a display:flex en
+      landscape → los clones zoom-btn-h y new-loop-btn-h ahora SÍ aparecen
+      donde corresponde. Antes en grid quedaban como items #8/#9 en una
+      segunda fila implícita = invisibles.
 
    Trigger: orientation:landscape AND max-height ≤ 500px
-   · iPhones en landscape: altura 390-430px → MATCH
-   · iPads en landscape: altura 768-1024px → NO MATCH (mantiene layout actual)
-   · Desktops: orientación es landscape pero altura > 500 → NO MATCH
+   · iPhones en landscape → MATCH
+   · iPads / desktops → NO MATCH (layout actual intacto)
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* Default: clones del footer ocultos en portrait y desktop */
@@ -1338,18 +1336,38 @@
 
   /* 2) Footer entero oculto: gana espacio vertical para los tracks */
   #bot { display: none !important; }
-  /* El padding-bottom de #seq compensaba la altura del footer; lo anulamos */
   #seq, .seq-wrap, #tracks-wrap {
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-bottom: 0 !important;
   }
 
-  /* 3) Header en UNA fila: band2 (izq) + band1 (der) */
+  /* 3) Desplazamiento a la izquierda: 12px fijos (no safe-area-inset, era ~50px más).
+        El body con background:var(--bg) llena los ~12px restantes como
+        "franja muerta" del color de la app — sin div extra, sin función. */
+  #app, #app-frame {
+    padding-left: 12px;
+    padding-right: 12px;
+    box-sizing: border-box;
+  }
+
+  /* 4) Header unificado: UNA SOLA fila, UN solo color, sin borde interno */
   #hdr-row {
     flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    background: var(--card);
+    border-bottom: 0.5px solid var(--rule);
+    padding-left: 0;
+    padding-right: 0;
+  }
+  #hdr-band1, #hdr-band2 {
+    display: flex !important;
+    flex-direction: row;
     align-items: center;
-    gap: 8px;
-    padding-left: env(safe-area-inset-left, 0px);
-    padding-right: env(safe-area-inset-right, 0px);
+    height: calc(var(--hdr-u) * 1.45);
+    background: var(--card);
+    border-bottom: none;
+    padding: 0 4px;
+    gap: 4px;
   }
   #hdr-band2 {
     flex: 0 0 auto;
@@ -1358,19 +1376,35 @@
   #hdr-band1 {
     flex: 1 1 auto;
     order: 2; /* band1 después (derecha) */
-    justify-content: flex-end; /* empuja todo a la derecha */
+    justify-content: flex-end;
+  }
+  /* El spacer interno de band1 (<div></div> entre play y los clones) ya no
+     hace falta porque justify-content:flex-end empuja todo a la derecha,
+     pero ocupa 0 width naturalmente en flex. */
+
+  /* 5) Play achicado: de 47×47 a 32×32 para igualar la altura del resto.
+        Iconos internos (triangle play / 2 barras pause) re-escalados
+        proporcionalmente para que se vean balanceados en el círculo chico. */
+  #hdr-band1 .hdr-play {
+    width: 32px !important;
+    height: 32px !important;
+    box-shadow: 0 2px 5px rgba(18,16,12,.22);
+  }
+  #hdr-band1 .hdr-play .play-icon {
+    border-width: 5px 0 5px 9px;
+    margin-left: 2px;
+  }
+  #hdr-band1 .hdr-play .pause-bar {
+    width: 3px;
+    height: 10px;
   }
 
-  /* 4) Mostrar los clones zoom-btn-h y new-loop-btn-h en el header */
-  .hdr-landscape-only { display: inline-flex !important; align-items: center; justify-content: center; }
-
-  /* 5) Fondo muerto a la izquierda: el padding-left del #app deja ver el
-        body color hueso donde está el notch. NO es un div extra, es el
-        propio fondo del body asomando por el padding. */
-  #app, #app-frame {
-    padding-left: env(safe-area-inset-left, 0px);
-    padding-right: env(safe-area-inset-right, 0px);
-    box-sizing: border-box;
+  /* 6) Mostrar los clones zoom-btn-h y new-loop-btn-h en el header.
+        inline-flex (no inline-block) para que align-items funcione bien. */
+  .hdr-landscape-only {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
   }
 }
 </style>
@@ -7362,6 +7396,27 @@ body.mixer-dragging *{touch-action:none !important}
     <div id="hdr-play-ic" class="play-icon"></div>
   </button>
   <div></div>
+  <!-- v27.144 — Clones de zoom-btn y new-loop-btn del footer, ubicados ENTRE
+       el play y el LIVE según el plano horizontal. Solo visibles en landscape
+       iPhone (.hdr-landscape-only via CSS @media). Llaman a las MISMAS
+       funciones que los originales del footer. data-zoom-btn permite a
+       toggleZoomCompact sincronizar el estado .on en ambos botones (original
+       del footer + clon del header). -->
+  <button class="hdr-ic hdr-landscape-only" id="zoom-btn-h" onclick="toggleZoomCompact()" data-zoom-btn aria-label="Comprimir horizontal (4 compases)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="3" x2="12" y2="21"/>
+      <polyline points="7 8 11 12 7 16"/>
+      <polyline points="17 8 13 12 17 16"/>
+    </svg>
+  </button>
+  <button class="hdr-ic hdr-landscape-only" id="new-loop-btn-h" onclick="newLoop()" aria-label="Nuevo loop (limpiar todos los clips)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="12" y1="12" x2="12" y2="18"/>
+      <line x1="9" y1="15" x2="15" y2="15"/>
+    </svg>
+  </button>
   <button class="hdr-btn hdr-live" id="hdr-live-btn" onclick="toggleLiveBar()" aria-label="Modo vivo">
     <span class="hdr-live-dot"></span>
     <span class="hdr-live-tag">LIVE</span>
@@ -7388,26 +7443,6 @@ body.mixer-dragging *{touch-action:none !important}
                M4.93 4.93 L5.76 4.1 L7.8 6 L6 7.8 L4 6 Z" fill="currentColor" stroke="none"/>
       <circle cx="12" cy="12" r="5.5" fill="currentColor" stroke="none"/>
       <circle cx="12" cy="12" r="2.3" class="hdr-config-hole"/>
-    </svg>
-  </button>
-  <!-- v27.143 — Clones de zoom-btn y new-loop-btn del footer.
-       Solo visibles en landscape iPhone (.hdr-landscape-only via CSS @media).
-       Llaman a las MISMAS funciones que los originales del footer.
-       data-zoom-btn permite a toggleZoomCompact sincronizar el estado .on
-       en ambos botones (original del footer + clon del header). -->
-  <button class="hdr-ic hdr-landscape-only" id="zoom-btn-h" onclick="toggleZoomCompact()" data-zoom-btn aria-label="Comprimir horizontal (4 compases)">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="3" x2="12" y2="21"/>
-      <polyline points="7 8 11 12 7 16"/>
-      <polyline points="17 8 13 12 17 16"/>
-    </svg>
-  </button>
-  <button class="hdr-ic hdr-landscape-only" id="new-loop-btn-h" onclick="newLoop()" aria-label="Nuevo loop (limpiar todos los clips)">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <line x1="12" y1="12" x2="12" y2="18"/>
-      <line x1="9" y1="15" x2="15" y2="15"/>
     </svg>
   </button>
 </div>
@@ -8045,7 +8080,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.143</span>
+      <span class="title" id="dkv-title">Vista kit · v27.144</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
