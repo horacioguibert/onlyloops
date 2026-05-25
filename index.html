@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.147</title>
+<title>OnlyLoops · v27.148</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1363,7 +1363,7 @@ body.landscape-mode #hdr-row {
   flex-direction: row;
   align-items: stretch;
   gap: 0;
-  background: var(--card) !important;
+  background: var(--bg2) !important;  /* v27.148 — hueso medio, como band2 en vertical */
   border-bottom: 0.5px solid var(--rule);
   padding: 0;
 }
@@ -1372,8 +1372,8 @@ body.landscape-mode #hdr-band2 {
   display: flex !important;
   flex-direction: row;
   align-items: center;
-  height: calc(var(--hdr-u) * 1.05) !important;  /* = 34px franja total */
-  background: var(--card) !important;
+  height: calc(var(--hdr-u) * 1.4) !important;  /* v27.148 — 46px (antes 34px) +12px */
+  background: var(--bg2) !important;  /* v27.148 — hueso medio unificado */
   border-bottom: none !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
@@ -1384,6 +1384,7 @@ body.landscape-mode #hdr-band2 {
   order: 1;
   padding-left: 4px !important;
   padding-right: 4px !important;
+  /* band2 mantiene gap:5px del default arriba — menú compacto izquierdo */
 }
 body.landscape-mode #hdr-band1 {
   flex: 1 1 auto;
@@ -1391,6 +1392,13 @@ body.landscape-mode #hdr-band1 {
   justify-content: flex-end;
   padding-left: 4px !important;
   padding-right: 25px !important;
+  /* v27.148 — Band1 gap 10px (antes 5px) → ✱ 📄+ LIVE LOOPSONG ⚙ más separados.
+     El par rewind+play queda PEGADO via margin-left:-10px en .hdr-play (regla más abajo). */
+  gap: 10px;
+}
+/* v27.148 — Play pegado al rewind: anular el gap de 10px con margin negativo */
+body.landscape-mode #hdr-band1 .hdr-play {
+  margin-left: -10px;
 }
 
 /* ─── Alturas UNIFICADAS de los 12 elementos ─────────────────────── */
@@ -1413,7 +1421,7 @@ body.landscape-mode #hdr-row .hdr-style-btn .hdr-val {
   line-height: 1.15;
 }
 body.landscape-mode #hdr-row #hdr-loopsong {
-  background: var(--bg2) !important;
+  background: var(--bg3) !important;  /* v27.148 — más oscuro que el header bg2 → la perilla blanca contrasta */
   width: 105px;
 }
 
@@ -8123,7 +8131,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.147</span>
+      <span class="title" id="dkv-title">Vista kit · v27.148</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
