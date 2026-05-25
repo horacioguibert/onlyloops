@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.144</title>
+<title>OnlyLoops · v27.145</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1301,23 +1301,20 @@
 .tlbl-loading, .tr-loading, .inst-loading { display:none !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   v27.144 — LANDSCAPE iPHONE MODE (corregido tras review del plano)
+   v27.145 — LANDSCAPE iPHONE MODE (3 correcciones sobre v27.144)
    ═══════════════════════════════════════════════════════════════════════
-   Correcciones sobre v27.143:
-   1) Padding-left fijo de 12px (no env(safe-area-inset-left): en iPhone con
-      notch eso es ~44-59px → quedaba "demasiado espacio para la cámara").
-   2) Background unificado var(--card) en ambas bands + sin border-bottom
-      entre bands → una sola franja de header continua (como en el plano).
-   3) Play achicado de 47×47 (calc(--hdr-u * 1.45)) a 32×32 → misma altura
-      que rewind/LIVE/loopsong/config. Iconos play/pause re-escalados.
-   4) Bands cambiadas de display:grid (7 cols fijas) a display:flex en
-      landscape → los clones zoom-btn-h y new-loop-btn-h ahora SÍ aparecen
-      donde corresponde. Antes en grid quedaban como items #8/#9 en una
-      segunda fila implícita = invisibles.
+   1) HEADER 100% UNIFICADO: background:var(--card) !important en ambas
+      bands + en todos los elementos que tenían su propio fondo distinto
+      (#hdr-band2 var(--bg2), .hdr-switch var(--bg3)). Antes el CSS original
+      ganaba por orden (línea ~5054 vs landscape ~1300, misma especificidad).
+   2) ALTURAS UNIFICADAS de los 12 elementos a calc(--hdr-u * 0.92) = 30px,
+      dentro de bands de calc(--hdr-u * 1.2) = 39px. Antes había 4 alturas
+      distintas: .hdr-btn 49px, .hdr-stepper/.hdr-ic/.hdr-switch 34px, .hdr-play 32px.
+      Ahora una línea horizontal por el centro pasa por TODOS al mismo nivel.
+   3) PADDING-LEFT 22px (12 anterior + 10 más a la derecha) para no pisar
+      la cámara.
 
-   Trigger: orientation:landscape AND max-height ≤ 500px
-   · iPhones en landscape → MATCH
-   · iPads / desktops → NO MATCH (layout actual intacto)
+   Trigger: orientation:landscape AND max-height ≤ 500px (iPhones).
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* Default: clones del footer ocultos en portrait y desktop */
@@ -1331,76 +1328,90 @@
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
-  /* 1) Logo "Only Loops" oculto: gana espacio para los 7+ botones de la fila */
+  /* ─── Eliminaciones ─────────────────────────────────────────────── */
   #hdr-logo { display: none !important; }
-
-  /* 2) Footer entero oculto: gana espacio vertical para los tracks */
   #bot { display: none !important; }
   #seq, .seq-wrap, #tracks-wrap {
     padding-bottom: 0 !important;
   }
 
-  /* 3) Desplazamiento a la izquierda: 12px fijos (no safe-area-inset, era ~50px más).
-        El body con background:var(--bg) llena los ~12px restantes como
-        "franja muerta" del color de la app — sin div extra, sin función. */
+  /* ─── 1) Desplazamiento horizontal: 22px izq (10px más que v27.144) ─ */
   #app, #app-frame {
-    padding-left: 12px;
+    padding-left: 22px;
     padding-right: 12px;
     box-sizing: border-box;
   }
 
-  /* 4) Header unificado: UNA SOLA fila, UN solo color, sin borde interno */
+  /* ─── 2) Header UNIFICADO: una sola franja, un solo color ─────────── */
   #hdr-row {
     flex-direction: row;
     align-items: stretch;
     gap: 0;
-    background: var(--card);
+    background: var(--card) !important;
     border-bottom: 0.5px solid var(--rule);
-    padding-left: 0;
-    padding-right: 0;
+    padding: 0;
   }
   #hdr-band1, #hdr-band2 {
     display: flex !important;
     flex-direction: row;
     align-items: center;
-    height: calc(var(--hdr-u) * 1.45);
-    background: var(--card);
-    border-bottom: none;
+    height: calc(var(--hdr-u) * 1.2);  /* = 39px franja total */
+    background: var(--card) !important;  /* !important para ganar al CSS original */
+    border-bottom: none !important;
     padding: 0 4px;
-    gap: 4px;
+    gap: 5px;
   }
-  #hdr-band2 {
-    flex: 0 0 auto;
-    order: 1; /* band2 primero (izquierda) */
-  }
-  #hdr-band1 {
-    flex: 1 1 auto;
-    order: 2; /* band1 después (derecha) */
-    justify-content: flex-end;
-  }
-  /* El spacer interno de band1 (<div></div> entre play y los clones) ya no
-     hace falta porque justify-content:flex-end empuja todo a la derecha,
-     pero ocupa 0 width naturalmente en flex. */
+  #hdr-band2 { flex: 0 0 auto; order: 1; }
+  #hdr-band1 { flex: 1 1 auto; order: 2; justify-content: flex-end; }
 
-  /* 5) Play achicado: de 47×47 a 32×32 para igualar la altura del resto.
-        Iconos internos (triangle play / 2 barras pause) re-escalados
-        proporcionalmente para que se vean balanceados en el círculo chico. */
-  #hdr-band1 .hdr-play {
-    width: 32px !important;
-    height: 32px !important;
+  /* ─── 3) Alturas UNIFICADAS para los 12 elementos del header ─────── */
+  /* Todos los items hijos directos de las bands → 30px de altura */
+  #hdr-row > div > .hdr-btn,
+  #hdr-row > div > .hdr-ic,
+  #hdr-row > div > .hdr-play,
+  #hdr-row > div > .hdr-stepper,
+  #hdr-row > div > .hdr-style-btn,
+  #hdr-row > div > .hdr-pro-btn,
+  #hdr-row > div > .hdr-switch,
+  #hdr-row > div > #hdr-loopsong {
+    height: calc(var(--hdr-u) * 0.92) !important;  /* = 30px */
+    align-self: center;
+  }
+  /* Hijos internos de steppers y style-btn: liberar la altura fija para que
+     se acomoden al padre de 30px. Antes tenían height fijo de 34px que
+     desbordaba el contenedor. */
+  #hdr-row .hdr-stepper .hdr-lbl,
+  #hdr-row .hdr-stepper .hdr-val,
+  #hdr-row .hdr-style-btn .hdr-lbl,
+  #hdr-row .hdr-style-btn .hdr-val {
+    height: auto !important;
+    line-height: 1.15;
+  }
+  /* Switch loopsong: fondo unificado y altura propia 30px */
+  #hdr-row #hdr-loopsong {
+    background: var(--bg2) !important;  /* sutil contraste sobre var(--card)
+                                            para que se vea como cápsula */
+    width: 110px;
+  }
+
+  /* ─── Play redondo: 30×30 con iconos re-escalados al tamaño chico ── */
+  #hdr-row .hdr-play {
+    width: calc(var(--hdr-u) * 0.92) !important;  /* = 30px cuadrado → círculo */
     box-shadow: 0 2px 5px rgba(18,16,12,.22);
   }
-  #hdr-band1 .hdr-play .play-icon {
-    border-width: 5px 0 5px 9px;
+  #hdr-row .hdr-play .play-icon {
+    border-width: 4px 0 4px 8px;
     margin-left: 2px;
   }
-  #hdr-band1 .hdr-play .pause-bar {
+  #hdr-row .hdr-play .pause-bar {
     width: 3px;
-    height: 10px;
+    height: 9px;
+  }
+  #hdr-row .hdr-play .pause-icon {
+    gap: 2px;
   }
 
-  /* 6) Mostrar los clones zoom-btn-h y new-loop-btn-h en el header.
-        inline-flex (no inline-block) para que align-items funcione bien. */
+  /* ─── Mostrar clones zoom-btn-h y new-loop-btn-h en el header ────── */
   .hdr-landscape-only {
     display: inline-flex !important;
     align-items: center;
@@ -8080,7 +8091,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.144</span>
+      <span class="title" id="dkv-title">Vista kit · v27.145</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
