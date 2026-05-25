@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.149</title>
+<title>OnlyLoops · v27.152</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1402,10 +1402,12 @@ body.landscape-mode #hdr-band1 .hdr-play {
   margin-left: -10px;
 }
 
-/* ─── Alturas UNIFICADAS de los 12 elementos ─────────────────────── */
+/* ─── Alturas UNIFICADAS de los 12 elementos (excepto play) ─────────── */
+/* v27.150 — .hdr-play sacado de esta lista: tiene altura propia (0.98)
+   mayor que los demás (0.85). El header crecido +12px en v27.148 permite
+   que el play resalte con altura diferenciada. */
 body.landscape-mode #hdr-row > div > .hdr-btn,
 body.landscape-mode #hdr-row > div > .hdr-ic,
-body.landscape-mode #hdr-row > div > .hdr-play,
 body.landscape-mode #hdr-row > div > .hdr-stepper,
 body.landscape-mode #hdr-row > div > .hdr-style-btn,
 body.landscape-mode #hdr-row > div > .hdr-pro-btn,
@@ -1436,21 +1438,33 @@ body.landscape-mode #hdr-row .hdr-btn svg {
   height: 20px !important;
 }
 
-/* ─── Play redondo 28×28 ─────────────────────────────────────────── */
-body.landscape-mode #hdr-row .hdr-play {
-  width: calc(var(--hdr-u) * 0.98) !important;  /* v27.149 — +15% sobre 0.85 → resalta en el header */
+/* ─── Play redondo perfecto — solución trinchera v27.151 ──────────────
+   Specificity reforzada (#hdr-band1 + ID + clase) + aspect-ratio + min/max
+   width/height + flex:0 0 auto para anclar tamaño contra cualquier override.
+   Si alguna regla pisa width o height por separado, aspect-ratio:1 las nivela
+   y min/max amarra al valor exacto. ─────────────────────────────────── */
+body.landscape-mode #hdr-row #hdr-band1 #hdr-play-btn.hdr-play {
+  width: calc(var(--hdr-u) * 0.98) !important;
   height: calc(var(--hdr-u) * 0.98) !important;
+  min-width: calc(var(--hdr-u) * 0.98) !important;
+  max-width: calc(var(--hdr-u) * 0.98) !important;
+  min-height: calc(var(--hdr-u) * 0.98) !important;
+  max-height: calc(var(--hdr-u) * 0.98) !important;
+  aspect-ratio: 1 / 1 !important;
+  flex: 0 0 auto !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
   box-shadow: 0 2px 4px rgba(18,16,12,.22);
 }
-body.landscape-mode #hdr-row .hdr-play .play-icon {
+body.landscape-mode #hdr-row #hdr-play-btn.hdr-play .play-icon {
   border-width: 4px 0 4px 7px;
   margin-left: 2px;
 }
-body.landscape-mode #hdr-row .hdr-play .pause-bar {
+body.landscape-mode #hdr-row #hdr-play-btn.hdr-play .pause-bar {
   width: 3px;
   height: 8px;
 }
-body.landscape-mode #hdr-row .hdr-play .pause-icon {
+body.landscape-mode #hdr-row #hdr-play-btn.hdr-play .pause-icon {
   gap: 2px;
 }
 
@@ -1460,6 +1474,141 @@ body.landscape-mode .hdr-landscape-only {
   align-items: center;
   justify-content: center;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v27.152 — SIDE-SHEETS EN LANDSCAPE MODE
+   ═══════════════════════════════════════════════════════════════════════
+   Los 6 menús que en portrait abren desde abajo (bottom-sheets) cambian a
+   side-sheets que abren desde la derecha en landscape:
+     1. #track-sheet   (Mixer)
+     2. #add-sheet     (Track Nuevo)
+     3. #inst-sheet    (Editor Instrumentos)
+     4. #chord-sheet   (Edición Acordes ⚠️R6.2 portrait protegido)
+     5. #hdr-config-menu (Configuración)
+     6. #cew-overlay   (Color Engine Wheel)
+   Bonus: #prog-sheet y #key-sheet también heredan (usan class .sheet).
+
+   Comportamiento:
+   · top:0 right:0 bottom:0 left:auto → anclado a la derecha, alto completo
+   · width: 50vw default (centro), rango 280px–90vw vía drag del handle
+   · transform: translateX(100%) cerrado ↔ translateX(0) abierto
+   · border-radius: esquinas izquierdas (18px 0 0 18px)
+   · sombra hacia la izquierda
+   · scroll vertical interno (overflow-y:auto en .s-body)
+   · handle vertical rotado 90° centrado en el borde izquierdo
+
+   NO toca el comportamiento portrait. Las reglas R6.2 del chord-sheet
+   (altura inicial + padding s-body) en portrait quedan INTACTAS.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Matriz común items 1-4 + bonus prog/key (clase .sheet) ─────── */
+body.landscape-mode .sheet {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  width: 50vw !important;
+  min-width: 280px !important;
+  max-width: 90vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  transform: translateX(100%) !important;
+  border-radius: 18px 0 0 18px !important;
+  box-shadow: -8px 0 40px rgba(18,16,12,.18) !important;
+}
+body.landscape-mode .sheet.on {
+  transform: translateX(0) !important;
+}
+
+/* Body del sheet: scroll vertical interno, max-height libre (toma todo el alto) */
+body.landscape-mode .sheet .s-body {
+  max-height: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding-left: 28px !important;  /* dejar espacio para el handle vertical */
+}
+
+/* Handle vertical: barrita vertical en el borde izquierdo, centrada */
+body.landscape-mode .sheet .s-handle {
+  position: absolute !important;
+  top: 50% !important;
+  left: 8px !important;
+  right: auto !important;
+  width: 5px !important;
+  height: 60px !important;
+  margin: 0 !important;
+  transform: translateY(-50%) !important;
+  cursor: ew-resize !important;
+  z-index: 5 !important;
+}
+body.landscape-mode .sheet .s-handle:active {
+  width: 6px !important;
+  height: 72px !important;
+}
+
+/* Header del sheet: padding izquierdo para no superponer el handle */
+body.landscape-mode .sheet .s-head {
+  padding-left: 24px !important;
+}
+
+/* El ::after que extendía el sheet visualmente hacia abajo no aplica en
+   landscape porque el sheet ya cubre todo el alto. Lo ocultamos. */
+body.landscape-mode .sheet::after {
+  display: none !important;
+}
+
+/* ── Item 5: #hdr-config-menu (overlay propio, NO usa class .sheet) ── */
+body.landscape-mode #hdr-config-menu .hdr-config-panel {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  width: 50vw !important;
+  min-width: 280px !important;
+  max-width: 90vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 18px 0 0 18px !important;
+  box-shadow: -8px 0 40px rgba(0,0,0,.18) !important;
+  padding: 24px 18px 24px 36px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  animation: hdr-config-slide-x .22s cubic-bezier(.3,.7,.3,1) !important;
+}
+@keyframes hdr-config-slide-x {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+/* ── Item 6: #cew-panel (overlay propio, posicionado dinámicamente vía JS) ── */
+/* El JS del cew posiciona el panel inline desde cewOpen() según el botón
+   clickeado (rowRect). En landscape lo forzamos a la derecha anulando
+   cualquier inline style con !important. */
+body.landscape-mode #cew-panel {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  width: 50vw !important;
+  min-width: 280px !important;
+  max-width: 90vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 18px 0 0 18px !important;
+  box-shadow: -8px 0 40px rgba(18,16,12,.18) !important;
+  border-top: none !important;
+  border-left: 1.5px solid var(--rule2) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  transform: translateX(0) !important;  /* anula el slide-up del JS */
+}
+/* cew-overlay backdrop sigue cubriendo toda la pantalla — no cambia */
 </style>
 <style>
 /* ═══════════════════════════════════════════════
@@ -8133,7 +8282,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.149</span>
+      <span class="title" id="dkv-title">Vista kit · v27.152</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -52543,6 +52692,10 @@ function bpmNudge(dir){
 
     // Estado del drag para este panel (scope cerrado por panel)
     let sy = 0, baseY = 0, currentY = 0, lastY = 0, lastT = 0, vel = 0, dragging = false;
+    // v27.152 — Captura del modo al iniciar drag (vertical portrait / horizontal landscape).
+    // En landscape el handle es vertical y ajusta el WIDTH del sheet en vez del height.
+    let dragIsLandscape = false;
+    let dragStartWidth = 0;
     // v15.0-DEMO — elTopInitial ELIMINADO. getLimits mide en runtime.
 
     // Lee el translateY actual del panel
@@ -52569,8 +52722,13 @@ function bpmNudge(dir){
         panel.style.height = panel._origHeight;
         panel.style.maxHeight = panel._origMaxHeight;
       }
+      // v27.152 — Limpiar width inline (en landscape el drag modifica width).
+      // Sin esto, la próxima apertura mantendría el width custom anterior.
+      panel.style.width = '';
       currentY = 0;
       sy = 0; baseY = 0; lastY = 0; lastT = 0; vel = 0; dragging = false;
+      dragIsLandscape = false;
+      dragStartWidth = 0;
       // Forzar reflow para que el reset tome efecto antes del próximo render
       void panel.offsetHeight;
     };
@@ -52620,26 +52778,46 @@ function bpmNudge(dir){
       return { minY, maxY };
     };
 
-    const dragStart = (y, target) => {
+    const dragStart = (coord, target) => {
       if(!twin.isOpen()) return;
       if(!isDragZone(target)) return;
       dragging = true;
-      sy = y;
+      // v27.152 — Capturar modo landscape al iniciar el drag. El handle
+      // vertical en landscape ajusta WIDTH del sheet, no su translateY.
+      dragIsLandscape = document.body.classList.contains('landscape-mode');
+      if(dragIsLandscape){
+        dragStartWidth = panel.getBoundingClientRect().width;
+      }
+      sy = coord;
       baseY = currentY;
-      lastY = y;
+      lastY = coord;
       lastT = performance.now();
       vel = 0;
       panel.style.transition = 'none';
     };
 
-    const dragMove = (y, e) => {
+    const dragMove = (coord, e) => {
       if(!dragging) return;
-      const dy = y - sy;
+      const dy = coord - sy;
       const now = performance.now();
       if(now - lastT > 8){
-        vel = (y - lastY) / (now - lastT);
-        lastY = y;
+        vel = (coord - lastY) / (now - lastT);
+        lastY = coord;
         lastT = now;
+      }
+      // v27.152 — En landscape: el drag horizontal ajusta el WIDTH del sheet
+      // (sheet anclado a la derecha, drag a la izquierda lo expande).
+      // delta negativo (izquierda) → más width. delta positivo (derecha) → menos width.
+      if(dragIsLandscape){
+        const minWidth = 280;
+        const maxWidth = window.innerWidth * 0.9;
+        let newWidth = dragStartWidth - dy;  // izq (dy<0) crece, der (dy>0) achica
+        if(newWidth < minWidth) newWidth = minWidth + (newWidth - minWidth) * 0.3;  // rebote elástico chico
+        if(newWidth > maxWidth) newWidth = maxWidth;
+        panel.style.width = newWidth + 'px';
+        currentY = dy;  // guardamos delta para que dragEnd sepa la dirección
+        if(e && e.cancelable) e.preventDefault();
+        return;
       }
       const { minY, maxY } = getLimits();
       let newY = baseY + dy;
@@ -52694,6 +52872,21 @@ function bpmNudge(dir){
     const dragEnd = () => {
       if(!dragging) return;
       dragging = false;
+      // v27.152 — Landscape: si el sheet quedó muy angosto, cerrar. Sino mantener width.
+      if(dragIsLandscape){
+        const finalWidth = panel.getBoundingClientRect().width;
+        panel.style.transition = 'width .22s cubic-bezier(.4,0,.2,1), transform .22s cubic-bezier(.4,0,.2,1)';
+        // Si el width quedó por debajo de 200px o velocidad alta hacia la derecha → cerrar
+        if(finalWidth < 200 || vel > 0.7){
+          panel.style.transform = 'translateX(100%)';
+          setTimeout(() => { twin.close(); }, 180);
+        }
+        setTimeout(() => { panel.style.transition = ''; }, 220);
+        sy = 0; baseY = 0; currentY = 0; lastY = 0; lastT = 0; vel = 0;
+        dragIsLandscape = false;
+        dragStartWidth = 0;
+        return;
+      }
       const { minY, maxY } = getLimits();
       const closeThreshold = maxY * 0.55;
       panel.style.transition = 'transform .22s cubic-bezier(.4,0,.2,1), height .22s cubic-bezier(.4,0,.2,1), max-height .22s cubic-bezier(.4,0,.2,1)';
@@ -52730,17 +52923,18 @@ function bpmNudge(dir){
       sy = 0; baseY = 0; lastY = 0; lastT = 0; vel = 0;
     };
 
-    // Listeners de drag
+    // Listeners de drag — v27.152: pasan clientX en landscape, clientY en portrait
+    const _coordOf = (e) => (document.body.classList.contains('landscape-mode') ? e.clientX : e.clientY);
     panel.addEventListener('touchstart', (e) => {
-      if(e.touches[0]) dragStart(e.touches[0].clientY, e.target);
+      if(e.touches[0]) dragStart(_coordOf(e.touches[0]), e.target);
     }, { passive: true });
     panel.addEventListener('touchmove', (e) => {
-      if(e.touches[0]) dragMove(e.touches[0].clientY, e);
+      if(e.touches[0]) dragMove(_coordOf(e.touches[0]), e);
     }, { passive: false });
     panel.addEventListener('touchend', dragEnd);
     panel.addEventListener('touchcancel', dragEnd);
-    panel.addEventListener('mousedown', (e) => dragStart(e.clientY, e.target));
-    window.addEventListener('mousemove', (e) => { if(dragging) dragMove(e.clientY, e); });
+    panel.addEventListener('mousedown', (e) => dragStart(_coordOf(e), e.target));
+    window.addEventListener('mousemove', (e) => { if(dragging) dragMove(_coordOf(e), e); });
     window.addEventListener('mouseup', () => { if(dragging) dragEnd(); });
 
     // ════ TAP-OUTSIDE ════
