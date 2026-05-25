@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.145</title>
+<title>OnlyLoops · v27.146</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1301,18 +1301,25 @@
 .tlbl-loading, .tr-loading, .inst-loading { display:none !important; }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   v27.145 — LANDSCAPE iPHONE MODE (3 correcciones sobre v27.144)
+   v27.146 — LANDSCAPE iPHONE MODE (4 correcciones sobre v27.145)
    ═══════════════════════════════════════════════════════════════════════
-   1) HEADER 100% UNIFICADO: background:var(--card) !important en ambas
-      bands + en todos los elementos que tenían su propio fondo distinto
-      (#hdr-band2 var(--bg2), .hdr-switch var(--bg3)). Antes el CSS original
-      ganaba por orden (línea ~5054 vs landscape ~1300, misma especificidad).
-   2) ALTURAS UNIFICADAS de los 12 elementos a calc(--hdr-u * 0.92) = 30px,
-      dentro de bands de calc(--hdr-u * 1.2) = 39px. Antes había 4 alturas
-      distintas: .hdr-btn 49px, .hdr-stepper/.hdr-ic/.hdr-switch 34px, .hdr-play 32px.
-      Ahora una línea horizontal por el centro pasa por TODOS al mismo nivel.
-   3) PADDING-LEFT 22px (12 anterior + 10 más a la derecha) para no pisar
-      la cámara.
+   1) DESALINEACIÓN VERTICAL DE 5px: el CSS original (línea ~4904) tiene
+      #hdr-band1 { padding-top: env(safe-area-inset-top, 0px) }. En iPhone
+      landscape ese inset puede valer 5-15px → todo band1 bajaba. Anulo
+      con padding-top:0 !important en landscape. Ahora band1 y band2 tienen
+      EXACTAMENTE el mismo top → una línea horizontal por el centro pasa
+      por los 12 elementos al mismo nivel.
+   2) REWIND PEGADO AL PLAY: el <div></div> spacer (era el 1fr del grid
+      original) ahora marcado con clase .hdr-spacer y ocultado en landscape.
+      El cluster rewind+play+zoom+new-loop+live+loopsong+config queda
+      compacto, sin gap raro entre play y zoom.
+   3) BLOQUE DERECHO MOVIDO 25px A LA IZQUIERDA: padding-right:25px en
+      #hdr-band1. Con justify-content:flex-end ya pegado al borde derecho
+      del wrapper, el padding empuja todo el cluster 25px hacia la izquierda.
+   4) HEADER MÁS COMPACTO: bands de calc(--hdr-u * 1.05) = 34px (antes 39px),
+      items de calc(--hdr-u * 0.85) = 27.6px ≈ 28px (antes 30px). Iconos
+      SVG reducidos de 24 a 20px. ~5px más de espacio vertical para el
+      sequencer.
 
    Trigger: orientation:landscape AND max-height ≤ 500px (iPhones).
    ═══════════════════════════════════════════════════════════════════════ */
@@ -1327,6 +1334,10 @@
   flex-shrink: 0;
 }
 
+/* El spacer del band1 no afecta portrait (el grid original lo trataba como
+   1fr para empujar los items a los lados). En portrait su display normal
+   está bien; solo lo ocultamos en landscape (regla más abajo). */
+
 @media (orientation: landscape) and (max-height: 500px) {
   /* ─── Eliminaciones ─────────────────────────────────────────────── */
   #hdr-logo { display: none !important; }
@@ -1334,15 +1345,20 @@
   #seq, .seq-wrap, #tracks-wrap {
     padding-bottom: 0 !important;
   }
+  /* 2) Spacer del band1 oculto → rewind+play+clones+live+... como un solo
+     cluster compacto, sin gap raro de 10px entre play y zoom. */
+  #hdr-band1 > .hdr-spacer {
+    display: none !important;
+  }
 
-  /* ─── 1) Desplazamiento horizontal: 22px izq (10px más que v27.144) ─ */
+  /* ─── 3) Desplazamiento horizontal: 22px izq ─────────────────────── */
   #app, #app-frame {
     padding-left: 22px;
     padding-right: 12px;
     box-sizing: border-box;
   }
 
-  /* ─── 2) Header UNIFICADO: una sola franja, un solo color ─────────── */
+  /* ─── Header UNIFICADO: una sola franja, un solo color ───────────── */
   #hdr-row {
     flex-direction: row;
     align-items: stretch;
@@ -1355,17 +1371,31 @@
     display: flex !important;
     flex-direction: row;
     align-items: center;
-    height: calc(var(--hdr-u) * 1.2);  /* = 39px franja total */
-    background: var(--card) !important;  /* !important para ganar al CSS original */
+    /* 4) Bandas más compactas: 34px (antes 39px) → ~5px gana el sequencer */
+    height: calc(var(--hdr-u) * 1.05);  /* = 34.1px */
+    background: var(--card) !important;
     border-bottom: none !important;
-    padding: 0 4px;
+    /* 1) Anular safe-area-inset-top del band1 que causaba desalineación vertical */
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     gap: 5px;
   }
-  #hdr-band2 { flex: 0 0 auto; order: 1; }
-  #hdr-band1 { flex: 1 1 auto; order: 2; justify-content: flex-end; }
+  #hdr-band2 {
+    flex: 0 0 auto;
+    order: 1;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+  #hdr-band1 {
+    flex: 1 1 auto;
+    order: 2;
+    justify-content: flex-end;
+    padding-left: 4px;
+    /* 3) 25px de aire a la derecha → todo el cluster se corre 25px a la izq */
+    padding-right: 25px;
+  }
 
-  /* ─── 3) Alturas UNIFICADAS para los 12 elementos del header ─────── */
-  /* Todos los items hijos directos de las bands → 30px de altura */
+  /* ─── 4) Alturas UNIFICADAS más compactas para los 12 elementos ──── */
   #hdr-row > div > .hdr-btn,
   #hdr-row > div > .hdr-ic,
   #hdr-row > div > .hdr-play,
@@ -1374,12 +1404,9 @@
   #hdr-row > div > .hdr-pro-btn,
   #hdr-row > div > .hdr-switch,
   #hdr-row > div > #hdr-loopsong {
-    height: calc(var(--hdr-u) * 0.92) !important;  /* = 30px */
+    height: calc(var(--hdr-u) * 0.85) !important;  /* = 27.6px ≈ 28px */
     align-self: center;
   }
-  /* Hijos internos de steppers y style-btn: liberar la altura fija para que
-     se acomoden al padre de 30px. Antes tenían height fijo de 34px que
-     desbordaba el contenedor. */
   #hdr-row .hdr-stepper .hdr-lbl,
   #hdr-row .hdr-stepper .hdr-val,
   #hdr-row .hdr-style-btn .hdr-lbl,
@@ -1387,31 +1414,39 @@
     height: auto !important;
     line-height: 1.15;
   }
-  /* Switch loopsong: fondo unificado y altura propia 30px */
   #hdr-row #hdr-loopsong {
-    background: var(--bg2) !important;  /* sutil contraste sobre var(--card)
-                                            para que se vea como cápsula */
-    width: 110px;
+    background: var(--bg2) !important;
+    width: 105px;
   }
 
-  /* ─── Play redondo: 30×30 con iconos re-escalados al tamaño chico ── */
+  /* Iconos SVG más chicos: de 24px a 20px (alineados con items de 28px) */
+  #hdr-row .hdr-ic svg {
+    width: 20px;
+    height: 20px;
+  }
+  #hdr-row .hdr-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Play redondo 28×28 con iconos re-escalados al tamaño chico */
   #hdr-row .hdr-play {
-    width: calc(var(--hdr-u) * 0.92) !important;  /* = 30px cuadrado → círculo */
-    box-shadow: 0 2px 5px rgba(18,16,12,.22);
+    width: calc(var(--hdr-u) * 0.85) !important;  /* = 28px → círculo */
+    box-shadow: 0 2px 4px rgba(18,16,12,.22);
   }
   #hdr-row .hdr-play .play-icon {
-    border-width: 4px 0 4px 8px;
+    border-width: 4px 0 4px 7px;
     margin-left: 2px;
   }
   #hdr-row .hdr-play .pause-bar {
     width: 3px;
-    height: 9px;
+    height: 8px;
   }
   #hdr-row .hdr-play .pause-icon {
     gap: 2px;
   }
 
-  /* ─── Mostrar clones zoom-btn-h y new-loop-btn-h en el header ────── */
+  /* Clones zoom-btn-h y new-loop-btn-h visibles en el header */
   .hdr-landscape-only {
     display: inline-flex !important;
     align-items: center;
@@ -7406,7 +7441,7 @@ body.mixer-dragging *{touch-action:none !important}
   <button class="hdr-btn hdr-play" id="hdr-play-btn" onclick="togglePlay()" aria-label="Play">
     <div id="hdr-play-ic" class="play-icon"></div>
   </button>
-  <div></div>
+  <div class="hdr-spacer" aria-hidden="true"></div>
   <!-- v27.144 — Clones de zoom-btn y new-loop-btn del footer, ubicados ENTRE
        el play y el LIVE según el plano horizontal. Solo visibles en landscape
        iPhone (.hdr-landscape-only via CSS @media). Llaman a las MISMAS
@@ -8091,7 +8126,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.145</span>
+      <span class="title" id="dkv-title">Vista kit · v27.146</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
