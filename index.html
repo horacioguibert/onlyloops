@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.210</title>
+<title>OnlyLoops · v27.213</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -2170,6 +2170,14 @@ button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:
 #rewind-btn{width:34px;height:34px;border-radius:50%;background:var(--bg2);border:1px solid var(--rule);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .1s}
 #rewind-btn:active{background:var(--bg3)}
 /* v27.6 — Botón Loop en footer #bot (bb-ic style) · doble-click elimina zona */
+/* v27.213 — Tres estados visuales:
+   · Sin zona: sin color (default)
+   · Zona definida + inactiva: amarillo CLARO (loop-defined sin loop-active)
+   · Zona definida + activa: amarillo FUERTE (loop-active, override por orden)
+   Amarillo claro = #FFEE7A (pastel, claramente más claro que el activo #FFD60A
+   para evitar confusión visual con el estado activo). */
+body.loop-defined #loop-btn{background:#FFEE7A;color:#8A7320;border-radius:8px}
+body.loop-defined #loop-btn svg{stroke:#8A7320}
 body.loop-active #loop-btn{background:#FFD60A;color:#5C4500;border-radius:8px}
 body.loop-active #loop-btn svg{stroke:#5C4500}
 body.loop-active #seq{background:linear-gradient(180deg, rgba(255,214,10,0.04) 0%, rgba(255,214,10,0.02) 100%)}
@@ -2382,7 +2390,14 @@ body.has-promoted-track #rewind-btn {
   background-color: rgba(18,16,12,0.10) !important;
 }
 .track-row.destacado .tlbl{
-  background-color: rgba(18,16,12,0.06) !important;
+  /* v27.211 — Horacio: rgba(18,16,12,0.06) dejaba el tlbl 94% transparente,
+     permitiendo ver los clips scrolleados por debajo de los íconos de
+     instrumento. Fix: bg-color opaco (var(--bg2), igual que tlbl normal) +
+     bg-image con linear-gradient SÓLIDO del mismo tinte. El image se pinta
+     ENCIMA del color y DEBAJO del contenido, preservando opacidad total
+     contra los clips sticky-left y manteniendo la diferenciación visual. */
+  background-color: var(--bg2) !important;
+  background-image: linear-gradient(rgba(18,16,12,0.06), rgba(18,16,12,0.06)) !important;
 }
 /* v25.5 — La sombra del track destacado debe cubrir TODO el sequencer del
    track, no solo la zona vacía. Antes el .ttl tapaba el background del row
@@ -2909,7 +2924,10 @@ body.landscape-mode #hdr-live-btn {
   margin-left: 14px !important;
 }
 /* v27.209 — Feedback amarillo del loop-btn-h cuando body.loop-active.
-   Replica el styling de #loop-btn del footer (línea 2173). */
+   Replica el styling de #loop-btn del footer (línea 2173).
+   v27.213 — Agregado estado loop-defined (amarillo claro) igual que el footer. */
+body.loop-defined #loop-btn-h{background:#FFEE7A;color:#8A7320;border-radius:8px}
+body.loop-defined #loop-btn-h svg{stroke:#8A7320}
 body.loop-active #loop-btn-h{background:#FFD60A;color:#5C4500;border-radius:8px}
 body.loop-active #loop-btn-h svg{stroke:#5C4500}
 @keyframes rb{0%{background:var(--err2)}40%{background:var(--err);color:var(--card)}100%{background:var(--err2);color:var(--err)}}
@@ -8591,7 +8609,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.210</span>
+      <span class="title" id="dkv-title">Vista kit · v27.213</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -37191,6 +37209,24 @@ function updatePHHeight(){
   ph.style.height = Math.max(0, bottomY - startRect.top) + 'px';
 }
 
+// v27.212 — Horacio: tras rotar a landscape, el playhead aparecía por debajo
+// del ruler-row porque updatePHHeight() solo se llamaba al iniciar play (en
+// startPlay). El ph.style.top quedaba con el valor calculado en la orientación
+// anterior. Fix: recalcular alto/top al cambiar de orientación o redimensionar,
+// pero solo si el playhead está visible (play activo). Doble RAF para esperar
+// a que el viewport reflexione las dimensiones nuevas tras orientationchange.
+function _onPlayheadOrientationChange(){
+  const ph = document.getElementById('ph');
+  if (!ph || ph.style.display === 'none') return;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      updatePHHeight();
+    });
+  });
+}
+window.addEventListener('resize', _onPlayheadOrientationChange, { passive: true });
+window.addEventListener('orientationchange', _onPlayheadOrientationChange, { passive: true });
+
 
 // ═════════════════════════════════════════════════════════════════════
 // v20.3.0 — Batería al motor real
@@ -54783,7 +54819,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.210',
+    version: 'v27.213',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -55832,8 +55868,13 @@ function toggleLoopBtn(){
 window.toggleLoopBtn = toggleLoopBtn;
 
 function _syncLoopActiveClass(){
-  const has = !!(G.loop && G.loop.active && G.loop.start !== null && G.loop.end !== null);
-  document.body.classList.toggle('loop-active', has);
+  // v27.213 — Dos clases ahora: loop-defined (zona existe) y loop-active
+  // (zona existe Y activa). Permite que el botón muestre amarillo claro en
+  // el estado intermedio "definida pero apagada", igual que el ruler.
+  const hasZone = !!(G.loop && G.loop.start !== null && G.loop.end !== null);
+  const isActive = hasZone && G.loop.active;
+  document.body.classList.toggle('loop-defined', hasZone);
+  document.body.classList.toggle('loop-active', isActive);
 }
 window._syncLoopActiveClass = _syncLoopActiveClass;
 
