@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.208</title>
+<title>OnlyLoops · v27.210</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -2888,7 +2888,9 @@ body.has-promoted-track #rewind-btn {
    1) Redondez forzada: aspect-ratio:1 + min/max width/height + flex-shrink:0.
    2) Separación adicional: 14px de margen extra antes de cada uno (suma con
       el gap base de 10px del #hdr-band1, total 24px de aire entre cada par).
-   Hay espacio sobrado en el header horizontal del iPhone para esto. */
+   Hay espacio sobrado en el header horizontal del iPhone para esto.
+   v27.209 — Agregado #loop-btn-h (entre play y zoom-btn-h) a las mismas reglas. */
+body.landscape-mode #loop-btn-h,
 body.landscape-mode #zoom-btn-h,
 body.landscape-mode #new-loop-btn-h {
   aspect-ratio: 1 / 1 !important;
@@ -2901,10 +2903,15 @@ body.landscape-mode #new-loop-btn-h {
   flex: 0 0 auto !important;
   padding: 0 !important;
 }
+body.landscape-mode #zoom-btn-h,
 body.landscape-mode #new-loop-btn-h,
 body.landscape-mode #hdr-live-btn {
   margin-left: 14px !important;
 }
+/* v27.209 — Feedback amarillo del loop-btn-h cuando body.loop-active.
+   Replica el styling de #loop-btn del footer (línea 2173). */
+body.loop-active #loop-btn-h{background:#FFD60A;color:#5C4500;border-radius:8px}
+body.loop-active #loop-btn-h svg{stroke:#5C4500}
 @keyframes rb{0%{background:var(--err2)}40%{background:var(--err);color:var(--card)}100%{background:var(--err2);color:var(--err)}}
 
 /* ═══ WHEEL PICKER — iOS drum roll ═══ */
@@ -7864,6 +7871,17 @@ body.mixer-dragging *{touch-action:none !important}
     <div id="hdr-play-ic" class="play-icon"></div>
   </button>
   <div class="hdr-spacer" aria-hidden="true"></div>
+  <!-- v27.209 — Botón LOOP: clon del #loop-btn del footer, ubicado en header
+       landscape entre Play y zoom-btn-h. Mismo onclick + ondblclick que el
+       original. CSS body.loop-active #loop-btn-h aplica feedback amarillo. -->
+  <button class="hdr-ic hdr-landscape-only" id="loop-btn-h" onclick="toggleLoopBtn()" ondblclick="clearLoop()" aria-label="Loop region">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="17 1 21 5 17 9"/>
+      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+      <polyline points="7 23 3 19 7 15"/>
+      <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+    </svg>
+  </button>
   <!-- v27.144 — Clones de zoom-btn y new-loop-btn del footer, ubicados ENTRE
        el play y el LIVE según el plano horizontal. Solo visibles en landscape
        iPhone (.hdr-landscape-only via CSS @media). Llaman a las MISMAS
@@ -8573,7 +8591,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.208</span>
+      <span class="title" id="dkv-title">Vista kit · v27.210</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -36368,6 +36386,17 @@ function clipGestureMove(e, st){
     // Vertical-dominant gestures shouldn't trigger a drag
     if(Math.abs(dy) > Math.abs(dx) * 1.5) { st.zone = 'vscroll'; return; }
     if(st.zone==='vscroll') return;
+    // v27.210 — Horacio: swipe horizontal en zona vacía estaba creando clips
+    // fantasma. Causa: si dx >> dy y zone='empty', el código marcaba
+    // st.dragging=true (no había rama equivalente a vscroll para horizontal),
+    // y si iOS no actualizaba scrollLeft a tiempo, clipGestureEnd no detectaba
+    // el swipe y caía al "tap → crear clip". Fix: detectar hscroll igual que
+    // vscroll, solo en zone='empty' (drags de clip siguen funcionando normal).
+    if(st.zone === 'empty' && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      st.zone = 'hscroll';
+      return;
+    }
+    if(st.zone === 'hscroll') return;
     st.dragging = true;
     st.actuallyChanged = false; // will flip to true if we see a real snapped change below
     // Freeze the track's horizontal scroll while we're actively dragging — otherwise
@@ -36533,6 +36562,13 @@ function clipGestureEnd(e, st){
   // Si FLY se activó durante este gesto, el drop del FLY maneja todo (selección,
   // mover clip, etc). Acá salimos para no ejecutar el tap flow ni abrir editores.
   if(G._flyActive){
+    return;
+  }
+
+  // v27.210 — Si el gesto fue clasificado como scroll (horizontal o vertical),
+  // NUNCA crear clip ni abrir editor. Defensa explícita además de los checks
+  // de dx/dy/scrollLeft abajo. Aplica al swipe nativo del iPhone.
+  if(st.zone === 'hscroll' || st.zone === 'vscroll'){
     return;
   }
 
@@ -37537,7 +37573,19 @@ function updatePH(){
   if(rulerScroll){
     const rect = rulerScroll.getBoundingClientRect();
     const scrollL = rulerScroll.scrollLeft || 0;
-    const phViewportX = rect.left + (G.playPos * BW) - scrollL;
+    let phViewportX = rect.left + (G.playPos * BW) - scrollL;
+    // v27.209 — Compensación landscape: #app tiene transform:translate3d(0,0,0) que
+    // establece el containing block para los position:fixed (#ph). En landscape se
+    // suma padding-left:22px al #app, lo que desplaza el contenido pero NO el origin
+    // del fixed según algunas implementaciones de browsers móviles. Resultado: el
+    // playhead aparece ~22-26px (≈0.5 beat con BW=52) a la derecha del beat 1 real.
+    // Fix: restar el padding-left del #app del valor final. En portrait padding=0,
+    // resta es no-op (mantiene comportamiento original).
+    const appEl = document.getElementById('app');
+    if (appEl) {
+      const padLeft = parseFloat(getComputedStyle(appEl).paddingLeft) || 0;
+      phViewportX -= padLeft;
+    }
     ph.style.left = phViewportX + 'px';
   }
 
@@ -54735,7 +54783,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.208',
+    version: 'v27.210',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -55727,6 +55775,23 @@ setTimeout(function(){
     window.addEventListener('touchmove',  _onMove, { passive:false });
     window.addEventListener('touchend',   _onUp,   { passive:false });
     rs.addEventListener('touchcancel', _onUp, { passive:false });
+
+    // v27.209 — Pointer events como handler primario y fallback robusto cross-platform.
+    // En iOS Safari landscape, mousedown/touchstart pueden no propagar correctamente
+    // (delegados, gestos del sistema). pointerdown es la API moderna y unifica ambos.
+    // Guarda un flag por evento para evitar doble-procesamiento si ambos pointer+mouse
+    // disparan (raro pero posible en algunos browsers Chromium).
+    function _onDownPointer(e){
+      // Evitar doble si ya hay st activo del listener mouse/touch
+      if (st) return;
+      _onDown(e);
+    }
+    function _onMovePointer(e){ _onMove(e); }
+    function _onUpPointer(e){ _onUp(e); }
+    rs.addEventListener('pointerdown', _onDownPointer, { passive:false });
+    window.addEventListener('pointermove', _onMovePointer, { passive:false });
+    window.addEventListener('pointerup',   _onUpPointer,   { passive:false });
+    window.addEventListener('pointercancel', _onUpPointer, { passive:false });
 
     console.log('[v27.2] Loop region: gestos en ruler activados');
   }
