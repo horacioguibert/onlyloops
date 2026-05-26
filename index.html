@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.214</title>
+<title>OnlyLoops · v27.216</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -8609,7 +8609,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.214</span>
+      <span class="title" id="dkv-title">Vista kit · v27.216</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -36697,7 +36697,11 @@ function clipGestureEnd(e, st){
   setSelectedClip({ ti: st.ti, ci: st.hitCi });
   {
     const ps = currentSound; currentSound = t.inst || 'nylon';
-    const po = currentOctShift; currentOctShift = t.octShift || 0;
+    // v27.216 — Usar clip.oct si está definido, sino track.octShift.
+    // Antes este preview ignoraba clip.oct y sonaba diferente al motor de
+    // playback (que sí respeta clip.oct). Coherencia entre preview y play.
+    const po = currentOctShift;
+    currentOctShift = (typeof clip.oct === 'number') ? clip.oct : (t.octShift || 0);
     const pti = currentTrackIdx; currentTrackIdx = st.ti;
     // v21.1.13 GUARD DEFENSIVO — Bug "click en bajo dispara batería" reportado
     // por Horacio. Causa raíz: _instApplyKeyChange / cycleInst cambiaban
@@ -38719,7 +38723,13 @@ function previewChord(){
   if(!G.editRef)return;
   const cl=G.editRef.clip;
   const ps=currentSound;currentSound=G.tracks[G.editRef.ti]?.inst||'nylon';
-  const po=currentOctShift;currentOctShift=G.tracks[G.editRef.ti]?.octShift||0;
+  // v27.216 — Horacio reportó incoherencia entre preview y playback. Causa:
+  // este preview usaba siempre track.octShift, ignorando clip.oct. El motor
+  // de playback (línea ~37338) sí respeta clip.oct. Resultado: el preview
+  // y el play sonaban en octavas diferentes cuando el clip tenía oct propia.
+  // Fix: misma fórmula que el motor — single source of truth.
+  const po=currentOctShift;
+  currentOctShift = (typeof cl.oct === 'number') ? cl.oct : (G.tracks[G.editRef.ti]?.octShift || 0);
   const pti=currentTrackIdx;currentTrackIdx=G.editRef.ti;
   playChord(cl.r,cl.s,cl.tech,G.bpm);currentSound=ps;currentOctShift=po;currentTrackIdx=pti;
   const btn=document.getElementById('cs-play-btn');
@@ -54250,9 +54260,13 @@ console.log('[v17.4.3] TECH_FORMULAS cargado · 113 fórmulas · helpers + hooks
   font-family: var(--serif, Georgia, serif);
   font-size: 15px;
   font-style: italic;
-  font-weight: 500;
+  /* v27.215 — Horacio: las pills inactivas (Funk/Blues/Metal/...) eran ilegibles
+     con opacity:.5 + weight:500. Subo a opacity:1 + weight:600 para que se lean
+     claramente. La pill activa sigue distinguible por background+acento+shadow+
+     weight:700+font-style:normal. */
+  font-weight: 600;
   color: var(--ink);
-  opacity: .5;
+  opacity: 1;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -54410,8 +54424,12 @@ console.log('[v17.4.3] TECH_FORMULAS cargado · 113 fórmulas · helpers + hooks
   font-style: italic; font-size: 11px;
   /* v27.166 — Mayor contraste: era var(--ink2). Ahora --ink con opacity .82
      que garantiza legibilidad en TODOS los presets (dark + light). */
+  /* v27.215 — Horacio: las descripciones (historia/bandas) seguían ilegibles
+     con opacity:.78. Quito opacity (queda en --ink full) y subo font-weight
+     a 500 para que el italic serif tenga más cuerpo. */
   color: var(--ink);
-  opacity: .78;
+  opacity: 1;
+  font-weight: 500;
   margin-top: 1px; line-height: 1.3;
 }
 /* Card "pending" para estilos cuyas bars todavía no están mapeadas */
@@ -54819,7 +54837,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.214',
+    version: 'v27.216',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
