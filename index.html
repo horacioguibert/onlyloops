@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.207</title>
+<title>OnlyLoops · v27.208</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -2881,6 +2881,30 @@ body.has-promoted-track #rewind-btn {
    del SVG al color --card cuando el botón está activo para que el icono se vea
    blanco/claro como en el footer. */
 #zoom-btn-h.on svg{stroke:var(--card)}
+
+/* v27.208 — Horacio: en landscape los 3 botones zoom-btn-h, new-loop-btn-h y
+   hdr-live-btn quedaban demasiado cerca, y el zoom-btn-h se veía cortado (no
+   redondo). Fix doble:
+   1) Redondez forzada: aspect-ratio:1 + min/max width/height + flex-shrink:0.
+   2) Separación adicional: 14px de margen extra antes de cada uno (suma con
+      el gap base de 10px del #hdr-band1, total 24px de aire entre cada par).
+   Hay espacio sobrado en el header horizontal del iPhone para esto. */
+body.landscape-mode #zoom-btn-h,
+body.landscape-mode #new-loop-btn-h {
+  aspect-ratio: 1 / 1 !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  flex: 0 0 auto !important;
+  padding: 0 !important;
+}
+body.landscape-mode #new-loop-btn-h,
+body.landscape-mode #hdr-live-btn {
+  margin-left: 14px !important;
+}
 @keyframes rb{0%{background:var(--err2)}40%{background:var(--err);color:var(--card)}100%{background:var(--err2);color:var(--err)}}
 
 /* ═══ WHEEL PICKER — iOS drum roll ═══ */
@@ -8549,7 +8573,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.207</span>
+      <span class="title" id="dkv-title">Vista kit · v27.208</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -54711,7 +54735,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.207',
+    version: 'v27.208',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
