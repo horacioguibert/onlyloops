@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.200</title>
+<title>OnlyLoops · v27.207</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -2871,7 +2871,16 @@ body.has-promoted-track #rewind-btn {
 .bb-ic:active{background:var(--bg3);transform:scale(.94)}
 .bb-ic.disabled{opacity:.35;cursor:default;pointer-events:none}
 /* v27.29 — Estado activo del botón zoom-compact: usa acento para indicar "modo compact" */
-#zoom-btn.on{background:var(--acc);color:var(--card);border-color:var(--acc)}
+/* v27.206 — Incluir el clon del header (#zoom-btn-h, landscape only). El JS de
+   toggleZoomCompact ya sincroniza .on en ambos botones, faltaba el CSS para
+   que el clon del header reflejara el estado visualmente. */
+#zoom-btn.on,
+#zoom-btn-h.on{background:var(--acc);color:var(--card);border-color:var(--acc)}
+/* v27.207 — El SVG del header tiene stroke:var(--ink2) hardcodeado en .hdr-ic svg,
+   que pisa el currentColor del atributo stroke="currentColor". Forzar el stroke
+   del SVG al color --card cuando el botón está activo para que el icono se vea
+   blanco/claro como en el footer. */
+#zoom-btn-h.on svg{stroke:var(--card)}
 @keyframes rb{0%{background:var(--err2)}40%{background:var(--err);color:var(--card)}100%{background:var(--err2);color:var(--err)}}
 
 /* ═══ WHEEL PICKER — iOS drum roll ═══ */
@@ -8540,7 +8549,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.200</span>
+      <span class="title" id="dkv-title">Vista kit · v27.207</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -47413,6 +47422,81 @@ function openMixerPanel(ti) {
 
 
 // ═══════════════════════════════════════════════
+// LIVE BAR — Helpers de posicionamiento por orientación (v27.201)
+// ═══════════════════════════════════════════════
+// Horacio (2026-05-26): al rotar el teléfono con LIVE activo, el bar quedaba
+// fuera de pantalla y era imposible recuperarlo arrastrando.
+//   · PORTRAIT: abre/queda debajo del 3er track (lógica original).
+//   · LANDSCAPE: abre/queda pegado al borde inferior del viewport, centrado
+//     horizontalmente (CSS ya lo centra con left:0;right:0).
+// Triggers de reposicionamiento: enable() según orientación inicial,
+// + resize/orientationchange si LIVE está activo (sólo entonces).
+function _isLandscape() {
+  return window.innerWidth > window.innerHeight;
+}
+
+function _positionLiveBarForLandscape(bar) {
+  // v27.202 — Horacio: en landscape el bar debe quedar JUSTO DEBAJO del primer
+  // track (no pegado al borde inferior del viewport). Así el primer track
+  // queda visible y el bar se despliega de ahí hacia abajo.
+  // v27.203 — Ajuste fino: subir 20px (offset -12 en vez de +8).
+  // Si no hay tracks aún, fallback al borde inferior con respiro.
+  const rows = document.querySelectorAll('.track-row');
+  if (rows.length > 0) {
+    const targetRow = rows[0];  // primer track
+    const parentRect = bar.parentElement.getBoundingClientRect();
+    const targetRect = targetRow.getBoundingClientRect();
+    const topPx = targetRect.bottom - parentRect.top - 12;  // v27.203 -20px
+    bar.style.top = topPx + 'px';
+  } else {
+    // Fallback sin tracks
+    const parentRect = bar.parentElement.getBoundingClientRect();
+    const barRect = bar.getBoundingClientRect();
+    const barHeight = barRect.height || 190;
+    const viewportH = window.innerHeight;
+    const topPx = viewportH - parentRect.top - barHeight - 12;
+    bar.style.top = Math.max(0, topPx) + 'px';
+  }
+}
+
+function _positionLiveBarForPortrait(bar) {
+  // Debajo del 3er track (o el último si hay menos), comportamiento original.
+  // v27.204 — Horacio: bajar 40px (+8 → +48) para que quede claramente debajo
+  // de los 4 tracks habitualmente visibles en pantalla vertical.
+  const rows = document.querySelectorAll('.track-row');
+  if (rows.length > 0) {
+    const targetIdx = Math.min(2, rows.length - 1);
+    const targetRow = rows[targetIdx];
+    const parentRect = bar.parentElement.getBoundingClientRect();
+    const targetRect = targetRow.getBoundingClientRect();
+    const topPx = targetRect.bottom - parentRect.top + 58;  // v27.205 +10px más
+    bar.style.top = topPx + 'px';
+  } else {
+    bar.style.top = '45%';
+  }
+}
+
+function _onLiveBarOrientationChange() {
+  const bar = document.getElementById('np-bar');
+  // Sólo reposicionar si LIVE está activo. Si está apagado, no tocar nada.
+  if (!bar || !LIVE_DRAG.enabled) return;
+  // Doble RAF: tras orientationchange, el viewport puede tardar un frame en
+  // reflejar dimensiones nuevas. El bar también puede necesitar relayout.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (_isLandscape()) {
+        _positionLiveBarForLandscape(bar);
+      } else {
+        _positionLiveBarForPortrait(bar);
+      }
+    });
+  });
+}
+
+window.addEventListener('resize', _onLiveBarOrientationChange, { passive: true });
+window.addEventListener('orientationchange', _onLiveBarOrientationChange, { passive: true });
+
+// ═══════════════════════════════════════════════
 // LIVE DRAG VERTICAL (v13)
 // Permite arrastrar el np-bar verticalmente sobre el sequencer
 // cuando LIVE está ON
@@ -47465,20 +47549,21 @@ const LIVE_DRAG = {
     /* v15.0-DEMO: aplicar over-tracks desde apertura para que los acordes
        laterales tengan el mismo aspecto (con fondo) que tienen al moverse. */
     bar.classList.add('over-tracks');
-    /* v15.0-DEMO: Posicionar inicialmente debajo del 3er track (no del último).
-       Esto deja los tracks 1-3 visibles arriba y el LIVE bar flotando sobre 4-5-6. */
+    /* v27.201 — Apertura según orientación:
+       · PORTRAIT: lógica original (debajo del 3er track).
+       · LANDSCAPE: pegado al borde inferior del viewport (centrado por CSS).
+       Doble RAF para asegurar que el bar ya tiene altura calculada antes de
+       leer su bounding box. */
     if (!bar.style.top) {
-      const rows = document.querySelectorAll('.track-row');
-      if (rows.length > 0) {
-        const targetIdx = Math.min(2, rows.length - 1);  /* 3er track (índice 2) o el último si hay menos */
-        const targetRow = rows[targetIdx];
-        const parentRect = bar.parentElement.getBoundingClientRect();
-        const targetRect = targetRow.getBoundingClientRect();
-        const topPx = targetRect.bottom - parentRect.top + 8;  /* +8px respiro */
-        bar.style.top = topPx + 'px';
-      } else {
-        bar.style.top = '45%';
-      }
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (_isLandscape()) {
+            _positionLiveBarForLandscape(bar);
+          } else {
+            _positionLiveBarForPortrait(bar);
+          }
+        });
+      });
     }
     LIVE_DRAG.enabled = true;
   },
@@ -54626,7 +54711,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.200',
+    version: 'v27.207',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
