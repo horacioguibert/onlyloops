@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.222</title>
+<title>OnlyLoops · v27.224</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1527,6 +1527,8 @@ body.landscape-mode .sheet .s-body {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch !important;
+  /* v27.223 — Sin bounce iOS: rebote dificultaba ajustar volúmenes del mixer. */
+  overscroll-behavior: contain !important;
   padding-left: 28px !important;  /* dejar espacio para el handle vertical */
 }
 
@@ -3400,7 +3402,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
    ═══════════════════════════════════════════════ */
 #track-sheet .s-body{
   padding: calc(var(--tlbl-u) * 0.2) calc(var(--tlbl-u) * 0.4);
-  overflow:hidden;
+  /* v27.223 — Horacio: en portrait el mixer no scrolleaba (no se veían los
+     FX de abajo). Activado scroll vertical interno. Bounce iOS deshabilitado
+     con overscroll-behavior:contain para que no rebote al final del scroll
+     (dificultaba el ajuste de volúmenes). Aplica a portrait; landscape ya
+     tenía overflow-y:auto desde antes pero también recibe el contain abajo. */
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
   display:flex;
   flex-direction:column;
   gap: calc(var(--tlbl-u) * 0.25);
@@ -8679,7 +8689,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.222</span>
+      <span class="title" id="dkv-title">Vista kit · v27.224</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -39386,7 +39396,7 @@ function buildMixerGrid(){
     // instrumento de los 6 estaba activo solo tenían sentido cuando se
     // podía cambiar el instrumento sliding sobre la cell. Ahora el
     // instrumento se cambia desde el inst-sheet.
-    const vol = (typeof t.vol === 'number' ? t.vol : 0.8);
+    const vol = (typeof t.vol === 'number' ? t.vol : 0.5);  // v27.224 — fallback 50%
     const fillH = (vol * 100).toFixed(1) + '%';
     const volPct = Math.round(vol * 100);
     cell.className = 'tcell' + (isActive ? ' active' : '') + (t.muted ? ' muted-look' : '') + (vol > 0 ? ' vol-on' : '');
@@ -39494,7 +39504,7 @@ function bindMixerCell(cell, ti){
     started = true; didSlide = false; lpFired = false;
     volDragging = false;
     const t = G.tracks[ti];
-    startVol = (t && typeof t.vol === 'number') ? t.vol : 0.8;
+    startVol = (t && typeof t.vol === 'number') ? t.vol : 0.5;  // v27.224 — fallback 50%
     cellH = cell.getBoundingClientRect().height;
     try{ cell.setPointerCapture(pid); }catch(_){}
     // v27.222 — Long-press del mini-mixer DESHABILITADO. Antes activaba
@@ -39746,7 +39756,7 @@ function bindMixerFader(fader, ti){
     pid = e.pointerId;
     startY = e.clientY;
     const t = G.tracks[ti]; if(!t) return;
-    startVol = (typeof t.vol === 'number' ? t.vol : 0.8);
+    startVol = (typeof t.vol === 'number' ? t.vol : 0.5);  // v27.224 — fallback 50%
     faderH = fader.querySelector('.tcell-fader-track').getBoundingClientRect().height;
     fader.classList.add('touching');
     try{ fader.setPointerCapture(pid); }catch(_){}
@@ -42193,7 +42203,7 @@ document.getElementById('hwp-overlay').addEventListener('click', e => {
 const INST_EDIT = {
   ti: -1,
   inst: null,       // electric|nylon|steel|bass|piano|drums
-  vol: 0.8,         // 0..1
+  vol: 0.5,         // v27.224 — default unificado 50% (era 0.8)
   tech: 'ARPEGIO',
   varName: '',      // nombre de variante dentro de TECH_LIST
   octShift: 0,      // -2..+2
@@ -42239,7 +42249,7 @@ function openInstSheet(ti) {
   // Snapshot
   INST_EDIT.ti = ti;
   INST_EDIT.inst = t.inst || 'electric';
-  INST_EDIT.vol = (typeof t.vol === 'number') ? t.vol : 0.8;
+  INST_EDIT.vol = (typeof t.vol === 'number') ? t.vol : 0.5;  // v27.224 — fallback 50%
   // v17.2.0 — Fase 3: snapshot de sound (cascada track → default del inst)
   INST_EDIT.sound = t.sound
     || (typeof getDefaultSound === 'function' ? getDefaultSound(INST_EDIT.inst) : null)
@@ -54993,7 +55003,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.222',
+    version: 'v27.224',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -56100,8 +56110,17 @@ function newLoop(){
   if (typeof undoPush === 'function') undoPush('Nuevo loop');
 
   // 3) Limpiar clips de todos los tracks
+  // v27.224 — Horacio: al crear loop nuevo, además de limpiar clips,
+  // resetear volumen al default 50% (0.5). Si quedaron volúmenes altos
+  // de un loop anterior, no se arrastran al nuevo. Los estilos pueden
+  // sobreescribir esto vía el JSON de export al cargar.
   if (G.tracks && Array.isArray(G.tracks)) {
-    G.tracks.forEach(t => { if (t) t.clips = []; });
+    G.tracks.forEach(t => {
+      if (t) {
+        t.clips = [];
+        t.vol = 0.5;
+      }
+    });
   }
 
   // 4) Clear referencias colgadas a clips inexistentes
