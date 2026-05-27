@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.224</title>
+<title>OnlyLoops · v27.246</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -2359,6 +2359,43 @@ body.has-promoted-track #rewind-btn {
   pointer-events: auto !important;
 }
 
+/* v27.240 — REVERTIDO v27.236 (has-open-mixer CSS forced pointer-events).
+   No resolvía el cierre del mixer al dar play y junto con v27.237/238
+   generaba kilombo de layout. */
+
+/* v27.240 — REVERTIDO v27.237 (z-index 200) y v27.238 (position:fixed). */
+
+/* v27.241 — Botón play/pause dentro del header del mixer.
+   v27.242 — Ya NO usa position:absolute (vive dentro de .ts-head-center
+   como flex item pegado a la derecha del FX). 36x36 circular, mismo
+   tamaño que .shbtn para consistencia visual. */
+.ts-play-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink2, rgba(0,0,0,.55));
+  background: var(--ink);
+  color: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .12s, background .15s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.ts-play-btn:active {
+  transform: scale(.92);
+}
+.ts-play-ic {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 
 
 
@@ -3402,18 +3439,89 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
    ═══════════════════════════════════════════════ */
 #track-sheet .s-body{
   padding: calc(var(--tlbl-u) * 0.2) calc(var(--tlbl-u) * 0.4);
-  /* v27.223 — Horacio: en portrait el mixer no scrolleaba (no se veían los
-     FX de abajo). Activado scroll vertical interno. Bounce iOS deshabilitado
-     con overscroll-behavior:contain para que no rebote al final del scroll
-     (dificultaba el ajuste de volúmenes). Aplica a portrait; landscape ya
-     tenía overflow-y:auto desde antes pero también recibe el contain abajo. */
-  overflow-x:hidden;
-  overflow-y:auto;
-  overscroll-behavior:contain;
-  -webkit-overflow-scrolling:touch;
+  /* v27.225 — REVERTIDO el scroll vertical (v27.223). Causa: el swipe del
+     scroll se confundía con el slide vertical de los 6 botones de volumen.
+     Reemplazado por toggle VOL/FX en el header. Vuelve a overflow:hidden. */
+  overflow:hidden;
   display:flex;
   flex-direction:column;
   gap: calc(var(--tlbl-u) * 0.25);
+}
+
+/* v27.225 — Toggle VOL/FX en el header del mixer.
+   Reemplaza al scroll vertical del .s-body (que era confuso con el slide
+   de los 6 botones de volumen). Click VOL → muestra grilla volúmenes,
+   click FX → muestra grilla efectos. Estado en #track-sheet[data-view].
+   v27.226 — Toggle CENTRADO con margin auto, y oculto el .s-sec ENTERO
+   (no solo sus hijos) para que el modo VOL no muestre el espacio vacío
+   del .s-sec de FX abajo.
+   v27.227 — margin:0 auto no funcionaba en el flex del .s-head (algún
+   sibling estaba absorbiendo el espacio). Reemplazado por position:absolute
+   + left:50% + translateX(-50%) sobre el .s-head con position:relative.
+   Esto centra el toggle dentro del header sin depender del flex layout.
+   v27.242 — Toggle + play AGRUPADOS en wrapper .ts-head-center. El wrapper
+   se centra (position:absolute), y adentro flex con gap fijo entre toggle
+   y play. Evita que el play se sobreponga a la X en pantallas chicas. */
+#track-sheet .s-head { position: relative; }
+.ts-head-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ts-volfx-toggle {
+  display: inline-flex;
+  border-radius: 14px;
+  background: var(--bg2);
+  border: 1.5px solid var(--ink2, rgba(0,0,0,.55));
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+  align-items: center;
+}
+.ts-volfx-btn {
+  background: transparent;
+  border: none;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--ink);
+  padding: 4px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity .15s, background .15s, color .15s;
+  font-family: var(--mono, var(--sans));
+}
+.ts-volfx-btn:hover { opacity: 0.85; }
+.ts-volfx-btn.active {
+  background: var(--ink);
+  color: var(--card);
+  opacity: 1;
+}
+/* v27.226 — Ocultar el .s-sec ENTERO según modo. Antes ocultaba solo los
+   hijos (.fx-grid + .efx-ctx-label), el padre seguía ocupando espacio del
+   gap del .s-body y "asomaba" los FX abajo. Ahora el contenedor entero se
+   colapsa con display:none.
+   v27.228 — REVERTIDO display:none. Horacio: quiere que en VOL los FX
+   sigan asomados abajo (cortados por overflow:hidden), y al revés en FX.
+   Reemplazado por `order` del flex: la sección activa va primero (order:0),
+   la otra debajo (order:1). overflow:hidden del .s-body corta lo que no
+   entra; el usuario puede subir el sheet manualmente para ver los 12. */
+#track-sheet .s-body { display: flex; flex-direction: column; }
+#track-sheet[data-view="vol"] .ts-sec-vol { order: 0; }
+#track-sheet[data-view="vol"] .ts-sec-fx  { order: 1; }
+#track-sheet[data-view="fx"]  .ts-sec-fx  { order: 0; }
+#track-sheet[data-view="fx"]  .ts-sec-vol { order: 1; }
+/* v27.225 — En landscape también anular el scroll vertical solo para el
+   track-sheet. La regla global body.landscape-mode .sheet .s-body activa
+   overflow-y:auto en todos los sheets; el mixer es la excepción. */
+body.landscape-mode #track-sheet .s-body {
+  overflow-y: hidden !important;
 }
 #track-sheet .s-sec{margin:0}
 #track-sheet .s-lbl{
@@ -7359,15 +7467,28 @@ body.mixer-dragging *{touch-action:none !important}
 }
 .efx-ctx-label{
   font-family:var(--mono);font-size:9px;
-  letter-spacing:1.4px;color:var(--ink3);
+  letter-spacing:1.4px;
+  /* v27.246 — Color cambiado de var(--ink3) (gris claro) a var(--ink)
+     (tinta principal, negro/gris oscuro según paleta) para más legibilidad. */
+  color:var(--ink);
   text-transform:uppercase;
-  display:flex;justify-content:space-between;align-items:baseline;
+  /* v27.245 — Horacio: T·BAJOS pegado a EFECTOS a la izquierda
+     (antes space-between los separaba a los extremos). */
+  display:flex;justify-content:flex-start;align-items:baseline;gap:10px;
   margin:6px 4px 6px;
   flex-shrink:0;
 }
 .efx-ctx-label .ctx-active{
-  color:var(--acc);text-transform:none;letter-spacing:.5px;
-  font-weight:500;
+  /* v27.245 — Más prominencia: tipografía Cormorant serif, tamaño mayor,
+     peso bold, sin uppercase. El acento de color en var(--acc) destaca
+     el track activo dentro del label tenue de "EFECTOS". */
+  color:var(--acc);
+  font-family:var(--serif, 'Cormorant Garamond', serif);
+  font-size:16px;
+  font-weight:700;
+  text-transform:none;
+  letter-spacing:.3px;
+  font-style:italic;
 }
 
 /* v15.0-DEMO — Menú config con handle horizontal y drag libre */
@@ -8689,7 +8810,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.224</span>
+      <span class="title" id="dkv-title">Vista kit · v27.246</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -9063,15 +9184,30 @@ body.mixer-dragging *{touch-action:none !important}
   <div class="s-handle"></div>
   <div class="s-head">
     <div class="s-title" id="ts-title">Mixer</div>
+    <!-- v27.225 — Toggle VOL/FX. Reemplaza el scroll vertical que era
+         confuso con el slide de volumen. VOL por default.
+         v27.242 — Wrapper .ts-head-center agrupa toggle + play juntos, así
+         el play queda pegado al FX con gap fijo (8px) sin sobreponer la X
+         en pantallas chicas. El wrapper se centra como bloque en el header. -->
+    <div class="ts-head-center">
+      <div class="ts-volfx-toggle" role="tablist" aria-label="Vista">
+        <button class="ts-volfx-btn active" data-mode="vol" onclick="setMixerView('vol')" role="tab" aria-selected="true">VOL</button>
+        <button class="ts-volfx-btn" data-mode="fx" onclick="setMixerView('fx')" role="tab" aria-selected="false">FX</button>
+      </div>
+      <!-- v27.241 — Botón play/pause dentro del mixer. v27.242: pegado al FX. -->
+      <button class="ts-play-btn" id="ts-play-btn" onclick="togglePlay()" aria-label="Play/Pause">
+        <div class="ts-play-ic play-icon" id="ts-play-ic"></div>
+      </button>
+    </div>
     <!-- v27.156 — Botón eliminar removido. Razón Horacio: "no hay nada para eliminar aquí, elimina en vertical y horizontal".
          Queda solo la X de cerrar. -->
     <button class="shbtn" onclick="closeSheet('track-sheet')">✕</button>
   </div>
   <div class="s-body">
-    <div class="s-sec">
+    <div class="s-sec ts-sec-vol">
       <div class="mixer-grid" id="ts-mixer"></div>
     </div>
-    <div class="s-sec">
+    <div class="s-sec ts-sec-fx">
       <div class="efx-ctx-label">
         <span>Efectos</span>
         <span class="ctx-active" id="ts-efx-ctx">T1</span>
@@ -10774,7 +10910,28 @@ function updateTrackBus(ti){
   //   0.30 = -10 dB
   //   0.18 = -15 dB
   const calib = _instGainCalib(t.inst);
-  const vol = sliderVol * calib;
+  // v27.229 — Horacio: curva piecewise SOLO para cuerdas, para recuperar
+  // todo el rango de ganancia entre 50% y 100%. Reglas:
+  //   · 0-50% slider → tramo 1, lineal con calib reducido 0.480.
+  //     Output: 0 → 0.240. Default 50% queda en 0.240 (cuerdas al fondo).
+  //   · 50-100% slider → tramo 2, pendiente 4× más empinada hasta 1.200
+  //     (el calib histórico v27.220). Output: 0.240 → 1.200.
+  //   · Resto de instrumentos: comportamiento lineal normal.
+  let vol;
+  if (typeof _isStringsFamily === 'function' && _isStringsFamily(t.inst)) {
+    const s = sliderVol;
+    if (s <= 0.5) {
+      vol = s * 0.480 * 2;  // tramo 1: s × 0.480 (en s=0.5 → 0.240)
+                              // (multiplicado ×2 para usar s 0-1 limpio,
+                              //  luego dividir; explícito abajo)
+      vol = s * 0.480;
+    } else {
+      // tramo 2: 0.240 + (s-0.5) × 1.92  → s=1.0 → 1.200
+      vol = 0.240 + (s - 0.5) * 1.92;
+    }
+  } else {
+    vol = sliderVol * calib;
+  }
   const ctx=getCtx(); if(!ctx) return;
   bus.gain.gain.setTargetAtTime(vol, ctx.currentTime, 0.01);
   // v21.1.14 BUG FIX MIXER M3 — Asegurar el routing del bass family al bus
@@ -37265,6 +37422,11 @@ function togglePlay(){
     // código porque mejoran compatibilidad y no rompen nada.
     ic.className='pause-icon';ic.innerHTML='<div class="pause-bar"></div><div class="pause-bar"></div>';
     btn.classList.add('playing');
+    // v27.241 — Sincronizar el botón play del mixer (mismo cambio de icono)
+    const tsIc = document.getElementById('ts-play-ic');
+    const tsBtn = document.getElementById('ts-play-btn');
+    if (tsIc) { tsIc.className = 'ts-play-ic pause-icon'; tsIc.innerHTML = '<div class="pause-bar"></div><div class="pause-bar"></div>'; }
+    if (tsBtn) { tsBtn.classList.add('playing'); }
     updatePHHeight();
     document.getElementById('ph').style.display='block';
     // v27.2 — Loop region: si está activo y playPos está fuera del rango, saltar a start
@@ -37280,6 +37442,11 @@ function togglePlay(){
   }else{
     ic.className='play-icon';ic.innerHTML='';
     btn.classList.remove('playing');
+    // v27.241 — Sincronizar el botón play del mixer
+    const tsIc = document.getElementById('ts-play-ic');
+    const tsBtn = document.getElementById('ts-play-btn');
+    if (tsIc) { tsIc.className = 'ts-play-ic play-icon'; tsIc.innerHTML = ''; }
+    if (tsBtn) { tsBtn.classList.remove('playing'); }
     stopPB();G.activeClip=null;
     G.tracks.forEach((_,i)=>renderTrack(i));
     document.getElementById('ph').style.display='none';
@@ -39274,10 +39441,29 @@ function openTrackSheet(ti){
   G.editTi = ti;
   G.mixerActiveTi = (typeof ti === 'number' && ti >= 0) ? ti : 0;
   document.getElementById('ts-title').textContent = 'Mixer';
+  // v27.225 — Reset al modo VOL cada vez que se abre el mixer.
+  setMixerView('vol');
   buildMixerGrid();
   renderMixerEffects();
   openSheet('track-sheet');
 }
+
+// v27.225 — Toggle VOL/FX del mixer. Reemplaza al scroll vertical del .s-body.
+// VOL muestra los 6 botones de volumen; FX muestra los 6 botones de efectos.
+// Sin scroll, todo fijo, sin confusión con el slide de volumen del cell.
+function setMixerView(mode){
+  const sheet = document.getElementById('track-sheet');
+  if (!sheet) return;
+  if (mode !== 'vol' && mode !== 'fx') mode = 'vol';
+  sheet.dataset.view = mode;
+  const btns = sheet.querySelectorAll('.ts-volfx-btn');
+  btns.forEach(b => {
+    const isActive = (b.dataset.mode === mode);
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+}
+window.setMixerView = setMixerView;
 
 // ══ v15.0-DEMO — MIXER GLOBAL ══
 const MIXER_CATALOG = [
@@ -39440,7 +39626,13 @@ function renderMixerEffects(){
     const cell = document.createElement('div');
     cell.className = 'fx-cell' + (t[eff.k] ? ' on' : '');
     const mix = t[eff.k+'Mix'];
-    const mixPct = Math.round(mix * 100);
+    // v27.244 — Horacio: al iniciar un loop nuevo, el texto del % mostraba
+    // 50% (default de mix) aunque el FX estuviera OFF. El fill ya respetaba
+    // el flag (mostraba 0%) pero el texto no. Ahora coherente: si OFF → 0%,
+    // si ON → mix real. Cuando el usuario toca, t[eff.k] pasa a true y mix
+    // sigue siendo 0.5 → texto 50% (estado inicial activo), y desde ahí
+    // ajusta con drag vertical.
+    const mixPct = t[eff.k] ? Math.round(mix * 100) : 0;
     cell.innerHTML = `
       <div class="fx-fill" style="height:${t[eff.k]?(mix*100).toFixed(1)+'%':'0%'}"></div>
       <div class="fx-thumb" style="bottom:${t[eff.k]?(mix*100).toFixed(1)+'%':'0%'}"></div>
@@ -39468,6 +39660,7 @@ const _mxTapState = { lastTi: -1, lastTime: 0, pendingFirstTap: null };
    Track Sheet (.tcell.active), sin esperar rebuild del grid. Refresca también
    el estado visual de mute en cada cell según G.tracks[ti].muted. */
 function _mxActivateTrack(ti){
+  const _prevTi = G.mixerActiveTi;
   G.mixerActiveTi = ti;
   G.editTi = ti;
   G.activeTi = ti;
@@ -39483,6 +39676,16 @@ function _mxActivateTrack(ti){
     const t = G.tracks[cti];
     c.classList.toggle('muted-look', !!(t && t.muted));
   });
+  // v27.243 — Refresco INMEDIATO del panel FX al cambiar de track. Antes el
+  // re-render ocurría dentro de un setTimeout de 450ms (esperando posible
+  // doble-tap), durante el cual los sliders azules del FX seguían mostrando
+  // el seteo del track anterior. Bug reportado por Horacio: "los % muestran
+  // el seteo correcto pero los sliders quedan frizados con el seteo de
+  // último instrumento". Ahora renderMixerEffects() corre apenas cambia
+  // mixerActiveTi → sliders sincronizados al instante con el track real.
+  if (_prevTi !== ti && typeof renderMixerEffects === 'function') {
+    try { renderMixerEffects(); } catch(_){}
+  }
   if(typeof updateNowPlaying === 'function') updateNowPlaying();
 }
 
@@ -39801,7 +40004,8 @@ function bindMixerFx(cell, eff){
     const pct = (val * 100).toFixed(1) + '%';
     cell.querySelector('.fx-fill').style.height = on ? pct : '0%';
     cell.querySelector('.fx-thumb').style.bottom = on ? pct : '0%';
-    cell.querySelector('.fx-mix-val').textContent = Math.round(val*100) + '%';
+    // v27.244 — Coherente con el fill: si OFF → 0%, si ON → valor real.
+    cell.querySelector('.fx-mix-val').textContent = (on ? Math.round(val*100) : 0) + '%';
     cell.classList.toggle('on', on);
   };
   cell.addEventListener('pointerdown', e => {
@@ -51293,6 +51497,18 @@ function bpmNudge(dir){
       // perder el editor abierto. Mismo principio que .ttl/track-row:
       // mantener el editor "sticky" durante el flujo de composición.
       if(e.target.closest && e.target.closest('#play-btn, #rewind-btn, #loop-btn, #hdr-play-btn, #undo-btn')) return;
+      // v27.230 — Horacio: desde el mixer, dar play cerraba el sheet. La
+      // excepción v27.26 cubría el #hdr-play-btn original pero NO cubría
+      // otros botones del header agregados después (loop-btn-h, hdr-live-btn,
+      // zoom-btn-h, new-loop-btn-h del landscape, etc). Ampliada a TODO el
+      // header (#hdr-row) y footer (#bot). Cualquier click en zonas globales
+      // de transport/UI ya NO cierra el sheet. El sheet sigue cerrándose por
+      // ✕, swipe-down, tap en sequencer/tracks/ruler, y backdrop.
+      // v27.231 — FIX DEFINITIVO: #play-btn (botón Play principal) está dentro
+      // de #transport, NO dentro de #hdr-row. v27.230 no resolvía porque
+      // closest('#hdr-row') nunca matcheaba el target real. Agregado #transport
+      // a la excepción.
+      if(e.target.closest && e.target.closest('#hdr-row, #bot, #transport')) return;
       // Para el config: no cerrar si el tap fue sobre el propio botón ⚙
       // (que ya hace toggle por su cuenta — sino doble-cierre)
       if(twin.id === 'hdr-config-menu' && e.target.closest && e.target.closest('.hdr-config')) return;
@@ -55003,7 +55219,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.224',
+    version: 'v27.246',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
