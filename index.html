@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.216</title>
+<title>OnlyLoops · v27.222</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -2891,6 +2891,62 @@ body.has-promoted-track #rewind-btn {
    que el clon del header reflejara el estado visualmente. */
 #zoom-btn.on,
 #zoom-btn-h.on{background:var(--acc);color:var(--card);border-color:var(--acc)}
+/* v27.220 — Inst-sheet landscape: ocultar el .is-stage (3 slots de fotos
+   grandes) para ganar altura. En su lugar aparece el wheel INSTRUMENTO
+   con los nombres de las variantes (mismo tamaño que los demás wheels).
+   Items deshabilitados (sin sampler) → grisados + tachados (line-through).
+   Portrait queda intacto. */
+body.landscape-mode #inst-sheet .is-stage {
+  display: none !important;
+}
+.is-mw-landscape-only {
+  display: none;
+}
+body.landscape-mode #inst-sheet .is-mw-landscape-only {
+  display: block;
+}
+/* Item del wheel INSTRUMENTO deshabilitado: grisado + tachado. */
+.is-mw-item.is-mw-item-disabled {
+  opacity: .45;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  pointer-events: none;
+}
+
+/* v27.218 — Chord-editor landscape: header sacrificado para ganar altura.
+   Horacio: en landscape iPhone la altura es muy chica, el header ocupaba
+   demasiado espacio y no permitía editar bien con los wheels. Solución:
+   en landscape ocultar TODO el contenido del header (acorde grande,
+   fórmula, grilla técnica, meta) y mantener SOLO los botones ✓ (aplicar
+   + cerrar) y 🗑 (eliminar) en la esquina superior derecha. Los wheels
+   ocupan naturalmente el espacio liberado. Portrait NO se toca. */
+body.landscape-mode #chord-sheet .cs-header-3col {
+  display: flex !important;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 6px 12px 4px;
+  margin-bottom: 4px;
+  min-height: 0;
+}
+body.landscape-mode #chord-sheet .cs-header-3col .cs-col-left,
+body.landscape-mode #chord-sheet .cs-header-3col .cs-col-center,
+body.landscape-mode #chord-sheet .cs-header-3col #cs-meta-track,
+body.landscape-mode #chord-sheet .cs-header-3col .cs-play {
+  display: none !important;
+}
+body.landscape-mode #chord-sheet .cs-header-3col .cs-col-right {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  text-align: right;
+  min-width: 0;
+}
+body.landscape-mode #chord-sheet .cs-icons-row {
+  flex-direction: row;
+  gap: 12px;
+  margin-right: 0;
+}
+
 /* v27.207 — El SVG del header tiene stroke:var(--ink2) hardcodeado en .hdr-ic svg,
    que pisa el currentColor del atributo stroke="currentColor". Forzar el stroke
    del SVG al color --card cuando el botón está activo para que el icono se vea
@@ -7027,7 +7083,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   cursor:pointer;
   transition:transform .22s cubic-bezier(.34,1.56,.64,1),
              box-shadow .15s ease, border-color .15s ease, background .15s ease;
-  touch-action:none;
+  /* v27.222 — Horacio: el swipe vertical en el mini-mixer no scrolleaba
+     (no se veían los FX de abajo). Causa: touch-action:none bloqueaba el
+     scroll iOS nativo. Fix: pan-y permite scroll vertical cuando el padre
+     puede scrollear. Cuando NO hay overflow, el drag vertical de volumen
+     del cell sigue funcionando porque el browser no consume el gesto. */
+  touch-action:pan-y;
   user-select:none;
   -webkit-user-select:none;
   -webkit-user-drag:none;
@@ -7761,19 +7822,28 @@ body.mixer-dragging *{touch-action:none !important}
      pedido). Posición fija en la esquina superior derecha del header.
      Position relative para que el ::before halo se posicione correctamente.
      v27.154 — Border 1.5px var(--ink2) + box-shadow para visibilidad en
-     presets oscuros (MOISES, NOCHE). Antes 0.5px var(--rule) era invisible. */
-  width: 40px; height: 40px;
+     presets oscuros (MOISES, NOCHE). Antes 0.5px var(--rule) era invisible.
+     v27.219 — Horacio: reducción 20% (40→32px, font 19→15px). Aplica en
+     ambas orientaciones. En landscape ayuda a subir los wheels; en portrait
+     queda más prolijo. */
+  width: 32px; height: 32px;
   border-radius: 50%;
   border: 1.5px solid var(--ink2, rgba(0,0,0,.55));
   background: var(--card, #fff);
   color: var(--ink, #1a1a1a);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  font-size: 19px;
+  font-size: 15px;
   padding: 0;
   position: relative;
   box-shadow: 0 1px 3px rgba(0,0,0,.10);
   transition: transform .1s, background .15s;
+}
+/* v27.219 — SVG del botón 🗑 escalado proporcionalmente al botón nuevo
+   (mantiene la relación icono/botón original 17/40 ≈ 14/32). El SVG
+   está hardcoded a 17×17 en el HTML, overrideado acá por CSS. */
+.cs-icons-row .shbtn svg {
+  width: 14px; height: 14px;
 }
 /* v27.40 — Halo de tap ASIMÉTRICO para los botones del chord-editor.
    Top:-3 (poco hacia arriba, evita overlap con .s-handle::before que se
@@ -8609,7 +8679,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.216</span>
+      <span class="title" id="dkv-title">Vista kit · v27.222</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -9099,6 +9169,24 @@ body.mixer-dragging *{touch-action:none !important}
          Cada uno = label uppercase chico arriba + .is-mw original (grid
          de flechas + frame + valores en fondo blanco). Todos abiertos. -->
     <div class="is-bottom-wheels" id="is-wheels">
+
+      <!-- v27.220 — Wheel INSTRUMENTO (variantes de la familia: guitarras 1-2-3,
+           bajos, pianos, etc.). Solo visible en LANDSCAPE iPhone (oculto en
+           portrait porque ahí ya están los 3 slots con fotos). Reemplaza al
+           .is-stage de fotos para ganar altura vertical en landscape. -->
+      <div class="is-mw-block is-mw-landscape-only" data-mw-kind="instrument">
+        <div class="is-mw-toplbl">INSTRUMENTO</div>
+        <div class="is-mw" data-mw="instrument">
+          <button class="is-mw-arr" data-dir="-1" aria-label="Anterior">‹</button>
+          <div class="is-mw-frame">
+            <div class="is-mw-track">
+              <div class="is-mw-sel"></div>
+              <div class="is-mw-strip" id="is-mw-instrument"></div>
+            </div>
+          </div>
+          <button class="is-mw-arr" data-dir="+1" aria-label="Siguiente">›</button>
+        </div>
+      </div>
 
       <!-- v20.2.2 — Wheel ESTILO arriba de SONIDO. Refleja STYLES_LIST con
            'Todos' al inicio. Al cambiar, regenera TÉCNICA + SUBTÉCNICA. -->
@@ -10745,10 +10833,15 @@ const INSTRUMENT_GAIN_CALIB = {
   // ─── BAJO ACÚSTICO (único bajo aprobado) ─────────────────
   'bass_acoustic':    8.000,  // MAX cap (límite del sistema): compensa Fletcher-Munson
   // ─── CUERDAS ─────────────────────────────────────────────
-  'str_ensamble':     1.200,  // -20% respecto piano/drums (era 1.500)
-  'strings_ensemble': 1.200,
-  'strings_violin':   1.040,  // -20% proporcional (era 1.300)
-  'str_violin':       1.040,
+  // v27.221 — Horacio: cuerdas sonaban demasiado fuerte por default (slider
+  // 50%). Reducción al 40% del calib previo: lo que antes sonaba al slider
+  // 20% ahora suena al 50% (default). Si necesita más volumen, sube manual.
+  //   strings_ensemble: 1.200 → 0.480
+  //   strings_violin:   1.040 → 0.416
+  'str_ensamble':     0.480,
+  'strings_ensemble': 0.480,
+  'strings_violin':   0.416,
+  'str_violin':       0.416,
   // ─── BATERÍA ─────────────────────────────────────────────
   'drums':            1.500,  // -1.3 dB
 };
@@ -35245,7 +35338,14 @@ window._restoreTrackOrder = _restoreTrackOrder;
 // Se aplica sobre .tlbl-zone-open (la zona ancha del label izquierdo).
 // Coexiste con su onclick existente (openInstSheet): tap corto sigue
 // abriendo el inst-sheet; long-press 450ms inicia el drag-reorder.
+//
+// v27.221 — DESHABILITADO por pedido de Horacio: se activaba por accidente
+// al subir/bajar el slider del mixer y confundía. Función poco usada. La
+// implementación queda en el código pero sin bind (return temprano).
+// Para reactivar: eliminar el return de abajo.
 function bindTrackDragReorder(zoneEl, rowEl, getTi) {
+  return;  // v27.221 — feature deshabilitado
+  /* eslint-disable */
   let pid = -1;
   let startX = 0, startY = 0, lpTimer = null;
   let active = false;
@@ -39397,11 +39497,10 @@ function bindMixerCell(cell, ti){
     startVol = (t && typeof t.vol === 'number') ? t.vol : 0.8;
     cellH = cell.getBoundingClientRect().height;
     try{ cell.setPointerCapture(pid); }catch(_){}
-    lpTimer = setTimeout(() => {
-      if(!started || volDragging) return;
-      lpFired = true;
-      enterMixerDrag(ti, cell, startX, startY);
-    }, MX_LP_DELAY);
+    // v27.222 — Long-press del mini-mixer DESHABILITADO. Antes activaba
+    // `enterMixerDrag` (reorder de celdas) tras MX_LP_DELAY ms; Horacio:
+    // "se activaba por accidente al subir/bajar el slider del mixer".
+    // lpTimer queda en null → lpFired nunca pasa a true → no reorder.
     // v24.7 — En pausa, cada click dispara 1 preview del instrumento del track
     // tocado, con el volumen actual del bus. En play, cero preview disparado por
     // click (el sequencer ya está sonando). Bindeo aquí (no en bindMixerFader que
@@ -39581,6 +39680,8 @@ function mixerSlideWheel(ti, dir){
 // resto → playChord. Snapshot+restore del state global. Usa _instGetReferenceClip
 // para obtener el clip de referencia (clip 0 o C major default).
 function _mixerPreviewTrack(ti){
+  // v27.217 — Sin previews de wheel/track durante playback (mixer).
+  if (G && G.playing) return;
   try {
     const t = G.tracks[ti]; if (!t) return;
     const refClip = (typeof _instGetReferenceClip === 'function')
@@ -42805,6 +42906,10 @@ let _instPreviewTimer = null;
 // manteniendo el resto de valores quietos. NO toca INST_EDIT ni el track
 // (todo lo muta temporalmente con snapshot+restore).
 function _instPreviewWheelItem(kind, idx){
+  // v27.217 — Sin previews de wheel durante playback. Mismo guard que
+  // _cewPreviewWheelItem: cambio se aplica al clip, suena natural en la
+  // próxima vuelta del loop.
+  if (G && G.playing) return;
   try {
     if (typeof INST_EDIT === 'undefined' || INST_EDIT.ti == null) return;
     const ti = INST_EDIT.ti;
@@ -42963,6 +43068,8 @@ function _instPreviewWheelItem(kind, idx){
 }
 
 function _instPreviewCurrent(){
+  // v27.217 — Sin previews de wheel durante playback (inst-sheet).
+  if (G && G.playing) return;
   try {
     if (typeof INST_EDIT === 'undefined' || INST_EDIT.ti == null) return;
     if (_instPreviewTimer) { clearTimeout(_instPreviewTimer); }
@@ -43532,6 +43639,24 @@ function _instMwItemsFor(kind){
     return sounds.map(s => ({ v: s.key, label: s.label }));
   }
 
+  // v27.220 — INSTRUMENTO (solo landscape): variantes de la FAMILIA actual.
+  // Cuando hay 3 guitarras, 2 bajos, etc., aparecen todas. Items sin sampler
+  // cargado (INST_LIVE_KEYS no las contiene) se marcan disabled (grisado +
+  // tachado) — el render se hace en instMwBuild abajo.
+  if(kind === 'instrument'){
+    const fk = (typeof _instFamilyForKey === 'function')
+      ? _instFamilyForKey(INST_EDIT.inst) : null;
+    const fam = fk ? fk.fam : null;
+    if (!fam || !fam.variants || fam.variants.length === 0) {
+      return [{ v: INST_EDIT.inst, label: '—' }];
+    }
+    return fam.variants.map(v => ({
+      v: v.key,
+      label: v.label || v.key,
+      _live: (typeof INST_LIVE_KEYS !== 'undefined' && INST_LIVE_KEYS.has(v.key))
+    }));
+  }
+
   // v27.174 — TÉCNICA: el wheel siempre usa _catalogTechListFor que ya aplica
   // el modelo unificado (instrumentos no-batería ignoran estilo; batería usa
   // estilo). Branch legacy 'varios' eliminada (auto-migración al cargar).
@@ -43603,6 +43728,11 @@ function _instMwCurrentIdx(kind, items){
     const i = items.findIndex(it => it.v === INST_EDIT.sound);
     return Math.max(0, i);
   }
+  // v27.220 — INSTRUMENTO: idx de la variante actualmente seleccionada (INST_EDIT.inst).
+  if(kind === 'instrument'){
+    const i = items.findIndex(it => it.v === INST_EDIT.inst);
+    return Math.max(0, i);
+  }
   // v20.2.2 — wheel ESTILO en inst-sheet
   if(kind === 'estilo'){
     const cur = INST_EDIT.estilo || (typeof _instCurrentStyle === 'function' ? _instCurrentStyle() : 'todos');
@@ -43622,7 +43752,10 @@ function instMwBuild(kind){
   strip.innerHTML = '';
   items.forEach((it, i) => {
     const el = document.createElement('div');
-    el.className = 'is-mw-item' + (i === idx ? ' active' : '');
+    // v27.220 — Items del wheel INSTRUMENTO con _live=false (sin sampler
+    // cargado) → clase is-mw-item-disabled (grisado + tachado en CSS).
+    const isDisabled = (kind === 'instrument' && it._live === false);
+    el.className = 'is-mw-item' + (i === idx ? ' active' : '') + (isDisabled ? ' is-mw-item-disabled' : '');
     el.dataset.idx = i;
     el.textContent = it.label;
     strip.appendChild(el);
@@ -43649,8 +43782,8 @@ function instMwBuildAll(){
     if (_estiloBlk) _estiloBlk.style.display = _isDrum ? '' : 'none';
   } catch(_){}
   const _kinds = _isDrum
-    ? ['estilo','sound','tech','subtech','oct']
-    : ['sound','tech','subtech','oct'];
+    ? ['instrument','estilo','sound','tech','subtech','oct']
+    : ['instrument','sound','tech','subtech','oct'];
   _kinds.forEach(kind => {
     instMwBuild(kind);
     _instMwBindHandlers(kind);
@@ -43682,6 +43815,24 @@ function _instMwApplyKind(kind){
   const item = st.items[st.idx];
   if(!item) return;
   const t = G.tracks[INST_EDIT.ti]; if(!t) return;
+
+  // v27.220 — INSTRUMENTO: cambiar variante de la familia. Si el item es
+  // disabled (_live=false), abortar — no aplicar variantes sin sampler.
+  if(kind === 'instrument'){
+    if (item._live === false) {
+      // Item grisado: rebuildear para volver el wheel al activo real
+      try { instMwBuild('instrument'); } catch(_){}
+      if (typeof toast === 'function') toast('Instrumento aún no disponible');
+      return;
+    }
+    if (typeof _instApplyKeyChange === 'function') {
+      _instApplyKeyChange(item.v);
+      // Refrescar slots de fotos (en portrait sigue siendo el wheel principal)
+      try { if (typeof instOpenVariantWheel === 'function') instOpenVariantWheel(); } catch(_){}
+      try { renderTrack(INST_EDIT.ti); } catch(_){}
+    }
+    return;
+  }
 
   // v20.2.2 — wheel ESTILO en inst-sheet: cambia INST_EDIT.estilo y
   // regenera TÉCNICA + SUBTÉCNICA porque dependen del estilo.
@@ -46418,6 +46569,11 @@ function hwsMark(stripEl, pad, idx){
 // para resolver subtécnica y compás. Restauramos en finally.
 function _cewPreviewWheelItem(n, idx) {
   if (!G.editRef) return;
+  // v27.217 — Horacio: durante el playback, los wheels NO deben disparar
+  // preview de audio al rozar/mover. El cambio se aplica al clip y se
+  // escucha cuando el playhead llega naturalmente al clip en la próxima
+  // vuelta del loop. Guard al inicio = silencio total del wheel en play.
+  if (G && G.playing) return;
   var clip = G.editRef.clip;
   var t = G.tracks[G.editRef.ti];
   if (!t) return;
@@ -54837,7 +54993,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.216',
+    version: 'v27.222',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
