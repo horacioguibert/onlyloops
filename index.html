@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.246</title>
+<title>OnlyLoops · v27.247</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -8810,7 +8810,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.246</span>
+      <span class="title" id="dkv-title">Vista kit · v27.247</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -45412,7 +45412,22 @@ function applyProgression(styleId, modeKey, idx) {
       });
       return tk;
     };
-    G.tracks = presetTracks.map(buildTrackFromPreset);
+    // v27.247 — Horacio: orden default obligatorio en TODOS los presets:
+    // 1° Piano, 2° Bajo, 3° Cuerdas, 4° Batería. Los presets viejos definen
+    // tracks en orden Drums/Bass/Piano/Strings (legado del pipeline anterior).
+    // Reordenamos en runtime sin tocar las definiciones estáticas (30+ presets).
+    // Sort es estable: si hay múltiples Piano1/Piano2 mantienen su orden interno.
+    const _trackOrder = (tDef) => {
+      const n = (tDef.n || tDef.inst || '').toLowerCase();
+      const inst = (tDef.inst || '').toLowerCase();
+      if (inst === 'salamander' || n.includes('piano'))                            return 1;
+      if (inst === 'bass_acoustic' || inst.startsWith('bass') || n.includes('bajo') || n.includes('bass')) return 2;
+      if (inst === 'strings_ensemble' || inst.startsWith('strings') || n.includes('strings') || n.includes('cuerdas')) return 3;
+      if (inst === 'drums' || !!tDef.drum || n.includes('drum') || n.includes('bater'))   return 4;
+      return 5;
+    };
+    const sortedPresetTracks = [...presetTracks].sort((a, b) => _trackOrder(a) - _trackOrder(b));
+    G.tracks = sortedPresetTracks.map(buildTrackFromPreset);
   } else {
     // Sin definición de tracks: solo aplicar acordes a tracks existentes
     G.tracks.forEach(tk => {
@@ -55219,7 +55234,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.246',
+    version: 'v27.247',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
