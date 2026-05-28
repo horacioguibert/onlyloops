@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.267</title>
+<title>OnlyLoops · v27.268</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1406,10 +1406,13 @@ body.landscape-mode #hdr-band1 {
      gap fijo idéntico entre todos los botones (14px, holgado para el scale). */
   justify-content: flex-start;
   padding-left: 4px !important;
-  padding-right: 68px !important;
+  padding-right: calc(24px + env(safe-area-inset-right, 0px)) !important;
   /* v27.149 — padding-right posiciona el bloque derecho (rueda ok).
-     v27.266 — 45→53 (+8px) para alejar la rueda del borde.
-     v27.267 — 53→68 (+15px más): seguía tocando el borde curvo del iPhone. */
+     v27.266/267 — valores fijos (53/68px) no se reflejaban en la app nativa.
+     v27.268 — AJUSTE AUTOMÁTICO: 24px base + env(safe-area-inset-right). El
+     iPhone reporta su propio margen de borde curvo (notch/Dynamic Island) en
+     landscape vía safe-area; viewport-fit=cover ya está en el meta. Así la
+     rueda se aleja del borde solo, adaptándose a cada modelo. */
   gap: 14px;
 }
 /* v27.262 — Play ya NO pegado al rewind con margin negativo: ahora rewind,
@@ -9005,7 +9008,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.267</span>
+      <span class="title" id="dkv-title">Vista kit · v27.268</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55450,7 +55453,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.267',
+    version: 'v27.268',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
