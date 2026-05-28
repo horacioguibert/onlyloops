@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.261</title>
+<title>OnlyLoops · v27.262</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1391,17 +1391,20 @@ body.landscape-mode #hdr-band2 {
 body.landscape-mode #hdr-band1 {
   flex: 1 1 auto;
   order: 2;
-  justify-content: flex-end;
+  /* v27.262 — flex-start + margin:auto en loop (der) y zoom (izq) crean
+     los dos espacios flexibles que dejan LIVE flotando centrado entre el
+     grupo izquierdo (rewind+play+loop) y el derecho (zoom+new+loopsong+rueda).
+     gap fijo idéntico entre todos los botones (14px, holgado para el scale). */
+  justify-content: flex-start;
   padding-left: 4px !important;
   padding-right: 45px !important;
-  /* v27.148 — Band1 gap 10px (antes 5px) → ✱ 📄+ LIVE LOOPSONG ⚙ más separados.
-     El par rewind+play queda PEGADO via margin-left:-10px en .hdr-play (regla más abajo).
-     v27.149 — padding-right: 45px (antes 25px) → bloque derecho 20px más a la izquierda. */
-  gap: 10px;
+  /* v27.149 — padding-right: 45px posiciona el bloque derecho (rueda ok). */
+  gap: 14px;
 }
-/* v27.148 — Play pegado al rewind: anular el gap de 10px con margin negativo */
+/* v27.262 — Play ya NO pegado al rewind con margin negativo: ahora rewind,
+   play y loop quedan unidos con el gap uniforme del flex (14px). */
 body.landscape-mode #hdr-band1 .hdr-play {
-  margin-left: -10px;
+  transform: scale(1.25);
 }
 
 /* v27.261 — Nuevo orden de los botones a la derecha del PLAY en landscape:
@@ -1415,6 +1418,14 @@ body.landscape-mode #hdr-band1 > #zoom-btn-h      { order: 3; }
 body.landscape-mode #hdr-band1 > #new-loop-btn-h  { order: 4; }
 body.landscape-mode #hdr-band1 > #hdr-loopsong    { order: 5; }
 body.landscape-mode #hdr-band1 > .hdr-config      { order: 6; }
+
+/* v27.262 — LIVE flota centrado entre el grupo izquierdo y el derecho:
+   loop (fin del grupo izq) lleva margin-right:auto y zoom (inicio del grupo
+   der) lleva margin-left:auto → dos espacios flexibles iguales que empujan
+   los grupos a los extremos y dejan LIVE en el medio. El resto de botones
+   mantiene el gap fijo del flex. */
+body.landscape-mode #hdr-band1 > #loop-btn-h { margin-right: auto !important; }
+body.landscape-mode #hdr-band1 > #zoom-btn-h { margin-left: auto !important; }
 
 /* v27.261 — Los 8 botones (rewind, play, loop, live, ajuste ancho, new,
    loop/song/save, config) agrandados 25% con scale, centrados verticalmente
@@ -1431,10 +1442,7 @@ body.landscape-mode #hdr-band1 > .hdr-config {
   transform: scale(1.25);
   align-self: center;
 }
-/* El play ya tenía margin-left:-10px; al escalar lo combinamos con scale. */
-body.landscape-mode #hdr-band1 .hdr-play {
-  transform: scale(1.25);
-}
+/* El play se escala en su propia regla (más abajo, sin margin negativo). */
 
 /* ─── Alturas UNIFICADAS de los 12 elementos (excepto play) ─────────── */
 /* v27.150 — .hdr-play sacado de esta lista: tiene altura propia (0.98)
@@ -8978,7 +8986,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.261</span>
+      <span class="title" id="dkv-title">Vista kit · v27.262</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55423,7 +55431,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.261',
+    version: 'v27.262',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
