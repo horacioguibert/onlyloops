@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.262</title>
+<title>OnlyLoops · v27.263</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1426,6 +1426,10 @@ body.landscape-mode #hdr-band1 > .hdr-config      { order: 6; }
    mantiene el gap fijo del flex. */
 body.landscape-mode #hdr-band1 > #loop-btn-h { margin-right: auto !important; }
 body.landscape-mode #hdr-band1 > #zoom-btn-h { margin-left: auto !important; }
+/* v27.263 — +6px de espaciado: entre NEW y loop/song/save, y entre
+   loop/song/save y la rueda de config. */
+body.landscape-mode #hdr-band1 > #hdr-loopsong { margin-left: 6px !important; }
+body.landscape-mode #hdr-band1 > .hdr-config   { margin-left: 6px !important; }
 
 /* v27.261 — Los 8 botones (rewind, play, loop, live, ajuste ancho, new,
    loop/song/save, config) agrandados 25% con scale, centrados verticalmente
@@ -8986,7 +8990,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.262</span>
+      <span class="title" id="dkv-title">Vista kit · v27.263</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55431,7 +55435,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.262',
+    version: 'v27.263',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
