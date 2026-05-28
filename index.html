@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.276</title>
+<title>OnlyLoops · v27.277</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -9042,7 +9042,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.276</span>
+      <span class="title" id="dkv-title">Vista kit · v27.277</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55539,7 +55539,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.276',
+    version: 'v27.277',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -57086,11 +57086,39 @@ window._applyPagedScroll = _applyPagedScroll;
      ═══════════════════════════════════════════════════════════════════════ -->
 <script>
 (function(){
+  // v27.277 — Memoria del último estado de orientación. Cuando cambia
+  // (portrait↔landscape), las inline styles que dejó el drag del .cfg-handle
+  // en el modo anterior persisten y desencajan el menú Configuración en el
+  // nuevo modo. Los otros 3 sheets (chord, inst, track-sheet) no tienen ese
+  // bug porque su CSS landscape les pone `transform: translateX(...) !important`
+  // que pisa cualquier inline. El config NO tiene ese !important sobre el
+  // transform → necesita reset explícito en JS al rotar.
+  var _lastIsLandscape = null;
   function _updateLandscapeMode(){
     try {
       var w = window.innerWidth;
       var h = window.innerHeight;
       var isLandscape = (w > h) && (h < 600);
+      if (_lastIsLandscape !== null && _lastIsLandscape !== isLandscape){
+        // Orientación cambió → limpiar inline styles del panel config
+        // (transform/height/maxHeight/width). Sin transition para que el
+        // reset sea instantáneo, no visible como flash.
+        try {
+          var cfgPanel = document.querySelector('#hdr-config-menu .hdr-config-panel');
+          if (cfgPanel){
+            var prevTrans = cfgPanel.style.transition;
+            cfgPanel.style.transition = 'none';
+            cfgPanel.style.transform = '';
+            cfgPanel.style.height = '';
+            cfgPanel.style.maxHeight = '';
+            cfgPanel.style.removeProperty('width');
+            // Forzar reflow para que el reset tome efecto antes del próximo render
+            void cfgPanel.offsetHeight;
+            cfgPanel.style.transition = prevTrans;
+          }
+        } catch(_){}
+      }
+      _lastIsLandscape = isLandscape;
       document.body.classList.toggle('landscape-mode', isLandscape);
     } catch(e) {
       console.warn('[landscape-mode] update error:', e);
