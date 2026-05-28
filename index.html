@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.265</title>
+<title>OnlyLoops · v27.266</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1406,8 +1406,10 @@ body.landscape-mode #hdr-band1 {
      gap fijo idéntico entre todos los botones (14px, holgado para el scale). */
   justify-content: flex-start;
   padding-left: 4px !important;
-  padding-right: 45px !important;
-  /* v27.149 — padding-right: 45px posiciona el bloque derecho (rueda ok). */
+  padding-right: 53px !important;
+  /* v27.149 — padding-right posiciona el bloque derecho (rueda ok).
+     v27.266 — 45→53 (+8px): mueve el grupo derecho (zoom/new/loopsong/rueda)
+     8px a la izquierda → la rueda se aleja del borde curvo del iPhone. */
   gap: 14px;
 }
 /* v27.262 — Play ya NO pegado al rewind con margin negativo: ahora rewind,
@@ -9003,7 +9005,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.265</span>
+      <span class="title" id="dkv-title">Vista kit · v27.266</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55448,7 +55450,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.265',
+    version: 'v27.266',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
