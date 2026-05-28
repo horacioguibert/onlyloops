@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.263</title>
+<title>OnlyLoops · v27.264</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1340,6 +1340,15 @@
 
 /* ─── Eliminaciones ─────────────────────────────────────────────── */
 body.landscape-mode #hdr-logo { display: none !important; }
+/* v27.264 — En HORIZONTAL eliminamos el hamburguesa (toggle sidebar): band2
+   es flex, así que al ocultar el 1er item los botones BPM/KEY/Style/PRO se
+   corren solos a la izquierda manteniendo sus espaciados (gap del flex).
+   band2 se achica → band1 (flex:1) gana ese espacio → la rueda de config
+   deja de quedar cortada por el borde curvo del iPhone. En portrait el
+   hamburguesa sigue visible (esta regla es solo landscape). */
+body.landscape-mode #hdr-band2 > .hdr-ic:first-child {
+  display: none !important;
+}
 body.landscape-mode #bot { display: none !important; }
 body.landscape-mode #seq,
 body.landscape-mode .seq-wrap,
@@ -8990,7 +8999,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.263</span>
+      <span class="title" id="dkv-title">Vista kit · v27.264</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55435,7 +55444,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.263',
+    version: 'v27.264',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
