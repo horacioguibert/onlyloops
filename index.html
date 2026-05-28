@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.269</title>
+<title>OnlyLoops · v27.275</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -3989,7 +3989,13 @@ body.landscape-mode #track-sheet .s-body {
 }
 /* The panel itself slides up from the bottom */
 #hwp-panel{
-  position:absolute; left:0; right:0; bottom:0;
+  position:absolute; left:0; right:0;
+  /* v27.275 — Elevado por encima del footer (= altura --bot-h). Antes era
+     bottom:0 → el panel quedaba bajo el footer y se cortaba a la mitad (bug
+     reportado en el wheel de BPM). El wheel de KEY ya abría bien porque su
+     regla .has-mode lo elevaba con este mismo valor; ahora TODOS los wheels
+     (BPM incluido) abren a la altura correcta, sin cortarse con el footer. */
+  bottom: calc(var(--bot-h, 54px) + env(safe-area-inset-bottom, 0px));
   transform:translateY(100%);
   transition:transform .22s cubic-bezier(.32,.72,0,1);
   background:var(--card);
@@ -5984,13 +5990,13 @@ body.landscape-mode #hdr-band1 > #hdr-live-btn {
    y var(--acc3) para que el botón siga el preset activo y los cambios del
    Color Engine Wheel. Mismo cambio que #pro-btn. */
 .hdr-pro-btn {
-  /* v27.248 — Layout vertical: "PRO" arriba, niveles "1 2 3" abajo, con
-     línea divisoria sutil. Mismo principio que los otros steppers. */
+  /* v27.271 — REPOSO: fondo azul, "PRO" blanco centrado vertical y horizontal.
+     ACTIVO (.pro-active): fondo claro, texto negro, "PRO" arriba + "N ✓" abajo.
+     Las medidas del botón NO cambian entre estados. */
   display: flex; flex-flow: column; align-items: center; justify-content: center;
   background: var(--acc);
   color: #fff;
   border-radius: 10px;
-  /* v27.249 — Altura fija idéntica a los otros 3 botones. */
   height: calc(var(--hdr-u) * 1.46 - 8px);
   padding: 3px 12px 4px;
   width: max-content;
@@ -6001,33 +6007,48 @@ body.landscape-mode #hdr-band1 > #hdr-live-btn {
   cursor: pointer;
   font-family: var(--sans);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.18), 0 2px 6px var(--acc3);
-  transition: transform 100ms, filter 100ms;
+  transition: transform 100ms, filter 100ms, background .15s, color .15s;
   -webkit-font-smoothing: antialiased;
 }
 .hdr-pro-btn .hdr-pro-lbl {
   font-size: 11px; font-weight: 700; letter-spacing: 1.1px;
   text-transform: uppercase;
   position: relative;
-  padding-bottom: 1px; margin-bottom: 0;
   width: 100%; text-align: center;
+  line-height: 1;
 }
-.hdr-pro-btn .hdr-pro-lbl::after {
+/* En REPOSO el número/tilde está oculto y "PRO" queda centrado solo. */
+.hdr-pro-btn .hdr-pro-num { display: none; }
+
+/* ─── ESTADO ACTIVO (nivel ≥ 1) ─────────────────────────────────── */
+.hdr-pro-btn.pro-active {
+  background: var(--card);
+  color: var(--ink);
+  border-color: var(--acc);
+  box-shadow: inset 0 0.5px 1.5px rgba(0,0,0,.08);
+}
+.hdr-pro-btn.pro-active .hdr-pro-lbl {
+  padding-bottom: 1px; margin-bottom: 1px;
+}
+/* Línea divisoria sutil bajo "PRO" solo en activo (como los otros botones). */
+.hdr-pro-btn.pro-active .hdr-pro-lbl::after {
   content: '';
   position: absolute;
   bottom: 0; left: 12%; right: 12%;
   height: 0.5px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+  background: linear-gradient(90deg, transparent, var(--rule) 30%, var(--rule) 70%, transparent);
 }
-.hdr-pro-btn .hdr-pro-levels {
-  display: flex; gap: 6px; align-items: center; justify-content: center;
+.hdr-pro-btn.pro-active .hdr-pro-num {
+  display: flex; align-items: baseline; justify-content: center; gap: 2px;
   line-height: 1;
 }
-.hdr-pro-btn .pro-lv {
-  font-size: 11px; font-weight: 700; font-style: normal;
-  opacity: .4;            /* niveles inactivos atenuados */
-  transition: opacity .15s;
+.hdr-pro-btn .hdr-pro-n {
+  font-size: 15px; font-weight: 800; font-style: normal;
+  color: var(--ink);
 }
-.hdr-pro-btn .pro-lv.active { opacity: 1; }
+.hdr-pro-btn .hdr-pro-chk {
+  font-size: 11px; font-weight: 600; color: var(--ink);
+}
 .hdr-pro-btn:hover { filter: brightness(1.08); }
 .hdr-pro-btn:active { transform: scale(.94); }
 /* v21.1.3 — Tamaño consistente activado/desactivado: el ✓ adicional NO debe
@@ -7069,11 +7090,12 @@ body.landscape-mode #hdr-band1 > #hdr-live-btn {
 .cfg-grid {
   display: grid;
   grid-template-columns: calc(var(--tlbl-u) * 3) 1fr;
-  /* v27.121 — Bajado de repeat(4, ...) a repeat(3, ...) para coincidir con
-     las 3 filas que ahora pueblan el JS (v27.120 eliminó la fila Reverb +
-     Tonalidad). Sin este cambio, el grid CSS seguía reservando una fila
-     vacía → los #paletas-row y #cfg-about no subían al espacio liberado. */
-  grid-template-rows: repeat(3, calc(var(--tlbl-u) * 3));
+  /* v27.273 — Bajado a repeat(2, ...) tras eliminar Master+Compases (v27.272):
+     ahora solo quedan 2 filas (BPM+Métrica · Color+Notación). Reservar 3
+     dejaba una fila vacía → el #paletas-row quedaba empujado abajo con un
+     hueco en blanco. Con 2 filas el carrusel de presets sube y se pega bajo
+     la 2ª línea. */
+  grid-template-rows: repeat(2, calc(var(--tlbl-u) * 3));
   gap: 8px;
   justify-content: start;
   align-content: start;
@@ -8386,15 +8408,15 @@ body.mixer-dragging *{touch-action:none !important}
     <span class="hdr-lbl">Style</span>
     <span class="hdr-val is-empty" id="hdr-style-v">—</span>
   </button>
-  <!-- v21.1.2 — Botón PRO: removida la estrella SVG · solo texto "PRO" (más compacto, no se corta en iPhone).
-       v27.248 — Layout 2 líneas: "PRO" arriba, niveles "1 2 3" abajo. Por ahora
-       solo PRO 1 está implementado (enriquece acordes). PRO 2 y PRO 3 quedan
-       previstos (grisados) para futuras variaciones de sugerencia armónica. -->
+  <!-- v21.1.2 — Botón PRO.
+       v27.271 — Ciclo de 4 estados (reposo → 1 → 2 → 3 → reposo):
+       · Reposo: solo "PRO" blanco sobre azul, centrado.
+       · Activo N: fondo claro, texto negro, "PRO" arriba + "N ✓" abajo.
+       Por ahora solo el nivel 1 tiene fórmula → loopea reposo↔1.
+       Niveles 2 y 3 quedan visualmente listos (PENDIENTE: definir fórmulas). -->
   <button class="hdr-pro-btn" id="hdr-pro-btn" onclick="togglePro()" aria-label="Enriquecer acordes (PRO)" title="Convierte acordes simples a versión PRO según estilo">
     <span class="hdr-pro-lbl">PRO</span>
-    <span class="hdr-pro-levels">
-      <b class="pro-lv active" data-pro="1">1</b><b class="pro-lv" data-pro="2">2</b><b class="pro-lv" data-pro="3">3</b>
-    </span>
+    <span class="hdr-pro-num"><b class="hdr-pro-n">1</b><span class="hdr-pro-chk">✓</span></span>
   </button>
 </div>
 </div><!-- /#hdr-row -->
@@ -8708,12 +8730,13 @@ body.mixer-dragging *{touch-action:none !important}
   <div id="bot">
     <!-- v27.48 — Eliminado botón "+ Track" del footer (la única vía de agregar
          track es el "+" lateral en la barra de instrumentos vacíos).
-         El grupo restante "Track −" se alinea EXACTAMENTE bajo la columna de
-         instrumentos (var(--lbl-w) = 78px) con margin-left:-10px anulando el
-         padding del footer. "Track" como label a la izquierda, "−" a la derecha. -->
-    <div class="bb-grp" style="width:var(--lbl-w);margin-left:-10px;justify-content:space-between">
-      <span class="bb-seg" style="padding:0 10px;cursor:default;pointer-events:none">Track</span>
-      <button class="bb-seg divider" onclick="removeLastTrack()" style="padding:0 10px" aria-label="Quitar track">−</button>
+         v27.270 — Sin línea divisoria interna, "Track" pegado al "−", ancho
+         según contenido (no var(--lbl-w)) y SIN margin-left:-10px → el botón
+         se achica y deja de tocar el borde izquierdo del iPhone; el espacio
+         ganado queda como margen al borde (lo da el padding del footer). -->
+    <div class="bb-grp">
+      <span class="bb-seg" style="padding:0 4px 0 11px;cursor:default;pointer-events:none">Track</span>
+      <button class="bb-seg" onclick="removeLastTrack()" style="padding:0 11px 0 3px;font-size:14px;font-weight:400" aria-label="Quitar track">−</button>
     </div>
     <!-- v27.29 — Botón ZOOM COMPACT (reemplaza el viejo "♬ Prog." que abría progresiones).
          Comprime BW a la mitad: 4 compases entran en el ancho de iPhone donde antes entraban 2.
@@ -9019,7 +9042,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.269</span>
+      <span class="title" id="dkv-title">Vista kit · v27.275</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -37490,53 +37513,72 @@ function _proEnrichQuality(clip, idx, clips, style){
 // Toggle: si ya estaba aplicado, revierte. Si no, aplica.
 function togglePro(){
   if(!G || !G.tracks){ return; }
-  const btn = document.getElementById('pro-btn');
-  const hdrBtn = document.getElementById('hdr-pro-btn');
   const style = G._loadedProgStyle || 'pop';
+
+  // v27.271 — Ciclo de niveles: 0 (reposo) → 1 → 2 → 3 → 0.
+  // MAX_PRO_LEVELS controla cuántos niveles están activos. Por ahora solo el
+  // nivel 1 tiene fórmula (_proEnrichQuality) → MAX=2 (loopea 0↔1).
+  // PENDIENTE: definir fórmulas de complejización N2 y N3; al implementarlas,
+  // subir MAX_PRO_LEVELS a 4 y rutear cada nivel a su fórmula en _applyProLevel.
+  const MAX_PRO_LEVELS = 2;
+
+  // 1) Revertir lo que esté aplicado (cualquier nivel previo).
   if(G._proApplied){
-    // ─── REVERTIR ─────────────────────────────────────────
-    undoPush && undoPush('PRO revertido');
     G.tracks.forEach(t => {
       if(!t.clips) return;
       t.clips.forEach(c => {
-        if(c && c._sOrig !== undefined){
-          c.s = c._sOrig;
-          delete c._sOrig;
-        }
+        if(c && c._sOrig !== undefined){ c.s = c._sOrig; delete c._sOrig; }
       });
     });
     G._proApplied = false;
-    if(btn) btn.classList.remove('applied');
-    if(hdrBtn) hdrBtn.classList.remove('applied');
+  }
+
+  // 2) Avanzar al siguiente nivel del ciclo.
+  const prev = G._proLevel || 0;
+  const next = (prev + 1) % MAX_PRO_LEVELS;
+  G._proLevel = next;
+
+  if(next === 0){
+    // Reposo: ya revertido arriba.
+    undoPush && undoPush('PRO desactivado');
     if(typeof toast === 'function') toast('Volvió a versión simple');
   } else {
-    // ─── APLICAR ──────────────────────────────────────────
-    undoPush && undoPush('PRO aplicado');
+    // Aplicar la fórmula del nivel `next`. Hoy todos los niveles usan la
+    // fórmula 1 (_proEnrichQuality); cuando se definan N2/N3 se ramifica aquí.
+    undoPush && undoPush('PRO ' + next + ' aplicado');
     let changedCount = 0;
     G.tracks.forEach(t => {
       if(!t.clips) return;
       t.clips.forEach((c, i) => {
         if(!c || !c.s) return;
         const newS = _proEnrichQuality(c, i, t.clips, style);
-        if(newS !== c.s){
-          c._sOrig = c.s;
-          c.s = newS;
-          changedCount++;
-        }
+        if(newS !== c.s){ c._sOrig = c.s; c.s = newS; changedCount++; }
       });
     });
     G._proApplied = true;
-    if(btn) btn.classList.add('applied');
-    if(hdrBtn) hdrBtn.classList.add('applied');
     if(typeof toast === 'function'){
       const styleLabel = (typeof STYLE_LABEL_BY_ID !== 'undefined' && STYLE_LABEL_BY_ID[style]) || style.toUpperCase();
-      toast('PRO ' + styleLabel + ' · ' + changedCount + ' acordes');
+      toast('PRO ' + next + ' · ' + styleLabel + ' · ' + changedCount + ' acordes');
     }
   }
-  // Re-render
+
+  _updateProButton();
   if(typeof renderAll === 'function') renderAll();
 }
 window.togglePro = togglePro;
+
+// v27.271 — Actualiza el visual del botón PRO según G._proLevel.
+function _updateProButton(){
+  const lvl = G._proLevel || 0;
+  ['hdr-pro-btn','pro-btn'].forEach(id => {
+    const b = document.getElementById(id);
+    if(!b) return;
+    b.classList.toggle('pro-active', lvl > 0);
+    const nEl = b.querySelector('.hdr-pro-n');
+    if(nEl && lvl > 0) nEl.textContent = lvl;
+  });
+}
+window._updateProButton = _updateProButton;
 window._proEnrichQuality = _proEnrichQuality;
 window._PRO_ENRICH_MAP = _PRO_ENRICH_MAP;
 
@@ -41610,8 +41652,23 @@ window.addEventListener('load',()=>{
     }
     // v15.0-DEMO — APPLE B15: ocultar boot splash cuando init completa.
     // Damos un frame extra para que el primer renderAll pinte y no haya flash.
-    requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
       const splash = document.getElementById('boot-splash');
+      // v27.274 — Pre-generar los thumbs de los presets fijos MIENTRAS el
+      // splash sigue visible y opaco. La pre-gen aplica cada preset al :root
+      // (cambia el tema global), lo que antes parpadeaba al primer
+      // hdrOpenConfig. Hecho acá queda 100% tapado por el splash → cero
+      // parpadeo. Fijamos el fondo del splash a color estático (no var(--bg))
+      // para que el propio splash no cambie de color con el tema durante la
+      // pre-gen. Al terminar, ocultamos.
+      if(splash && typeof _pregenFixedPresetThumbs === 'function'){
+        try {
+          const _bgNow = getComputedStyle(document.documentElement)
+            .getPropertyValue('--bg').trim();
+          if(_bgNow) splash.style.background = _bgNow;
+          await _pregenFixedPresetThumbs();
+        } catch(_){}
+      }
       if(splash){
         splash.classList.add('hidden');
         // Removerlo del DOM tras la transición para no quedarse colgado
@@ -49035,7 +49092,7 @@ const LNF_STATE = {
 };
 
 // Presets custom guardados por el usuario (5 slots). null = vacío.
-const LNF_CUSTOM_PRESETS = [null, null, null, null, null];
+const LNF_CUSTOM_PRESETS = [null, null, null, null, null, null, null, null];
 
 // 5 presets fijos de fábrica (no se pueden borrar).
 // Combinación elegida: HUESO + MOISES + NOCHE + CORAL + PAPEL
@@ -49056,11 +49113,16 @@ const LNF_CUSTOM_PRESETS = [null, null, null, null, null];
 // quedan para presets del usuario (guardar/tirar libremente).
 const LNF_PRESETS = [
   { name: 'HUESO',     h: 40,  s: 25, l: 85, accentOffset: 0, font: 0,
-    fontH: 210, fontS: 55, fontL: 45 },          // Cormorant + petróleo
+    fontH: 210, fontS: 55, fontL: 45, notation: 'AmI' },     // Cormorant + petróleo · Cifrado+Grado
   { name: 'MOISES',    h: 180, s: 5,  l: 10, accentOffset: 1, font: 7,
-    fontH: 175, fontS: 65, fontL: 55 },          // DM Mono + turquesa
+    fontH: 175, fontS: 65, fontL: 55, notation: 'jazz' },    // DM Mono + turquesa · Jazz
   { name: 'GRIS-ROJO', h: 0,   s: 0,  l: 85, accentOffset: 0, font: 0,
-    fontH: 0,   fontS: 75, fontL: 50 },          // PLACEHOLDER: gris claro + acento rojo
+    fontH: 0,   fontS: 75, fontL: 50, notation: 'nash' },    // gris claro + rojo · Nashville
+  // v27.272 — 2 fijos nuevos inventados (a auditar por Horacio):
+  { name: 'NOCHE',     h: 225, s: 22, l: 12, accentOffset: 0, font: 0,
+    fontH: 38,  fontS: 78, fontL: 56, notation: 'IAm' },     // Cormorant + ámbar / noche · Grado+Cifrado
+  { name: 'ARENA',     h: 35,  s: 42, l: 80, accentOffset: 0, font: 0,
+    fontH: 175, fontS: 55, fontL: 38, notation: 'Do' },      // Cormorant + turquesa / arena · Solfeo
 ];
 
 // Librería de 20 acentos curados
@@ -49579,6 +49641,19 @@ function lnfApplyPreset(p){
   if(typeof window.lnfSetFontByIdx === 'function'){
     window.lnfSetFontByIdx(LNF_STATE.fontIdx);
   }
+  // v27.273 — Notación grabada en el preset: cada setup guarda la notación
+  // activa al momento de grabar; al aplicarlo se vuelve a esa notación.
+  // Si el preset no la trae (presets viejos), se respeta la actual.
+  if(typeof p.notation === 'string' && typeof G !== 'undefined' && G.notation !== p.notation){
+    G.notation = p.notation;
+    const nbEx = document.getElementById('nb-ex');
+    if(nbEx && typeof NOTATION_ITEMS !== 'undefined'){
+      const it = NOTATION_ITEMS.find(x => x.v === p.notation);
+      if(it && typeof buildNotationPopup === 'function'){ try{ buildNotationPopup(); }catch(_){} }
+    }
+    if(typeof renderAll === 'function') renderAll();
+    if(G.editRef && typeof updateHero === 'function') updateHero(G.editRef.clip);
+  }
   lnfUpdateAll();
 }
 
@@ -49594,7 +49669,8 @@ function lnfSnapshotState(name){
     fontH: LNF_STATE.fontAccentH,
     fontS: LNF_STATE.fontAccentS,
     fontL: LNF_STATE.fontAccentL,
-    custom: true
+    custom: true,
+    notation: (typeof G !== 'undefined' && typeof G.notation === 'string') ? G.notation : undefined
   };
 }
 
@@ -50323,10 +50399,10 @@ window._renderClipFromSequencer = _renderClipFromSequencer;
 function lnfSaveCurrentAsPreset(){
   if (typeof lnfSnapshotState !== 'function' ||
       typeof LNF_CUSTOM_PRESETS === 'undefined') return;
-  // v27.134 — Buscar primer slot vacío de 3 (no 5). LNF_CUSTOM_PRESETS
-  // ahora son los slots 4, 5, 6 del wheel (los 1, 2, 3 son fijos).
+  // v27.272 — Buscar primer slot vacío de forma dinámica (ahora 8 slots
+  // custom, antes 3). Usa LNF_CUSTOM_PRESETS.length para no volver a hardcodear.
   let slotIdx = -1;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < LNF_CUSTOM_PRESETS.length; i++) {
     if (!LNF_CUSTOM_PRESETS[i]) { slotIdx = i; break; }
   }
   if (slotIdx === -1) {
@@ -50471,14 +50547,16 @@ function paletasBuildRow(){
     });
   };
 
-  // ─── Construcción de los 6 slots ───
-  // Slots 1, 2, 3 = LNF_PRESETS (fijos, no eliminables)
-  // Slots 4, 5, 6 = LNF_CUSTOM_PRESETS[0..2] (custom, eliminables)
-  for(let slotIdx = 0; slotIdx < 6; slotIdx++){
-    const isFixed = slotIdx < 3;
+  // ─── Construcción de los slots ───
+  // v27.272 — Dinámico: N fijos (LNF_PRESETS, no eliminables) + M custom
+  // (LNF_CUSTOM_PRESETS, eliminables). Ahora 5 fijos + 8 custom = 13 slots.
+  const NFIX = LNF_PRESETS.length;
+  const NTOT = NFIX + LNF_CUSTOM_PRESETS.length;
+  for(let slotIdx = 0; slotIdx < NTOT; slotIdx++){
+    const isFixed = slotIdx < NFIX;
     const preset = isFixed
       ? LNF_PRESETS[slotIdx]
-      : LNF_CUSTOM_PRESETS[slotIdx - 3];
+      : LNF_CUSTOM_PRESETS[slotIdx - NFIX];
 
     const cell = document.createElement('div');
     cell.setAttribute('role', 'button');
@@ -50486,8 +50564,8 @@ function paletasBuildRow(){
     cell.className = 'pal-cell' + (preset ? '' : ' empty');
 
     if(!preset){
-      // Slot custom vacío (4, 5 ó 6 sin preset): tap → guardar estado actual
-      const customIdx = slotIdx - 3;
+      // Slot custom vacío: tap → guardar estado actual
+      const customIdx = slotIdx - NFIX;
       cell.title = 'Tap para guardar el estilo actual';
       cell.addEventListener('click', () => {
         if(PAL_CAROUSEL.movedFar) return;
@@ -50517,9 +50595,9 @@ function paletasBuildRow(){
     cell.innerHTML = '<canvas class="pal-cell-canvas"></canvas>';
     wireApply(cell, preset);
 
-    // Long-press + drag-down → eliminar — SOLO para custom (slots 4, 5, 6)
+    // Long-press + drag-down → eliminar — SOLO para slots custom
     if(!isFixed && typeof bindLongPressDragDown === 'function'){
-      const customIdx = slotIdx - 3;
+      const customIdx = slotIdx - NFIX;
       bindLongPressDragDown(cell, () => {
         LNF_CUSTOM_PRESETS[customIdx] = null;
         if(typeof lnfSaveCustomPresets === 'function') lnfSaveCustomPresets();
@@ -50771,22 +50849,13 @@ function buildCfgGrid(){
   grid.innerHTML = '';
 
   // Definición de los slots del config grid.
-  // v27.120 — Eliminada la fila "Reverb + Tonalidad" (era la fila 2). Razón:
-  //   • Reverb ya está disponible en el panel de efectos del Mixer.
-  //   • Tonalidad ya se gestiona en el chip "Key" del header.
-  // La fila era redundante. Al eliminarla, las filas BPM+Compases y Color+
-  // Métrica suben automáticamente y el menú queda más compacto.
-  // Las variables G.masterReverb y G.key SIGUEN existiendo y funcionando —
-  // solo se removió la exposición UI duplicada en este menú.
+  // v27.272 — Reorganización: eliminados el slider MASTER (masterVol, sin
+  //   función asignada) y el wheel COMPASES (bars, sin uso en este menú).
+  //   Layout final 2 filas (la 3ª, de presets, la arma paletasBuildRow):
+  //     Fila 1 → BPM (taquímetro) + wheel Métrica (3/4 4/4 6/8 12/8)
+  //     Fila 2 → Color (Color Engine) + wheel Notación (Am7/ii/La/A-/1)
+  //   G.masterVol y G.bars SIGUEN existiendo (BPM/sequencer); solo se quitó UI.
   const rows = [
-    {
-      slider: {
-        key: 'masterVol',
-        name: 'Master',
-        icon: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 10v4a1 1 0 0 0 1 1h3.5L12 19V5L7.5 9H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5 a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 6 a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
-      },
-      wheel: { key: 'notation', title: 'Notación' }
-    },
     {
       slider: {
         key: 'bpm',
@@ -50795,7 +50864,7 @@ function buildCfgGrid(){
         min: 40, max: 240, step: 5,
         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><text x="12" y="15.5" text-anchor="middle" font-family="monospace" font-weight="700" font-size="7" fill="currentColor" stroke="none" letter-spacing="0.5">120</text></svg>'
       },
-      wheel: { key: 'bars', title: 'Compases' }
+      wheel: { key: 'tiempo', title: 'Métrica' }
     },
     {
       slider: {
@@ -50804,7 +50873,7 @@ function buildCfgGrid(){
         mode: 'lnf-opener',
         icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="cwGrad1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E63946"/><stop offset="1" stop-color="#F1A208"/></linearGradient><linearGradient id="cwGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2A9D8F"/><stop offset="1" stop-color="#264653"/></linearGradient><linearGradient id="cwGrad3" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7B2CBF"/><stop offset="1" stop-color="#3A86FF"/></linearGradient></defs><path d="M12 3 A9 9 0 0 1 20.8 10.5 L12 12 Z" fill="url(#cwGrad1)"/><path d="M20.8 10.5 A9 9 0 0 1 15.5 20.5 L12 12 Z" fill="url(#cwGrad2)"/><path d="M15.5 20.5 A9 9 0 0 1 3 12 L12 12 Z" fill="#2A9D8F" opacity=".7"/><path d="M3 12 A9 9 0 0 1 12 3 L12 12 Z" fill="url(#cwGrad3)"/><circle cx="12" cy="12" r="3" fill="var(--bg2)" stroke="var(--ink2)" stroke-width="1"/></svg>'
       },
-      wheel: { key: 'tiempo', title: 'Métrica' }
+      wheel: { key: 'notation', title: 'Notación' }
     }
   ];
 
@@ -55464,7 +55533,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.269',
+    version: 'v27.275',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
