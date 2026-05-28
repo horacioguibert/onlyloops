@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.264</title>
+<title>OnlyLoops · v27.265</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1436,9 +1436,13 @@ body.landscape-mode #hdr-band1 > .hdr-config      { order: 6; }
 body.landscape-mode #hdr-band1 > #loop-btn-h { margin-right: auto !important; }
 body.landscape-mode #hdr-band1 > #zoom-btn-h { margin-left: auto !important; }
 /* v27.263 — +6px de espaciado: entre NEW y loop/song/save, y entre
-   loop/song/save y la rueda de config. */
-body.landscape-mode #hdr-band1 > #hdr-loopsong { margin-left: 6px !important; }
-body.landscape-mode #hdr-band1 > .hdr-config   { margin-left: 6px !important; }
+   loop/song/save y la rueda de config.
+   v27.265 — +8px más (6→14): la rueda (config) NO se mueve (anclada a la
+   derecha por el padding-right del band1 + el margin-left:auto de zoom que
+   absorbe el sobrante); al aumentar estos margin-left, el espacio extra sale
+   del auto → NEW y loop/song/save se corren a la izquierda, rueda fija. */
+body.landscape-mode #hdr-band1 > #hdr-loopsong { margin-left: 14px !important; }
+body.landscape-mode #hdr-band1 > .hdr-config   { margin-left: 14px !important; }
 
 /* v27.261 — Los 8 botones (rewind, play, loop, live, ajuste ancho, new,
    loop/song/save, config) agrandados 25% con scale, centrados verticalmente
@@ -8999,7 +9003,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.264</span>
+      <span class="title" id="dkv-title">Vista kit · v27.265</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55444,7 +55448,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.264',
+    version: 'v27.265',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
