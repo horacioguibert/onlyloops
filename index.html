@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.275</title>
+<title>OnlyLoops · v27.276</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -3989,13 +3989,7 @@ body.landscape-mode #track-sheet .s-body {
 }
 /* The panel itself slides up from the bottom */
 #hwp-panel{
-  position:absolute; left:0; right:0;
-  /* v27.275 — Elevado por encima del footer (= altura --bot-h). Antes era
-     bottom:0 → el panel quedaba bajo el footer y se cortaba a la mitad (bug
-     reportado en el wheel de BPM). El wheel de KEY ya abría bien porque su
-     regla .has-mode lo elevaba con este mismo valor; ahora TODOS los wheels
-     (BPM incluido) abren a la altura correcta, sin cortarse con el footer. */
-  bottom: calc(var(--bot-h, 54px) + env(safe-area-inset-bottom, 0px));
+  position:absolute; left:0; right:0; bottom:0;
   transform:translateY(100%);
   transition:transform .22s cubic-bezier(.32,.72,0,1);
   background:var(--card);
@@ -4108,6 +4102,12 @@ body.landscape-mode #track-sheet .s-body {
    calcula respecto al alto del panel, no respecto al bottom. */
 #hwp-overlay.has-mode #hwp-panel{
   bottom: calc(var(--bot-h, 54px) + env(safe-area-inset-bottom, 0px));
+}
+/* v27.276 — Wheel de BPM 40px más arriba de su base (bottom:0) para que no
+   quede cortado por el footer. SOLO BPM (clase hwp-bpm que setea hwpOpen);
+   KEY y los demás wheels quedan intactos — esto no toca el panel base. */
+#hwp-overlay.hwp-bpm #hwp-panel{
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
 }
 #hwp-mode-track{
   position:relative;height:44px;
@@ -9042,7 +9042,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.275</span>
+      <span class="title" id="dkv-title">Vista kit · v27.276</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -42101,6 +42101,10 @@ function hwpOpen(type) {
   } else {
     _ovEl.classList.remove('has-mode');
   }
+  // v27.276 — Subir SOLO el wheel de BPM 40px (clase hwp-bpm) para que no
+  // quede cortado por el footer. Se quita para cualquier otro tipo, así KEY
+  // y los demás wheels (y la vista horizontal) quedan exactamente como antes.
+  _ovEl.classList.toggle('hwp-bpm', type === 'bpm');
   // Close notation popup if open
   document.getElementById('notation-popup')?.classList.remove('on');
 
@@ -42645,6 +42649,8 @@ function hwpClose() {
   // v27.77 — Limpiar clase de modo wheel para que la próxima apertura
   // (de bpm/bars/etc.) no muestre la segunda fila accidentalmente.
   overlay.classList.remove('has-mode');
+  // v27.276 — Limpiar también la clase de elevación de BPM.
+  overlay.classList.remove('hwp-bpm');
   HWP.dragging = false;
   HWP.modeDragging = false;
   HWP.type = null;
@@ -55533,7 +55539,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.275',
+    version: 'v27.276',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
