@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.247</title>
+<title>OnlyLoops · v27.261</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1372,7 +1372,9 @@ body.landscape-mode #hdr-band2 {
   display: flex !important;
   flex-direction: row;
   align-items: center;
-  height: calc(var(--hdr-u) * 1.4) !important;  /* v27.148 — 46px (antes 34px) +12px */
+  /* v27.260 — Replica la altura del fondo hueso de PORTRAIT (era 1.4 = 45.5px).
+     = botón (1.46 - 8px) + 3px arriba + 3px abajo + margen = 1.46 + 4px. */
+  height: calc(var(--hdr-u) * 1.46 + 4px) !important;
   background: var(--bg2) !important;  /* v27.148 — hueso medio unificado */
   border-bottom: none !important;
   padding-top: 0 !important;
@@ -1402,18 +1404,57 @@ body.landscape-mode #hdr-band1 .hdr-play {
   margin-left: -10px;
 }
 
+/* v27.261 — Nuevo orden de los botones a la derecha del PLAY en landscape:
+   1) LOOP  2) LIVE  3) ajuste ancho >/<  4) NEW  5) loop/song/save  6) Config.
+   (Antes: LOOP, ancho, NEW, LIVE, loop/song/save, Config). Solo cambia que
+   LIVE sube de la 4ª a la 2ª posición. Los izquierdos (logo/rewind/play/
+   spacer) quedan en order 0 → van antes. */
+body.landscape-mode #hdr-band1 > #loop-btn-h      { order: 1; }
+body.landscape-mode #hdr-band1 > #hdr-live-btn    { order: 2; }
+body.landscape-mode #hdr-band1 > #zoom-btn-h      { order: 3; }
+body.landscape-mode #hdr-band1 > #new-loop-btn-h  { order: 4; }
+body.landscape-mode #hdr-band1 > #hdr-loopsong    { order: 5; }
+body.landscape-mode #hdr-band1 > .hdr-config      { order: 6; }
+
+/* v27.261 — Los 8 botones (rewind, play, loop, live, ajuste ancho, new,
+   loop/song/save, config) agrandados 25% con scale, centrados verticalmente
+   respecto al centro del fondo hueso (align-self:center). scale mantiene el
+   centro → quedan alineados en su eje vertical. */
+body.landscape-mode #hdr-band1 > .hdr-btn[onclick*="rewind"],
+body.landscape-mode #hdr-band1 > #hdr-play-btn,
+body.landscape-mode #hdr-band1 > #loop-btn-h,
+body.landscape-mode #hdr-band1 > #hdr-live-btn,
+body.landscape-mode #hdr-band1 > #zoom-btn-h,
+body.landscape-mode #hdr-band1 > #new-loop-btn-h,
+body.landscape-mode #hdr-band1 > #hdr-loopsong,
+body.landscape-mode #hdr-band1 > .hdr-config {
+  transform: scale(1.25);
+  align-self: center;
+}
+/* El play ya tenía margin-left:-10px; al escalar lo combinamos con scale. */
+body.landscape-mode #hdr-band1 .hdr-play {
+  transform: scale(1.25);
+}
+
 /* ─── Alturas UNIFICADAS de los 12 elementos (excepto play) ─────────── */
 /* v27.150 — .hdr-play sacado de esta lista: tiene altura propia (0.98)
    mayor que los demás (0.85). El header crecido +12px en v27.148 permite
    que el play resalte con altura diferenciada. */
 body.landscape-mode #hdr-row > div > .hdr-btn,
 body.landscape-mode #hdr-row > div > .hdr-ic,
-body.landscape-mode #hdr-row > div > .hdr-stepper,
-body.landscape-mode #hdr-row > div > .hdr-style-btn,
-body.landscape-mode #hdr-row > div > .hdr-pro-btn,
 body.landscape-mode #hdr-row > div > .hdr-switch,
 body.landscape-mode #hdr-row > div > #hdr-loopsong {
   height: calc(var(--hdr-u) * 0.85) !important;  /* = 28px */
+  align-self: center;
+}
+/* v27.260 — Los 4 botones BPM/KEY/Style/PRO con la MISMA altura que en
+   PORTRAIT (1.46 - 8px), sacados de la regla 0.85 de arriba. Los demás
+   botones (hdr-btn/hdr-ic/switch/loopsong) quedan en 0.85 por ahora —
+   se corregirán después. */
+body.landscape-mode #hdr-row > div > .hdr-stepper,
+body.landscape-mode #hdr-row > div > .hdr-style-btn,
+body.landscape-mode #hdr-row > div > .hdr-pro-btn {
+  height: calc(var(--hdr-u) * 1.46 - 8px) !important;
   align-self: center;
 }
 body.landscape-mode #hdr-row .hdr-stepper .hdr-lbl,
@@ -1422,6 +1463,13 @@ body.landscape-mode #hdr-row .hdr-style-btn .hdr-lbl,
 body.landscape-mode #hdr-row .hdr-style-btn .hdr-val {
   height: auto !important;
   line-height: 1.15;
+}
+/* v27.251 — En landscape band2 es flex (no grid), así que BPM y KEY toman
+   ancho natural y BPM quedaba más ancho por las chevs. Fijar ambos a 70px
+   para que queden exactamente iguales, igual que en portrait. */
+body.landscape-mode #hdr-row > div > .hdr-stepper {
+  width: 70px !important;
+  flex: 0 0 70px !important;
 }
 body.landscape-mode #hdr-row #hdr-loopsong {
   background: var(--bg3) !important;  /* v27.148 — más oscuro que el header bg2 → la perilla blanca contrasta */
@@ -5472,6 +5520,8 @@ body.landscape-mode #track-sheet .s-body {
   background: var(--card);
   border-bottom: 0.5px solid var(--rule);
   display: grid;
+  /* v27.258 — position:relative para anclar el LIVE centrado en absoluto. */
+  position: relative;
   /* v21.1.2 — 7 columnas: logo · rewind · play | spacer 1fr | LIVE · loopsong · config */
   grid-template-columns: auto auto auto 1fr auto auto auto;
   align-items: center;
@@ -5489,6 +5539,11 @@ body.landscape-mode #track-sheet .s-body {
   font-family: var(--serif);
   cursor: pointer;
   user-select: none;
+}
+/* v27.259 — Rewind + Play 10px a la derecha. margin-left en el rewind (1er
+   botón tras el logo) empuja ambos como bloque. */
+#hdr-band1 > .hdr-btn[onclick*="rewind"] {
+  margin-left: 10px;
 }
 #hdr-logo .hdr-only {
   font-size: 14px; font-weight: 400; font-style: italic;
@@ -5540,6 +5595,22 @@ body.landscape-mode #track-sheet .s-body {
 }
 .hdr-live {
   gap: 4px; padding: 0 4px !important; border-radius: 12px;
+}
+/* v27.258 — Horacio: el botón LIVE SIEMPRE centrado en el ancho de la
+   pantalla, sin importar cuánto se agrande el browser. position:absolute +
+   left:50% lo ancla al centro del band1 (que ocupa todo el ancho). Sale del
+   grid flow; loopsong+config quedan a la derecha (spacer 1fr), logo+play a la
+   izquierda. En landscape se resetea a flujo normal (header reorganizado). */
+#hdr-band1 > #hdr-live-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+body.landscape-mode #hdr-band1 > #hdr-live-btn {
+  position: static;
+  left: auto; top: auto;
+  transform: none;
 }
 .hdr-live .hdr-live-dot {
   width: 8px; height: 8px; border-radius: 50%;
@@ -5594,14 +5665,30 @@ body.landscape-mode #track-sheet .s-body {
 
 /* Banda 2 */
 #hdr-band2 {
-  height: calc(var(--hdr-u) * 1.5);
+  /* v27.252 — Altura = botón (--hdr-u * 1.46) + 6px → con align-items:center
+     quedan 3px de aire arriba y 3px abajo entre el fondo hueso de los botones
+     y los bordes del header. Antes (1.5) dejaba <1px y los botones tocaban
+     los bordes. El sequencer absorbe los ~5px extra abajo.
+     v27.253 — Botón reducido 5px (interlineado achicado) → band2 también -5px
+     para conservar los 3px de aire. = (1.46 - 5px) + 6px = 1.46 + 1px.
+     v27.254 — Botón -3px más (interlineado al mínimo) → band2 -3px más.
+     = (1.46 - 8px) + 6px = 1.46 - 2px.
+     v27.255 — +6px al band2 (sin tocar botones) → 3px MÁS de aire arriba y
+     abajo. Total ahora 6px de margen cada lado. = (1.46 - 2px) + 6px = 1.46 + 4px. */
+  height: calc(var(--hdr-u) * 1.46 + 4px);
   background: var(--bg2);
   border-bottom: 0.5px solid var(--rule);
   display: grid;
   /* v21.1.2 — 6 columnas: Tracks · BPM · KEY · Style · PRO | spacer 1fr
      Removidos: undo (footer ya tiene undo) · config (movido a banda 1)
-     El último 1fr absorbe el espacio sobrante a la derecha. */
-  grid-template-columns: 34px 90px 75px auto auto 1fr;
+     El último 1fr absorbe el espacio sobrante a la derecha.
+     v27.250 — BPM 90→80 (-10px) y KEY 75→70 (-5px) por pedido de Horacio.
+     v27.251 — BPM 80→70: mismo ancho exacto que KEY.
+     v27.256 — Primera columna (menú) = var(--lbl-w) - 9px (padding 4 + gap 5)
+     para que el botón BPM arranque exactamente en --lbl-w (78px), alineado
+     con el inicio del compás 1 del sequencer. El menú ☰ queda pegado a la
+     izquierda dentro de esa columna (justify-self:start). */
+  grid-template-columns: calc(var(--lbl-w) - 9px) 70px 70px auto auto 1fr;
   align-items: center;
   padding: 0 4px;
   gap: 5px; /* v27.197 — +3px sobre el 2px previo */
@@ -5610,6 +5697,24 @@ body.landscape-mode #track-sheet .s-body {
 /* Separación extra entre KEY (tonalidad) y UNDO (retroceder) */
 #hdr-band2 > .hdr-ic[aria-label="Undo"] {
   margin-left: 4px;
+}
+/* v27.256 — El menú ☰ (1er hijo) queda pegado a la izquierda dentro de su
+   columna ensanchada (calc(--lbl-w - 9px)), sin estirarse ni centrarse.
+   v27.257 — Horacio: centrar el menú (no a la izquierda) para que quede
+   alineado con el centro de la barra lateral que esconde (--lbl-w). El
+   centro de su columna ≈ centro de la barra lateral. Vertical ya centrado
+   por align-items:center del grid. */
+#hdr-band2 > .hdr-ic:first-child {
+  justify-self: center;
+  /* v27.258 — Desplazado 10px a la derecha.
+     v27.259 — 10px a la izquierda → vuelve a centrado (translateX 0). */
+  transform: translateX(0px);
+}
+/* v27.257 — Ícono del menú +20% (24px → 29px). Solo el hamburguesa.
+   v27.258 — +30% más (29 → 38px). */
+#hdr-band2 > .hdr-ic:first-child svg {
+  width: 38px;
+  height: 38px;
 }
 .hdr-ic {
   height: calc(var(--hdr-u) * 1.05);
@@ -5628,25 +5733,48 @@ body.landscape-mode #track-sheet .s-body {
 .hdr-ic.hdr-config svg .hdr-config-hole { fill: var(--bg2); }
 
 .hdr-stepper {
-  display: flex; align-items: center;
+  /* v27.248 — Layout vertical: título (hdr-lbl) arriba, valor (hdr-val) abajo,
+     con línea divisoria sutil degradada entre ambos. flex-wrap permite que el
+     label ocupe la 1ª fila completa (flex-basis:100%) y val+chevs caigan a la
+     2ª fila. Mismo tamaño de letras, solo reubicado en 2 líneas. */
+  display: flex; flex-flow: row wrap; align-items: center; justify-content: center;
   background: var(--card); border-radius: 10px;
-  height: calc(var(--hdr-u) * 1.05);
-  padding: 0 4px 0 9px;
+  /* v27.249 — Altura FIJA idéntica para los 4 botones (tomando KEY como
+     referencia). Antes era min-height: BPM crecía por las chevs y Style
+     quedaba más petiso. Ahora height fijo = todos iguales. */
+  height: calc(var(--hdr-u) * 1.46 - 8px);
+  padding: 3px 8px 4px;
   box-shadow: inset 0 0.5px 1.5px rgba(0,0,0,.08);
   overflow: hidden; cursor: pointer;
+  position: relative;
 }
 .hdr-stepper .hdr-lbl {
   font-family: var(--mono); font-size: 9px; font-weight: 600;
   color: var(--ink3); letter-spacing: 0.15em; line-height: 1;
-  display: flex; align-items: center; height: 100%; margin-right: 6px;
+  /* v27.248 — Título arriba, 1ª fila completa (flex-basis:100%). Línea
+     divisoria sutil debajo, degradada hacia los bordes.
+     v27.253 — Interlineado reducido (margin 3→1, padding 3→2) para achicar
+     la altura total de los botones. */
+  flex-basis: 100%;
+  display: flex; align-items: center; justify-content: center;
+  height: auto; margin: 0;
+  padding-bottom: 1px;
+  position: relative;
+}
+.hdr-stepper .hdr-lbl::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 18%; right: 18%;
+  height: 0.5px;
+  background: linear-gradient(90deg, transparent, var(--rule) 25%, var(--rule) 75%, transparent);
 }
 .hdr-stepper .hdr-val {
   font-family: var(--sans); font-size: 17px; font-weight: 700;
-  color: var(--ink); flex: 1;
+  color: var(--ink);
   display: flex; align-items: center; justify-content: center;
   font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
-  line-height: 1; height: 100%; padding-right: 4px;
-  transform: translateY(-1px);
+  line-height: 1; height: auto; padding: 0;
+  transform: none;
 }
 .hdr-stepper.hdr-musical .hdr-val {
   font-family: var(--serif); font-style: italic;
@@ -5660,36 +5788,41 @@ body.landscape-mode #track-sheet .s-body {
    (truco clásico que respeta text-overflow:ellipsis y compensa offset óptico del serif italic). */
 .hdr-style-btn {
   background: var(--card); border: none;
-  padding: 0 12px 0 9px;
+  padding: 3px 10px 4px;
   cursor: pointer;
-  min-width: 76px;
-  width: max-content;
+  /* v27.248 — Ancho FIJO limitado a ~8 chars + " M1" para que un nombre
+     largo no desajuste el header. El valor se trunca en JS a ese límite.
+     v27.249 — Altura fija idéntica a los demás (era más petiso). */
+  min-width: 84px;
+  max-width: 84px;
+  width: 84px;
+  height: calc(var(--hdr-u) * 1.46 - 8px);
   justify-self: start;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: flex; flex-flow: row wrap;
+  align-items: center; justify-content: center;
 }
 .hdr-style-btn .hdr-lbl {
-  display: inline-block;
-  height: calc(var(--hdr-u) * 1.05);
-  line-height: calc(var(--hdr-u) * 1.05);
-  vertical-align: middle;
-  margin: 0;
+  flex-basis: 100%;
+  display: flex; align-items: center; justify-content: center;
+  height: auto; margin: 0; padding-bottom: 1px;
+  position: relative;
+}
+.hdr-style-btn .hdr-lbl::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 18%; right: 18%;
+  height: 0.5px;
+  background: linear-gradient(90deg, transparent, var(--rule) 25%, var(--rule) 75%, transparent);
 }
 .hdr-style-btn .hdr-val {
   font-family: var(--serif); font-style: italic;
   font-size: 14px; font-weight: 500; letter-spacing: 0;
   color: var(--acc);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 76px;
-  /* Centrado vertical robusto: inline-block + line-height = full height */
-  display: inline-block;
-  height: calc(var(--hdr-u) * 1.05);
-  line-height: calc(var(--hdr-u) * 1.05);
-  vertical-align: middle;
-  transform: none;
-  padding: 0;
-  flex: none;
+  max-width: 100%;
+  display: block; text-align: center;
+  height: auto; line-height: 1.1;
+  transform: none; padding: 0;
 }
 .hdr-style-btn .hdr-val.is-empty { color: var(--ink3); font-style: normal; font-size: 13px; }
 
@@ -5781,11 +5914,17 @@ body.landscape-mode #track-sheet .s-body {
 .sp-clear:hover { color: var(--ink); border-color: var(--ink3); }
 .sp-clear.is-active { color: var(--ink); border-color: var(--ink3); }
 .hdr-stepper .hdr-chevs {
+  /* v27.248 — En layout vertical, las flechas van junto al valor BPM en la
+     2ª fila. Sin border-left (la división ahora es horizontal).
+     v27.249 — Chevs compactas (10px) para no exceder la altura fija del
+     botón y mantener BPM a la misma altura que KEY. */
   display: flex; flex-direction: column;
-  justify-content: center; align-items: center; gap: 3px;
-  padding: 0 3px 0 5px;
-  border-left: 0.5px solid rgba(0,0,0,.1);
-  height: 100%;
+  justify-content: center; align-items: center; gap: 1px;
+  padding: 0 0 0 4px;
+  height: auto;
+}
+.hdr-stepper .hdr-chev {
+  width: 16px; height: 10px;
 }
 .hdr-stepper .hdr-chev {
   width: 18px; height: 13px;
@@ -5804,12 +5943,15 @@ body.landscape-mode #track-sheet .s-body {
    y var(--acc3) para que el botón siga el preset activo y los cambios del
    Color Engine Wheel. Mismo cambio que #pro-btn. */
 .hdr-pro-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  /* v27.248 — Layout vertical: "PRO" arriba, niveles "1 2 3" abajo, con
+     línea divisoria sutil. Mismo principio que los otros steppers. */
+  display: flex; flex-flow: column; align-items: center; justify-content: center;
   background: var(--acc);
   color: #fff;
   border-radius: 10px;
-  height: calc(var(--hdr-u) * 1.05);
-  padding: 0 12px;
+  /* v27.249 — Altura fija idéntica a los otros 3 botones. */
+  height: calc(var(--hdr-u) * 1.46 - 8px);
+  padding: 3px 12px 4px;
   width: max-content;
   justify-self: start;
   flex-shrink: 0;
@@ -5817,14 +5959,34 @@ body.landscape-mode #track-sheet .s-body {
   border: 1.5px solid var(--acc);
   cursor: pointer;
   font-family: var(--sans);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.1px;
-  text-transform: uppercase;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.18), 0 2px 6px var(--acc3);
   transition: transform 100ms, filter 100ms;
   -webkit-font-smoothing: antialiased;
 }
+.hdr-pro-btn .hdr-pro-lbl {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.1px;
+  text-transform: uppercase;
+  position: relative;
+  padding-bottom: 1px; margin-bottom: 0;
+  width: 100%; text-align: center;
+}
+.hdr-pro-btn .hdr-pro-lbl::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 12%; right: 12%;
+  height: 0.5px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+}
+.hdr-pro-btn .hdr-pro-levels {
+  display: flex; gap: 6px; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.hdr-pro-btn .pro-lv {
+  font-size: 11px; font-weight: 700; font-style: normal;
+  opacity: .4;            /* niveles inactivos atenuados */
+  transition: opacity .15s;
+}
+.hdr-pro-btn .pro-lv.active { opacity: 1; }
 .hdr-pro-btn:hover { filter: brightness(1.08); }
 .hdr-pro-btn:active { transform: scale(.94); }
 /* v21.1.3 — Tamaño consistente activado/desactivado: el ✓ adicional NO debe
@@ -8183,9 +8345,15 @@ body.mixer-dragging *{touch-action:none !important}
     <span class="hdr-lbl">Style</span>
     <span class="hdr-val is-empty" id="hdr-style-v">—</span>
   </button>
-  <!-- v21.1.2 — Botón PRO: removida la estrella SVG · solo texto "PRO" (más compacto, no se corta en iPhone). -->
+  <!-- v21.1.2 — Botón PRO: removida la estrella SVG · solo texto "PRO" (más compacto, no se corta en iPhone).
+       v27.248 — Layout 2 líneas: "PRO" arriba, niveles "1 2 3" abajo. Por ahora
+       solo PRO 1 está implementado (enriquece acordes). PRO 2 y PRO 3 quedan
+       previstos (grisados) para futuras variaciones de sugerencia armónica. -->
   <button class="hdr-pro-btn" id="hdr-pro-btn" onclick="togglePro()" aria-label="Enriquecer acordes (PRO)" title="Convierte acordes simples a versión PRO según estilo">
-    <span>PRO</span>
+    <span class="hdr-pro-lbl">PRO</span>
+    <span class="hdr-pro-levels">
+      <b class="pro-lv active" data-pro="1">1</b><b class="pro-lv" data-pro="2">2</b><b class="pro-lv" data-pro="3">3</b>
+    </span>
   </button>
 </div>
 </div><!-- /#hdr-row -->
@@ -8810,7 +8978,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.247</span>
+      <span class="title" id="dkv-title">Vista kit · v27.261</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -45551,7 +45719,11 @@ function _syncHeaderPresetLabel() {
     if (p) {
       // v27.168 — Mostrar shortLabel ("Rock 1 M" / "Rock 1 m") en lugar del nombre largo,
       // que rompía el diseño del header con descripciones de 30+ caracteres.
-      el.textContent = p.shortLabel || p.label;
+      // v27.248 — Límite duro de ancho: 8 chars de nombre + " " + modo (M/m) + nivel.
+      // Si el nombre base supera 8 chars, se trunca. Evita que un estilo largo
+      // desajuste el header (ancho fijo 84px en CSS).
+      let label = p.shortLabel || p.label || '';
+      el.textContent = _truncStyleLabel(label);
       el.classList.remove('is-empty');
       return;
     }
@@ -45559,6 +45731,23 @@ function _syncHeaderPresetLabel() {
   el.textContent = '—';
   el.classList.add('is-empty');
 }
+// v27.248 — Trunca el nombre base del estilo a 8 caracteres, preservando el
+// sufijo " <nivel> <modo>" (ej. "1 M") si está presente. "Diatónico clásico 1 M"
+// → "Diatónic 1 M". El ancho fijo del botón (CSS) + ellipsis cubren el resto.
+function _truncStyleLabel(label) {
+  if (!label) return label;
+  // Separar sufijo tipo " 1 M" / " 2 m" del nombre base
+  const m = label.match(/^(.*?)(\s+\d+\s*[Mm])\s*$/);
+  if (m) {
+    const base = m[1].trim();
+    const suffix = m[2].trim();
+    const baseTrunc = base.length > 8 ? base.slice(0, 8) : base;
+    return baseTrunc + ' ' + suffix;
+  }
+  // Sin sufijo reconocible: truncar a 8 chars
+  return label.length > 8 ? label.slice(0, 8) : label;
+}
+window._truncStyleLabel = _truncStyleLabel;
 window._syncHeaderPresetLabel = _syncHeaderPresetLabel;
 
 // ════════════════════════════════════════════════════════════════════
@@ -55234,7 +55423,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.247',
+    version: 'v27.261',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
