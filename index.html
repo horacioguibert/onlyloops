@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.339</title>
+<title>OnlyLoops · v27.340</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -9165,7 +9165,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.339</span>
+      <span class="title" id="dkv-title">Vista kit · v27.340</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55669,17 +55669,25 @@ function _spddRender() {
       const fechaStr = fecha.getDate() + '/' + (fecha.getMonth()+1) + '/' + fecha.getFullYear();
       const numTracks = (loop.tracks || []).length;
       const safeLabel = (loop.label || 'Sin nombre').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+      // v27.340 — Si es built-in (embebido en código, no borrable), mostrar
+      // "Preset fijo" en lugar de "Guardado <fecha>" y omitir el botón ✕.
+      const isBuiltin = !!loop.builtin;
+      const dateLine = isBuiltin ? 'Preset fijo · ' + fechaStr : 'Guardado ' + fechaStr;
+      const starIcon = isBuiltin ? '★' : '⭐';
+      const deleteBtn = isBuiltin
+        ? ''
+        : '<button class="del-btn" onclick="event.stopPropagation();_spddDeleteUserLoop(\'' + loop.id + '\',&quot;' + safeLabel + '&quot;)" aria-label="Borrar loop">✕</button>';
       return (
-        '<button class="sp-dd-card user" data-loop-id="' + loop.id + '" onclick="_spddApplyUserLoop(\'' + loop.id + '\')">' +
-          '<div class="sp-dd-level">⭐</div>' +
+        '<button class="sp-dd-card user' + (isBuiltin ? ' builtin' : '') + '" data-loop-id="' + loop.id + '" onclick="_spddApplyUserLoop(\'' + loop.id + '\')">' +
+          '<div class="sp-dd-level">' + starIcon + '</div>' +
           '<div class="sp-dd-cbody">' +
             '<div class="sp-dd-cname">' + safeLabel + '</div>' +
             '<div class="sp-dd-cchords">' + (loop.bpm || 120) + ' BPM · ' + (loop.key || 'A') + (loop.keyMode === 'minor' ? 'm' : '') + ' · ' + numTracks + ' tracks</div>' +
-            '<div class="sp-dd-cdesc">Guardado ' + fechaStr + '</div>' +
+            '<div class="sp-dd-cdesc">' + dateLine + '</div>' +
           '</div>' +
           '<div class="sp-dd-card-acts">' +
             '<button class="ulx-btn" onclick="event.stopPropagation();_openUserLoopExport(\'' + loop.id + '\')" aria-label="Exportar para Claude" title="Exportar JSON para Claude">📤</button>' +
-            '<button class="del-btn" onclick="event.stopPropagation();_spddDeleteUserLoop(\'' + loop.id + '\',&quot;' + safeLabel + '&quot;)" aria-label="Borrar loop">✕</button>' +
+            deleteBtn +
           '</div>' +
         '</button>'
       );
@@ -55760,7 +55768,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.339',
+    version: 'v27.340',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -55944,16 +55952,151 @@ window._spddClear = _spddClear;
 const _USER_LOOPS_KEY = 'ol_user_loops';
 
 // Lee la lista de loops del usuario · siempre array
+// v27.340 — BUILTIN_USER_LOOPS: presets de Horacio embebidos en el código.
+// A diferencia de los user_loops que viven en localStorage (se pierden al
+// cambiar de dispositivo), estos están hardcoded en el HTML y aparecen en
+// "Mis loops ⭐" desde cualquier iPhone/iPad/PC donde se abra la app.
+// Formato idéntico al de user_loops (flat: id, label, createdAt, bpm, key,
+// keyMode, keyIdx, bars, bpb, tracks[]). Marcado con builtin:true para que
+// la UI no permita borrarlo.
+const BUILTIN_USER_LOOPS = [
+  {
+    id: "user_1780181119125_uqil",
+    label: "HG 1 para modular",
+    createdAt: "2026-05-30T22:45:19.125Z",
+    builtin: true,
+    bpm: 120,
+    key: "Ab",
+    keyMode: "major",
+    keyIdx: 8,
+    bars: 4,
+    bpb: 4,
+    tracks: [
+      {
+        n: "Piano",
+        inst: "salamander",
+        vol: 0.5,
+        muted: false,
+        drum: false,
+        sound: "salamander",
+        defaultEstilo: null,
+        defaultTech: null,
+        defaultVar: null,
+        chorus: false,
+        delay: false,
+        reverb: false,
+        clips: [
+          { r:"C#", s:"m7",   sb:0,    lb:0.5, grade:"ii7", tech:"BALADA", v:"Imagine style", estilo:"todos" },
+          { r:"C#", s:"m7",   sb:0.5,  lb:0.5, grade:"ii7", tech:"BALADA", v:"Imagine style" },
+          { r:"C#", s:"m7",   sb:3.5,  lb:0.5, grade:"ii7", tech:"BALADA", v:"Imagine style" },
+          { r:"Ab", s:"maj9", sb:4,    lb:0.5, grade:"I",   tech:"BALADA", v:"Imagine style", estilo:"todos" },
+          { r:"Ab", s:"maj7", sb:6,    lb:0.5, grade:"I",   tech:"BALADA", v:"Imagine style", estilo:"todos", oct:0 },
+          { r:"Ab", s:"maj7", sb:6.5,  lb:1.5, grade:"I",   tech:"BALADA", v:"Imagine style", estilo:"todos", oct:1 },
+          { r:"Ab", s:"maj7", sb:5.5,  lb:0.5, grade:"I",   tech:"BALADA", v:"Imagine style", estilo:"todos" },
+          { r:"C#", s:"m7",   sb:8,    lb:0.5, grade:"ii7", tech:"BALADA", v:"Imagine style", estilo:"todos" },
+          { r:"C#", s:"m7",   sb:8.5,  lb:0.5, grade:"ii7", tech:"BALADA", v:"Imagine style" },
+          { r:"C#", s:"m7",   sb:11.5, lb:0.5, grade:"ii7", tech:"BALADA", v:"Imagine style" },
+          { r:"Ab", s:"maj9", sb:12,   lb:0.5, grade:"I",   tech:"BALADA", v:"Imagine style", estilo:"todos" },
+          { r:"Ab", s:"maj7", sb:14,   lb:0.5, grade:"I",   tech:"BALADA", v:"Imagine style", estilo:"todos", oct:0 },
+          { r:"Ab", s:"maj7", sb:14.5, lb:1.5, grade:"I",   tech:"BALADA", v:"Imagine style", estilo:"todos", oct:1 },
+          { r:"Ab", s:"maj7", sb:13.5, lb:0.5, grade:"I",   tech:"BALADA", v:"Imagine style", estilo:"todos" }
+        ]
+      },
+      {
+        n: "Bass",
+        inst: "bass_acoustic",
+        vol: 0.5,
+        muted: false,
+        drum: false,
+        sound: "bass_acoustic",
+        defaultEstilo: null,
+        defaultTech: null,
+        defaultVar: null,
+        chorus: false,
+        delay: false,
+        reverb: false,
+        clips: [
+          { r:"C#", s:"minor", sb:0,  lb:4, grade:"ii", tech:"WALKING", v:"Carter" },
+          { r:"Ab", s:"maj7",  sb:4,  lb:4, grade:"I",  tech:"WALKING", v:"Carter" },
+          { r:"C#", s:"minor", sb:8,  lb:4, grade:"ii", tech:"WALKING", v:"Carter" },
+          { r:"Ab", s:"maj7",  sb:12, lb:4, grade:"I",  tech:"WALKING", v:"Carter" }
+        ]
+      },
+      {
+        n: "Strings",
+        inst: "strings_ensemble",
+        vol: 0.5,
+        muted: false,
+        drum: false,
+        sound: "strings_ensemble",
+        defaultEstilo: null,
+        defaultTech: null,
+        defaultVar: null,
+        chorus: false,
+        delay: false,
+        reverb: false,
+        clips: [
+          { r:"C#", s:"minor", sb:0,  lb:4, grade:"ii", tech:"HOLD", v:"Whole" },
+          { r:"Ab", s:"maj7",  sb:4,  lb:4, grade:"I",  tech:"HOLD", v:"Whole" },
+          { r:"C#", s:"minor", sb:8,  lb:4, grade:"ii", tech:"HOLD", v:"Whole" },
+          { r:"Ab", s:"maj7",  sb:12, lb:4, grade:"I",  tech:"HOLD", v:"Whole" }
+        ]
+      },
+      {
+        n: "Drums",
+        inst: "drums",
+        vol: 0.5,
+        muted: false,
+        drum: true,
+        sound: null,
+        defaultEstilo: null,
+        defaultTech: null,
+        defaultVar: null,
+        chorus: false,
+        delay: false,
+        reverb: false,
+        clips: [
+          { r:0,    s:"",      sb:0,    lb:1,   tech:"PATCH_1", v:"8vos hat",    estilo:"rock" },
+          { r:0,    s:"",      sb:1,    lb:1,   tech:"PATCH_1", v:"8vos hat",    estilo:"rock" },
+          { r:0,    s:"",      sb:2,    lb:0.5, tech:"PATCH_1", v:"8vos hat",    estilo:"rock" },
+          { r:0,    s:"",      sb:3,    lb:1,   tech:"PATCH_1", v:"8vos hat",    estilo:"rock" },
+          { r:"Ab", s:"major", sb:4,    lb:1,   grade:"I", tech:"PATCH_2", v:"Walking Moon", estilo:"rock" },
+          { r:"Ab", s:"major", sb:5.5,  lb:1,   grade:"I", tech:"PATCH_2", v:"Walking Moon", estilo:"rock" },
+          { r:"Ab", s:"major", sb:7,    lb:0.5, grade:"I", tech:"PATCH_2", v:"Walking Moon", estilo:"rock" },
+          { r:0,    s:"",      sb:8,    lb:1,   tech:"PATCH_1", v:"8vos hat",    estilo:"rock" },
+          { r:0,    s:"",      sb:9,    lb:1,   tech:"PATCH_1", v:"8vos hat",    estilo:"rock" },
+          { r:0,    s:"",      sb:10,   lb:0.5, tech:"PATCH_1", v:"8vos hat",    estilo:"rock" },
+          { r:0,    s:"",      sb:11,   lb:1,   tech:"PATCH_1", v:"8vos hat",    estilo:"rock" },
+          { r:"Ab", s:"major", sb:12,   lb:1,   grade:"I", tech:"PATCH_2", v:"Walking Moon", estilo:"rock" },
+          { r:"Ab", s:"major", sb:13.5, lb:1,   grade:"I", tech:"PATCH_2", v:"Walking Moon", estilo:"rock" },
+          { r:"Ab", s:"major", sb:15,   lb:0.5, grade:"I", tech:"PATCH_2", v:"Walking Moon", estilo:"rock" }
+        ]
+      }
+    ]
+  }
+];
+
 function _loadUserLoops(){
+  // v27.340 — Prepend BUILTIN_USER_LOOPS al inicio. Estos vienen embebidos
+  // en el código y aparecen en cualquier dispositivo (iPhone/iPad/PC). Los
+  // del localStorage van después.
+  let stored = [];
   try {
     const raw = localStorage.getItem(_USER_LOOPS_KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) stored = arr;
+    }
   } catch(e){
     console.warn('[MY LOOPS] error parsing:', e);
-    return [];
   }
+  // Filtrar duplicados: si un id de BUILTIN_USER_LOOPS también está en
+  // localStorage (porque el usuario guardó algo con el mismo id), el built-in
+  // gana — descartamos el local para evitar duplicar la card.
+  const builtinIds = (typeof BUILTIN_USER_LOOPS !== 'undefined')
+    ? BUILTIN_USER_LOOPS.map(b => b.id) : [];
+  const filteredStored = stored.filter(s => !s || !s.id || builtinIds.indexOf(s.id) < 0);
+  return (BUILTIN_USER_LOOPS || []).concat(filteredStored);
 }
 
 // Guarda la lista entera
