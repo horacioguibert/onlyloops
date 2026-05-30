@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.277</title>
+<title>OnlyLoops · v27.332</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1022,10 +1022,11 @@
   display: none !important;
 }
 
-/* v27.21 — Editor de Batería: ocultar intervalos T 3 5 + grilla ilustrativa.
-   Batería no tiene acordes, así que esa información carece de sentido. */
-.chord-sheet-drums #cs-int,
-.chord-sheet-drums #cs-tech-formula {
+/* v27.21 — Editor de Batería: ocultar intervalos T 3 5.
+   Batería no tiene acordes, así que esa información carece de sentido.
+   v27.324 — Grilla cs-tech-formula eliminada del chord-editor (su regla
+   compartida acá se simplificó: ya solo aplica a #cs-int). */
+.chord-sheet-drums #cs-int {
   display: none !important;
 }
 
@@ -1156,10 +1157,13 @@
   background:var(--card,#faf6ee);
   border-top-left-radius:18px;border-top-right-radius:18px;
   display:flex;flex-direction:column;
-  height:calc(70vh - 10px); /* v27.25 — 10px más bajo respecto a v27.24 (70vh).
-                  El comportamiento sigue siendo igual: tapa la foto del kit
-                  del chord-editor sin invadir el sequencer, solo 10px más
-                  abajo según pedido visual del arquitecto. */
+  height:calc(70vh - 55px); /* v27.25 — 10px más bajo respecto a v27.24 (70vh).
+                  v27.327 — 45px adicionales más bajo (10→55px total restados)
+                  para que la apertura del DKV NO tape el clip del sequencer
+                  que está siendo editado. Permite ver clip + kit al mismo
+                  tiempo (pedido del arquitecto). Como el overlay está anclado
+                  a flex-end, reducir la altura sube el TOP del panel sin
+                  perder el anclaje inferior. */
   min-height:30vh;max-height:90vh;
   /* v23.7 — Panel sin stacking context propio: el overlay ya se mueve
      al body en openDrumKitView, eso aísla el DKV del transform de #app.
@@ -1249,12 +1253,16 @@
    browser (no solo a vh genérico), permitiendo que el SVG se contenga
    con max-height:100% dentro del body. */
 @media (max-width: 480px) {
-  /* Mobile portrait — panel más alto para aprovechar el alto disponible */
-  #dkv-panel { height:75vh; min-height:50vh; max-height:92vh; }
+  /* Mobile portrait — panel más alto para aprovechar el alto disponible.
+     v27.327 — -45px para que NO tape el clip del sequencer (igual lógica
+     que la regla default). */
+  #dkv-panel { height:calc(75vh - 45px); min-height:50vh; max-height:92vh; }
 }
 @media (max-width: 920px) and (orientation: landscape) {
-  /* Mobile landscape / tablet horizontal — panel más compacto */
-  #dkv-panel { height:85vh; min-height:60vh; max-height:95vh; }
+  /* Mobile landscape / tablet horizontal — panel más compacto.
+     v27.327 — -45px para que NO tape el clip del sequencer (igual lógica
+     que la regla default). */
+  #dkv-panel { height:calc(85vh - 45px); min-height:60vh; max-height:95vh; }
   #dkv-body { padding:4px 12px 2px; }
 }
 @media (min-width: 1024px) {
@@ -3047,19 +3055,23 @@ body.landscape-mode #inst-sheet .is-mw-landscape-only {
    en landscape ocultar TODO el contenido del header (acorde grande,
    fórmula, grilla técnica, meta) y mantener SOLO los botones ✓ (aplicar
    + cerrar) y 🗑 (eliminar) en la esquina superior derecha. Los wheels
-   ocupan naturalmente el espacio liberado. Portrait NO se toca. */
+   ocupan naturalmente el espacio liberado. Portrait NO se toca.
+   v27.326 — padding-right 12→16px para que los iconos ▶ ✓ 🗑 no salgan
+   cortados contra el borde derecho (ver también regla .cs-icons-row más
+   abajo que anula el transform inline). */
 body.landscape-mode #chord-sheet .cs-header-3col {
   display: flex !important;
   justify-content: flex-end;
   align-items: center;
-  padding: 6px 12px 4px;
+  padding: 6px 16px 4px;
   margin-bottom: 4px;
   min-height: 0;
 }
 body.landscape-mode #chord-sheet .cs-header-3col .cs-col-left,
 body.landscape-mode #chord-sheet .cs-header-3col .cs-col-center,
 body.landscape-mode #chord-sheet .cs-header-3col #cs-meta-track,
-body.landscape-mode #chord-sheet .cs-header-3col .cs-play {
+body.landscape-mode #chord-sheet .cs-header-3col .cs-play,
+body.landscape-mode #chord-sheet .cs-header-footer {
   display: none !important;
 }
 body.landscape-mode #chord-sheet .cs-header-3col .cs-col-right {
@@ -3069,7 +3081,14 @@ body.landscape-mode #chord-sheet .cs-header-3col .cs-col-right {
   text-align: right;
   min-width: 0;
 }
+/* v27.326 — Anular el transform:translateX(23px) inline de .cs-icons-row.
+   Ese desplazamiento está pensado para portrait (alinear visualmente con
+   la s-handle del sheet), pero en landscape empuja los iconos 23px FUERA
+   del padding-right del header → último botón cortado contra el viewport.
+   En landscape los iconos viven al borde derecho del header y respetan
+   el padding-right de 16px del contenedor. */
 body.landscape-mode #chord-sheet .cs-icons-row {
+  transform: none !important;
   flex-direction: row;
   gap: 12px;
   margin-right: 0;
@@ -4186,6 +4205,13 @@ body.landscape-mode #track-sheet .s-body {
   margin-left: auto;
   margin-right: auto;
 }
+/* v27.288 — Alineación header inst-sheet: título a la IZQUIERDA, botón cerrar a la DERECHA.
+   Antes quedaban pegados al medio. Forzamos space-between + text-align:left en
+   título + margin-left:auto en el botón para que el botón se vaya al extremo
+   derecho aunque el título sea corto y no estire por flex:1. */
+#inst-sheet .s-head{ justify-content: space-between; }
+#inst-sheet .s-title{ text-align: left; }
+#inst-sheet .s-head .shbtn{ margin-left: auto; }
 /* La .s-handle ya tiene `margin: 10px auto 6px` por defecto (margin-top/bottom
    específicos). El auto lateral del .s-handle preserva su centrado natural;
    acá lo aseguramos junto al max-width. */
@@ -4635,10 +4661,6 @@ body.landscape-mode #track-sheet .s-body {
    container aparte. Con 95% la foto del bajo tapaba el label. */
 
 .is-vw.is-vw-cards .is-vw-item img[data-inst="bass_acoustic"],
-.is-vw.is-vw-cards .is-vw-item img[data-inst="bass_acoustic"],
-.is-vw.is-vw-cards .is-vw-item img[data-inst="bass_acoustic"],
-.is-vw.is-vw-cards .is-vw-item img[data-inst="contrabass"],
-.is-vw.is-vw-cards .is-vw-item img[data-inst="bass_acoustic"],
 /* v16.3.35 — Piano cleanup: solo Salamander queda. Cubre legacy 'piano' alias. */
 .is-vw.is-vw-cards .is-vw-item img[data-inst="piano"],
 .is-vw.is-vw-cards .is-vw-item img[data-inst="salamander"]{
@@ -4648,10 +4670,6 @@ body.landscape-mode #track-sheet .s-body {
   transform:translate(-50%,-50%);
 }
 /* v16.5.3-clean — Active scale neutral para piano/bajo (no rotación). */
-.is-vw.is-vw-cards .is-vw-item.active img[data-inst="bass_acoustic"],
-.is-vw.is-vw-cards .is-vw-item.active img[data-inst="bass_acoustic"],
-.is-vw.is-vw-cards .is-vw-item.active img[data-inst="bass_acoustic"],
-.is-vw.is-vw-cards .is-vw-item.active img[data-inst="contrabass"],
 .is-vw.is-vw-cards .is-vw-item.active img[data-inst="bass_acoustic"],
 .is-vw.is-vw-cards .is-vw-item.active img[data-inst="salamander"]{
   transform:translate(-50%,-50%);
@@ -5046,10 +5064,13 @@ body.landscape-mode #track-sheet .s-body {
   background-position:center,calc(100% - 10px) center;
 }
 .cew-hw-sel{
-  /* v17.5.8 — recuadro 4px más ancho (68→72) sin tocar altura ni items. */
+  /* v17.5.8 — recuadro 4px más ancho (68→72) sin tocar altura ni items.
+     v27.323 — +5px más de ancho (72→77) para que textos largos como
+     "Caugmaj13" o "Cmaj7♯5" queden holgados dentro del marco activo.
+     Altura (top:2 / bottom:2) y items (68×60) sin cambios. */
   position:absolute;left:50%;top:2px;bottom:2px;
   transform:translateX(-50%);
-  width:72px;
+  width:77px;
   border:1.5px solid var(--acc3);border-radius:10px;
   background:var(--acc2);pointer-events:none;z-index:1;
 }
@@ -5065,6 +5086,23 @@ body.landscape-mode #track-sheet .s-body {
   line-height:1.1;text-align:center;padding:0 3px;
 }
 .cew-hw-item.chwa{color:var(--ink);font-size:22px}
+/* v27.322 — Superíndice para extensiones/alteraciones del sufijo en la rueda
+   del chord-editor. Renderiza la parte "sup" devuelta por _splitSufDisplay():
+   alteraciones (♭5, ♯5, ♭9, ♯11, ♭13...), modificadores sus/add tras un núcleo,
+   y maj7/9/13 tras aug. Tamaño 0.6em da ~10.2px inactivo / ~13.2px activo —
+   proporcional al item sin perder legibilidad. line-height:0 evita que empuje
+   verticalmente el item (mantiene altura 60px). El selector NO discrimina por
+   id de wheel porque <sup> SOLO se emite desde los dos builders de sufijos
+   (cewDualBuild→buildW2 y _cewBuildSufWheel) — root/fam/tech/dur/oct/subtech
+   nunca generan <sup>, por lo que esta regla nunca se les aplica. */
+.cew-hw-item sup{
+  font-size: 0.6em;
+  vertical-align: super;
+  line-height: 0;
+  font-style: italic;
+  font-weight: 600;
+  margin-left: 0.5px;
+}
 /* v17.5.10 — Interlineado reducido 20% (1.1 → 0.88) SOLO en el wheel de
    SUBTÉCNICA del chord-editor (#cew-hw6) y del inst-sheet (data-mw=subtech).
    Para textos de 3 líneas tipo "Tears in Heaven", "Bridge over Water",
@@ -5191,14 +5229,13 @@ body.landscape-mode #track-sheet .s-body {
 .tlbl-v2 .tlbl-img[data-inst="gtr_strat"],
 
 
-/* v17.3.13 — bass_acoustic/electric/fretless usan mismo styling que el contrabass. */
+/* v27.280 — Styling unificado del bajo acústico (bass_acoustic). */
 /* v24.13 — Bajo agrandado 20% SOLO en sequencer (50%→60%). Separado del bloque
    piano/salamander que mantiene 50%. Misma posición (margin-top:10%) para
    conservar el centrado visual original. NO afecta editor de instrumentos
    (.is-slot-img) ni mixer (.tcell-instr).
    v24.14 — +15% más sobre el 60% → 69% (50% × 1.20 × 1.15). */
-.tlbl-v2 .tlbl-img[data-inst="bass_acoustic"],
-.tlbl-v2 .tlbl-img[data-inst="contrabass"] {
+.tlbl-v2 .tlbl-img[data-inst="bass_acoustic"] {
   width: 69% !important;
   height: 69% !important;
   margin-top: 10%;
@@ -6108,7 +6145,10 @@ body.landscape-mode #hdr-band1 > #hdr-live-btn {
      del flex flow), por eso no toco el wrapper. */
   position: absolute;
   left: 0; right: 0;
-  top: calc(var(--nav-h) + var(--tr-h) + var(--ruler-h) + var(--track-h) + 10px);
+  /* v27.288 — Bajado UN track: ahora ancla al borde inferior del SEGUNDO track
+     (antes 1er track). Eliminamos un wheel del config, no hace falta abrir
+     tan arriba. Solo afecta portrait (landscape tiene su override con !important). */
+  top: calc(var(--nav-h) + var(--tr-h) + var(--ruler-h) + var(--track-h) + var(--track-h) + 10px);
   bottom: calc(var(--bot-h) + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
@@ -6231,34 +6271,43 @@ body.landscape-mode #hdr-band1 > #hdr-live-btn {
   flex-shrink: 0;
 }
 .lnf-back {
-  width: 46px; height: 34px;
+  width: 46px;
+  height: 36px;
   border-radius: 10px;
-  background: var(--acc2);
-  border: 1.5px solid var(--acc3);
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--acc) 35%, var(--rule));
   display: flex; align-items: center; justify-content: center;
-  gap: 3px;
   cursor: pointer; flex-shrink: 0;
-  transition: background .12s, transform .1s, box-shadow .14s;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  transition: background .15s ease, border-color .15s ease,
+              box-shadow .15s ease, transform .1s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05),
+              inset 0 1px 0 rgba(255,255,255,.4);
 }
-.lnf-back:hover { background: color-mix(in srgb, var(--acc) 18%, var(--card)); }
-.lnf-back:active { background: var(--acc); transform: scale(.96); }
+.lnf-back:hover {
+  background: color-mix(in srgb, var(--acc) 7%, var(--card));
+  border-color: var(--acc);
+  box-shadow: 0 2px 8px rgba(0,0,0,.08),
+              inset 0 1px 0 rgba(255,255,255,.5);
+  transform: translateY(-1px);
+}
+.lnf-back:active {
+  background: var(--acc);
+  border-color: var(--acc);
+  transform: translateY(0) scale(.94);
+  box-shadow: 0 1px 2px rgba(0,0,0,.1);
+}
 .lnf-back .lnf-back-arrow {
-  width: 16px; height: 16px;
-  stroke: var(--acc);
-  stroke-width: 2.6;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  display: none;
 }
 .lnf-back .lnf-back-save {
-  width: 13px; height: 13px;
+  width: 16px; height: 16px;
   stroke: var(--acc);
-  stroke-width: 2;
+  stroke-width: 1.8;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: .88;
+  transition: stroke .15s ease;
+  flex-shrink: 0;
 }
 .lnf-back:active .lnf-back-arrow,
 .lnf-back:active .lnf-back-save { stroke: var(--card); }
@@ -6407,8 +6456,13 @@ body.landscape-mode #hdr-band1 > #hdr-live-btn {
 .lnf-lum-row .sun, .lnf-lum-row .moon {
   font-size: 16px;
   line-height: 1;
-  filter: grayscale(0.3);
 }
+/* v27.288 — Sol dorado vibrante, luna negra silueta.
+   Emojis Unicode no se colorean con color:, se usa filter.
+   saturate(1.6) brightness(1.05) → ☀ más saturado y vibrante.
+   brightness(0) → 🌙 silueta negra pura. */
+.lnf-lum-row .sun { filter: saturate(1.6) brightness(1.05); }
+.lnf-lum-row .moon { filter: brightness(0); }
 /* Indicador visual de a qué picker aplica el slider */
 .lnf-lum-row .lum-target {
   font-family: var(--mono);
@@ -6883,10 +6937,13 @@ body.landscape-mode #hdr-band1 > #hdr-live-btn {
   margin: 14px auto 10px;
 }
 /* v27.158 — Layout horizontal: clip preview izquierda + botón Guardar derecha. */
+/* v27.285 — Centrado del conjunto en cualquier pantalla. Botón sin borde ni
+   texto, solo el ícono pegado a la derecha del clip (gap: 10px). */
 .lnf-bottom-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 10px;
   margin: 14px 0 10px;
   flex-wrap: nowrap;
 }
@@ -6894,66 +6951,16 @@ body.landscape-mode #hdr-band1 > #hdr-live-btn {
   margin: 0;
   flex: 0 0 auto;
 }
-.lnf-save-bottom {
-  flex: 1 1 auto;
-  min-width: 120px;
-  height: 72px;          /* = --track-h, igual altura que el clip preview */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 14px;
-  background: transparent;
-  border: 1.5px solid var(--acc);
-  border-radius: 8px;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--acc);
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background-color .15s, color .15s, border-color .15s, transform .1s;
-  -webkit-tap-highlight-color: transparent;
-}
-.lnf-save-bottom:hover {
-  background: color-mix(in srgb, var(--acc) 8%, transparent);
-}
-.lnf-save-bottom:active {
-  background: var(--acc);
-  color: var(--card);
-  transform: scale(.97);
-}
-.lnf-save-bottom:active .lnf-save-bottom-icon {
-  stroke: var(--card);
-}
-.lnf-save-bottom-icon {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  flex-shrink: 0;
-}
-.lnf-save-bottom-label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
-/* v27.158 — Estado ALERTA: cuando los 3 slots custom están llenos y el usuario
-   intenta guardar. El botón se pone rojo (--err) y vibra brevemente. Aplica
-   tanto a .lnf-save-bottom como a .lnf-back (diskette superior). */
-.lnf-save-bottom.lnf-save-alert,
+/* v27.286 — CSS de .lnf-save-bottom* eliminado (botón inferior removido).
+   La función queda en el diskette superior izquierdo (.lnf-back).
+   Estado ALERTA preservado solo para .lnf-back. */
 .lnf-back.lnf-save-alert {
   background: var(--err) !important;
   border-color: var(--err) !important;
   color: #fff !important;
   animation: lnfSaveAlertShake .42s cubic-bezier(.36,.07,.19,.97) both;
 }
-.lnf-save-bottom.lnf-save-alert .lnf-save-bottom-icon,
 .lnf-back.lnf-save-alert .lnf-back-save,
 .lnf-back.lnf-save-alert .lnf-back-arrow {
   stroke: #fff !important;
@@ -7565,11 +7572,7 @@ body.landscape-mode #hdr-band1 > #hdr-live-btn {
    diagonal -45°. */
 .tcell-instr img[data-inst="gtr_strat"],
 
-/* v17.3.13 — bass_acoustic/electric/fretless usan mismo styling que el contrabass. */
-.tcell-instr img[data-inst="bass_acoustic"],
-.tcell-instr img[data-inst="bass_acoustic"],
-.tcell-instr img[data-inst="bass_acoustic"],
-.tcell-instr img[data-inst="contrabass"],
+/* v27.280 — Styling unificado del bajo acústico (bass_acoustic). */
 .tcell-instr img[data-inst="bass_acoustic"],
 .tcell-instr img[data-inst="piano"],
 .tcell-instr img[data-inst="salamander"]{width:85%;height:60%}
@@ -7924,7 +7927,7 @@ body.mixer-dragging *{touch-action:none !important}
 //    Bugs visibles resueltos:
 //      · Subtécnicas legacy contaminando piano+Rock (CC4 auditoría)
 //      · Wheel SONIDO vacío en guitarra+Rock (CC1 auditoría)
-//      · Bajo+Rock con técnicas contrabass legacy (Arco/Pizz/etc.)
+//      · Bajo acústico R2 (cromático E1→C4)
 //  ════════════════════════════════════════════════════════════════════
 //
 //  ════════════════════════════════════════════════════════════════════
@@ -8110,6 +8113,7 @@ body.mixer-dragging *{touch-action:none !important}
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  align-items: flex-start;
   /* v20.5.11 — permite que el contenido se comprima sin desbordar
      la celda del grid (CSS grid: min-content puede expandir el track). */
   min-width: 0;
@@ -8137,6 +8141,8 @@ body.mixer-dragging *{touch-action:none !important}
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  font-size: 13px;
+  line-height: 1.2;
 }
 #cs-meta-compas, #cs-meta-track {
   font-family: var(--font-serif, Georgia, serif);
@@ -8146,15 +8152,27 @@ body.mixer-dragging *{touch-action:none !important}
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
 #cs-meta-track { text-align: right; }
-/* v27.56 — cs-meta-compas movido a cs-col-center, debajo de la grilla técnica.
-   Texto centrado horizontalmente y con un margen superior pequeño para que
-   no quede pegado a la grilla. */
-.cs-col-center #cs-meta-compas {
-  text-align: center;
-  margin-top: 4px;
+
+/* v27.325 — Footer del header del chord-sheet: una fila flex con los
+   intervalos del acorde a la izquierda y el meta "Track N - Compás N" a la
+   derecha. align-items:baseline garantiza que ambos textos compartan la
+   MISMA línea base tipográfica (no el fondo de columnas con alturas
+   distintas como pasaba en el cs-header-3col). justify-content:space-between
+   los pega a los bordes. min-height:0 para no introducir altura extra
+   innecesaria. */
+.cs-header-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 2px 0 4px;
+  min-height: 0;
 }
+.cs-header-footer #cs-int        { text-align: left;  flex: 0 1 auto; }
+.cs-header-footer #cs-meta-compas{ text-align: right; flex: 0 1 auto; }
 
 /* Esconder el cs-title viejo: ahora la metadata vive en cs-meta-* */
 #cs-title { display: none !important; }
@@ -8444,8 +8462,8 @@ body.mixer-dragging *{touch-action:none !important}
     <!-- v15.0-DEMO — CDO/GDPR: detalle de datos almacenados + derecho de erasure -->
     <!-- v20.8.0 — APPLE/GOOGLE Stores compliance: About + drumkit atribuido.
          · Versión: dinámica desde document.title (ver init al final del body).
-         · Atribuciones: Salamander Piano (CC BY 3.0) + FluidR3 Acoustic Bass (MIT) + Salamander Drumkit (CC BY 3.0)
-           + Salamander Drumkit (CC BY-SA 3.0) — todos Alexander Holm/Otto Rubner.
+         · Atribuciones: Salamander Piano (CC BY 3.0) + FluidR3 GM Bass (MIT, Frank Wen)
+           + Salamander Drumkit (CC BY-SA 3.0).
          · Servidor: Cloudflare R2 (decisión 2026-05-05). Antes era tonejs.github.io.
          · GDPR/CCPA: botón borrar datos + política completa + SBOM licencias. -->
     <div id="cfg-about" class="cfg-about" aria-label="Información de la aplicación">
@@ -8454,7 +8472,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div class="cfg-about-credits">
         Audio: <a href="https://tonejs.github.io" target="_blank" rel="noopener noreferrer">Tone.js</a> ·
         Piano: <a href="https://sfzinstruments.github.io/pianos/salamander/" target="_blank" rel="noopener noreferrer">Salamander Alexander Holm</a> (CC BY 3.0) ·
-        Bajo: FluidR3 GM SoundFont (CC0) ·
+        Bajo: <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noopener noreferrer">FluidR3 GM</a> (MIT, Frank Wen) ·
         Drums: <a href="https://sfzinstruments.github.io/drums/salamander_drumkit/" target="_blank" rel="noopener noreferrer">Salamander Drumkit Alexander Holm</a> (CC BY-SA 3.0)
       </div>
       <div class="cfg-privacy" role="region" aria-label="Datos y privacidad">
@@ -8469,8 +8487,8 @@ body.mixer-dragging *{touch-action:none !important}
           <li>Flag de elección manual de tema</li>
         </ul>
         <div class="cfg-privacy-body">
-          Los samples de audio (piano Salamander · bajo FluidR3 · drumkit Salamander — todos embebidos) se están embebidos en el archivo
-          desde Cloudflare R2. El resto de la app funciona 100% offline.
+          Los samples de audio (piano Salamander · bajo FluidR3 GM · drumkit Salamander — embebidos)
+          se cargan desde Cloudflare R2. El resto de la app funciona 100% offline.
         </div>
         <button type="button"
                 id="cfg-privacy-view-btn"
@@ -8564,23 +8582,11 @@ body.mixer-dragging *{touch-action:none !important}
                  cambios del color wheel + font wheel + slider de fonts.
                · Un botón "Guardar preset" que crea un custom preset y lo
                  deposita en el carrusel de CONFIG. -->
-        <!-- v27.158 — Layout horizontal: clip preview a la izquierda, botón
-             Guardar a la derecha. Misma función que el diskette de arriba
-             (lnfSaveAndClose). Pasa `this` para que la alerta de "sin slots"
-             se muestre en el botón clickeado. -->
+        <!-- v27.286 — Botón "Guardar preset" inferior ELIMINADO. La función
+             queda en el diskette superior izquierdo (.lnf-back → lnfSaveAndClose).
+             Ahora la fila inferior contiene solo el clip preview centrado. -->
         <div class="lnf-bottom-row">
           <canvas class="lnf-clip-preview" id="lnf-clip-preview-canvas" aria-label="Vista previa del clip"></canvas>
-          <button class="lnf-save-bottom" id="lnf-save-bottom-btn"
-                  type="button"
-                  onclick="lnfSaveAndClose(this)"
-                  aria-label="Guardar preset y cerrar">
-            <svg class="lnf-save-bottom-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/>
-              <rect x="7" y="4" width="9" height="5"/>
-              <rect x="7" y="13" width="10" height="7"/>
-            </svg>
-            <span class="lnf-save-bottom-label">Guardar</span>
-          </button>
         </div>
       </div>
     </div>
@@ -8884,16 +8890,15 @@ body.mixer-dragging *{touch-action:none !important}
           <!-- v27.21 — Label "Batería" SOLO visible en chord-sheet-drums (CSS toggle).
                Reemplaza al cifrado (cs-root + cs-suf) que estaba oculto. -->
           <div class="cd-drum-label" id="cs-drum-label">Batería</div>
-          <div class="cd-int" id="cs-int">T · 3m · 5 · 7m</div>
         </div>
-        <!-- v27.56 — #cs-meta-compas movido a cs-col-center debajo de la grilla
-             técnica, para que "Track 1 - Compás 1" quede en la misma línea
-             horizontal que "T · 3m · 5" (cs-int). -->
+        <!-- v27.325 — cs-int movido al wrapper cs-header-footer (abajo). -->
       </div>
       <div class="cs-col-center">
-        <div id="cs-tech-formula"><div class="tf-compact" style="opacity:.25">— —</div></div>
+        <!-- v27.324 — Grilla cs-tech-formula eliminada del chord-editor.
+             Esta columna ahora hostea SOLO el botón "Vista kit" (visible
+             cuando es chord-sheet-drums); en el resto de los casos queda
+             vacía (mantiene su ancho reservado por el grid 3-col). -->
         <!-- v27.22 — Botón "Vista kit" SOLO visible en chord-sheet-drums.
-             Reemplaza la grilla ilustrativa que no aplica a batería.
              Click abre el Drum Kit View. Foto real del kit (INST_IMG.drums)
              inyectada en runtime al abrir el chord-editor. -->
         <button id="cs-drum-kit-btn" class="cs-drum-kit-btn" type="button"
@@ -8902,23 +8907,30 @@ body.mixer-dragging *{touch-action:none !important}
           <img id="cs-drum-kit-img" alt="" draggable="false">
           <span class="cs-drum-kit-btn-label">Vista kit</span>
         </button>
-        <!-- v27.56 — #cs-meta-compas reubicado aquí (era col-left).
-             Queda debajo de la grilla técnica en la misma línea horizontal
-             que "T · 3m · 5" (cs-int) del col-left. -->
-        <div id="cs-meta-compas">Track 1 - Compás 1</div>
       </div>
       <div class="cs-col-right">
-        <div class="cs-icons-row">
+        <div class="cs-icons-row" style="transform:translateX(23px);">
+          <!-- v27.308 — Botón play visible, alineado con ✓ y 🗑 a la derecha. -->
+          <button class="ts-play-btn" id="cs-header-play-btn" onclick="togglePlay()" aria-label="Play/Pause">
+            <div class="ts-play-ic play-icon" id="cs-header-play-ic"></div>
+          </button>
           <button class="shbtn ok" onclick="applyEdit()" aria-label="Aplicar y cerrar">✓</button>
           <button class="shbtn del" onclick="deleteClip()" aria-label="Eliminar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
-          <!-- v27.56 — Botón ✕ ELIMINADO. La salida es via ✓ (aplicar y cerrar)
-               + swipe-down sobre el handle + tap-fuera del sheet. -->
         </div>
-        <button class="cs-play" id="cs-play-btn" onclick="previewChord()" style="display:none">
-          <div class="cs-play-ic"></div>
-        </button>
-        <div id="cs-meta-track">Ensamble · (notas)</div>
+        <!-- v27.325 — cs-meta-compas movido al wrapper cs-header-footer (abajo). -->
       </div>
+    </div>
+
+    <!-- v27.325 — Wrapper footer del chord-sheet header. Garantiza que los
+         intervalos del acorde (izquierda) y el meta "Track N - Compás N"
+         (derecha) queden en la MISMA fila horizontal y en la MISMA baseline,
+         sin importar la altura de las columnas del cs-header-3col de arriba.
+         Resuelve el bug histórico (v27.314→v27.321, 8 intentos fallidos) de
+         desalineación vertical entre intervalos y meta. En landscape se oculta
+         (espacio escaso, info redundante con los wheels). -->
+    <div class="cs-header-footer">
+      <div class="cd-int" id="cs-int">T · 3m · 5 · 7m</div>
+      <div id="cs-meta-compas">Track 1 - Compás 1</div>
     </div>
 
     <!-- v16.3.10 — 7 wheels apilados directamente en el s-body. Sin botones
@@ -9042,7 +9054,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.277</span>
+      <span class="title" id="dkv-title">Vista kit · v27.332</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -9696,7 +9708,44 @@ const SUF_D = {
   m6:'m6',m69:'m6/9',m7:'m7','m7b5':'ø7',m9:'m9',m11:'m11',
   mmaj7:'mΔ7','mmaj7b5':'mΔ7♭5',mmaj9:'mΔ9',mmaj11:'mΔ11',
   add9:'add9',madd9:'madd9',add11:'add11',
+  // v27.278 — Sufijos nuevos (PRO 1/2/3 + Neo Soul/R&B + alias lydian aug)
+  sus4add9:'sus4add9', sus69:'sus6/9',
+  augmaj7:'augmaj7', aug9maj7:'augmaj9', aug13maj7:'augmaj13',
+  '13#11':'13♯11', '7#11':'7♯11', '7b13':'7♭13', '7b9b13':'7♭9♭13',
+  m13:'m13', m7add11:'m7add11',
+  m9b5:'ø9', m11b5:'ø11', m11b5b13:'ø11♭13',
+  dim9:'°9', dim11:'°11',
 };
+
+// v27.322 — Helper para split del display del sufijo en núcleo + superíndice.
+// Aplicado SOLO en la rueda de sufijos del chord-editor (#cew-hw2). Las demás
+// ruedas (familia, técnica, octava, duración) NO usan esto. Reglas de corte
+// (en este orden, gana el índice menor > 0):
+//   1) Primera alteración ♭ o ♯  → todo lo posterior va a superíndice
+//   2) "sus" en posición > 0    → "sus..." al superíndice  (ej maj7sus2)
+//   3) "add" en posición > 0    → "add..." al superíndice  (ej m7add11, madd9)
+//   4) "maj" después de "aug"   → "maj..." al superíndice  (ej augmaj7/9/13)
+//      (decisión Horacio: "augmaj13" entero no entra en 68px del item)
+// Casos especiales:
+//   · Slash chords ("/E", "/F#"...) → todo núcleo, sin sup
+//   · String vacío (major) → ambos vacíos
+function _splitSufDisplay(d){
+  if(!d) return {base:'', sup:''};
+  if(d.charAt(0) === '/') return {base:d, sup:''};
+  var altIdx = d.search(/[♭♯]/);
+  var susIdx = d.indexOf('sus', 1);
+  var addIdx = d.indexOf('add', 1);
+  var majAfterAugIdx = -1;
+  if(d.indexOf('aug') === 0){
+    var m = d.indexOf('maj', 3);
+    if(m > 0) majAfterAugIdx = m;
+  }
+  var cands = [altIdx, susIdx, addIdx, majAfterAugIdx].filter(function(i){ return i > 0; });
+  if(cands.length === 0) return {base:d, sup:''};
+  var cut = Math.min.apply(null, cands);
+  return {base:d.substring(0, cut), sup:d.substring(cut)};
+}
+
 const SUF_JAZZ={
   major:'',minor:'−',dim:'°',dim7:'°7',sus:'sus',sus2:'sus2',sus4:'sus4',
   '7sus4':'7sus4',alt:'alt',aug:'+','5':'5','6':'6','69':'6/9',
@@ -9707,6 +9756,14 @@ const SUF_JAZZ={
   m6:'−6',m69:'−6/9',m7:'−7','m7b5':'ø7',m9:'−9',m11:'−11',
   mmaj7:'−∆7','mmaj7b5':'−∆7♭5',mmaj9:'−∆9',mmaj11:'−∆11',
   add9:'add9',madd9:'−add9',add11:'add11',
+  // v27.278 — Sufijos nuevos (PRO 1/2/3 + Neo Soul/R&B). Símbolos jazz:
+  // ∆=maj7, −=minor, ø=m7♭5 (semidim), °=dim, +=aug.
+  sus4add9:'sus4add9', sus69:'sus6/9',
+  augmaj7:'+∆7', aug9maj7:'+∆9', aug13maj7:'+∆13',
+  '13#11':'13♯11', '7#11':'7♯11', '7b13':'7♭13', '7b9b13':'7♭9♭13',
+  m13:'−13', m7add11:'−7add11',
+  m9b5:'ø9', m11b5:'ø11', m11b5b13:'ø11♭13',
+  dim9:'°9', dim11:'°11',
 };
 const INTERVALS={
   // === Mayor ===
@@ -9758,6 +9815,23 @@ const INTERVALS={
   mmaj7b5:'T · 3m · ♭5 · 7M',
   mmaj9:'T · 3m · 5 · 7M · 9',
   mmaj11:'T · 3m · 5 · 7M · 9 · 11',
+  // v27.278 — Sufijos nuevos (display de fórmula intervalos)
+  sus4add9:'T · 2 · 4 · 5',
+  sus69:'T · 2 · 4 · 5 · 6',
+  augmaj7:'T · 3M · ♯5 · 7M',
+  aug9maj7:'T · 3M · ♯5 · 7M · 9',
+  aug13maj7:'T · 3M · ♯5 · 7M · 9 · 13',
+  '13#11':'T · 3M · 5 · 7m · 9 · ♯11 · 13',
+  '7#11':'T · 3M · 5 · 7m · ♯11',
+  '7b13':'T · 3M · 5 · 7m · ♭13',
+  '7b9b13':'T · 3M · 5 · 7m · ♭9 · ♭13',
+  m13:'T · 3m · 5 · 7m · 9 · 11 · 13',
+  m7add11:'T · 3m · 5 · 7m · 11',
+  m9b5:'T · 3m · ♭5 · 7m · 9',
+  m11b5:'T · 3m · ♭5 · 7m · 9 · 11',
+  m11b5b13:'T · 3m · ♭5 · 7m · 9 · 11 · ♭13',
+  dim9:'T · 3m · ♭5 · bb7 · 9',
+  dim11:'T · 3m · ♭5 · bb7 · 9 · 11',
 };
 
 // Chord display with full notation support
@@ -9863,11 +9937,22 @@ function chordDisplay(noteR, sufKey){
 }
 
 const FAMS=[
-  {n:'Mayor',    c:'#2a4878',sufs:['major','sus2','sus4','add9','add11','6','69','5']},
-  {n:'May.Ext.', c:'#1a5c3a',sufs:['maj7','maj9','maj11','maj13','maj7b5','maj7#5','maj7sus2']},
-  {n:'Dom.',     c:'#7a2010',sufs:['7','9','13','7b5','aug7','9b5','aug9','7b9','7#9','11','9#11','alt','7sus4']},
-  {n:'Menor',    c:'#5a2870',sufs:['minor','m7','m9','m11','m6','m69','madd9','m7b5']},
-  {n:'Dim/Aug',  c:'#4a3810',sufs:['dim','dim7','aug']},
+  // v27.278 — Sus extendidos (sus4add9, sus69) agregados a Mayor: no tienen
+  // ♭7, mantienen el carácter modal/abierto del sus puro (sin convertirse en
+  // dominante sus). Son los acordes Sus PRO1/2.
+  {n:'Mayor',    c:'#2a4878',sufs:['major','sus2','sus4','sus4add9','sus69','add9','add11','6','69','5']},
+  // v27.278 — Lidio aumentado (augmaj7/aug9maj7/aug13maj7) agregados a May.Ext.:
+  // tienen maj7, son la sub-familia del modo lydian augmented. augmaj7 es
+  // enarmónico funcional de maj7#5 — entrada propia para legibilidad.
+  {n:'May.Ext.', c:'#1a5c3a',sufs:['maj7','maj9','maj11','maj13','maj7b5','maj7#5','maj7sus2','augmaj7','aug9maj7','aug13maj7']},
+  // v27.278 — Dominantes nuevos: 13#11 (Dom PRO3, lydian dom), 7#11 (sin 9),
+  // 7b13 (Neo Soul/R&B — el F#7b13 que faltaba), 7b9b13 (V7alt simplificado).
+  {n:'Dom.',     c:'#7a2010',sufs:['7','9','13','13#11','7b5','aug7','9b5','aug9','7b9','7#9','11','9#11','7#11','7b13','7b9b13','alt','7sus4']},
+  // v27.278 — Menor: m13 (Stevie/D'Angelo), m7add11 (m11 sin 9 más limpio),
+  // m9b5/m11b5/m11b5b13 (Semidim PRO1/2/3).
+  {n:'Menor',    c:'#5a2870',sufs:['minor','m7','m9','m11','m13','m6','m69','madd9','m7add11','m7b5','m9b5','m11b5','m11b5b13']},
+  // v27.278 — Dim extendido (dim9 = Dim PRO1, dim11 = Dim PRO2).
+  {n:'Dim/Aug',  c:'#4a3810',sufs:['dim','dim7','dim9','dim11','aug']},
   {n:'m∆',       c:'#1a3860',sufs:['mmaj7','mmaj7b5','mmaj9','mmaj11']},
   {n:'Slash',    c:'#3a3a3a',sufs:['/E','/F','/F#','/G','/G#','/A','/Bb','/B','/C','/C#','/D']},
 ];
@@ -10471,11 +10556,9 @@ window._loadFreePatsMulti = _loadFreePatsMulti;
 
   async function _loadPianoFromR2() {return null;}
   // Las nuevas físicas viven en `audio/contrabass_<technique>/` (path distinto
-  // al meatbass_*) y dependen de upload manual a R2. Las DSP (harmonics,
+  // al bass_acoustic) y dependen de upload manual a R2. Las DSP (harmonics,
   // col_legno) NO requieren samples nuevos: derivan de arco/perc con FX chain.
-  /* [v24.2] MEATBASS_TECHNIQUES eliminado */
-
-  // v16.5.42-clean: técnicas que se cargan desde audio/contrabass_*/ (no _meatbass_)
+  // v16.5.42-clean: técnicas que se cargan desde audio/bass_acoustic/
   /* [v24.2] CONTRABASS_PACK_TECHS eliminado */
 
   // v16.5.42-clean: técnicas que NO tienen pack propio y derivan via DSP
@@ -10488,8 +10571,6 @@ window._loadFreePatsMulti = _loadFreePatsMulti;
   // v16.5.1-clean: rango ajustado al patrón real del bucket R2.
     // A, C, D#, F# spaced 3 semitonos, desde A0 hasta C5. Tone.Sampler
   // hace pitch-shift automático para notas intermedias.
-  /* [v24.2] MEATBASS_NOTE_RANGE eliminado */
-
   // v16.5.44-clean — Notas reales por técnica VSCO/pjcohen subidas al R2.
   // pero ya las renombramos a estándar (E1, G1, etc.) al subir al R2.
   // Tone.Sampler interpola las notas faltantes via pitch-shift, así que estas
@@ -10509,9 +10590,6 @@ window._loadFreePatsMulti = _loadFreePatsMulti;
   // v17.3.14 — Las keys deben tener `#` (Tone.Sampler las usa como note keys
   // y rechaza `Fs1`/`Cs2`). En el loader las convertimos a `s` para construir
     /* [v24.2] BASS_FAMILY_NOTE_RANGE eliminado */
-
-  /* [v24.2] _loadMeatbassTechnique eliminada */
-
   // v16.5.41-clean — Construye un Tone.Sampler para una técnica específica
     // para cargar los 3 samplers (arco/pizz/perc) en paralelo al boot.
   // R6.2: zona libre bass. No toca pianoSampler ni Salamander config.
@@ -10527,9 +10605,6 @@ window._loadFreePatsMulti = _loadFreePatsMulti;
   //     de golpe con la madera del arco (transient seco, sin sustain).
   // Si los buffers de origen no están cargados todavía, devuelve null silenciosamente.
   /* [v24.2] _buildDSPSampler eliminada */
-
-  /* [v24.2] _initMeatbassSampler eliminada */
-
   // ───────────────────────────────────────────────────────────────────────
   // v17.3.13 — Loader de los 3 instrumentos de la FAMILIA BAJO (separados
   // del contrabajo). Plan v15.0.97b · packs FluidR3 + MusyngKite MIT.
@@ -10574,9 +10649,6 @@ window._loadFreePatsMulti = _loadFreePatsMulti;
   /* [v23.12 clean] eliminado: function _buildStringsFamilySampler */
   /* [v23.12 clean] eliminado: async function _initStringsFamilySamplers */
   // ───────────────────────────────────────────────────────────────────────
-
-  window._switchMeatbassTechnique = async function() { return null; };
-
   // ───────────────────────────────────────────────────────────────────────
   /* [v23.12 clean] eliminado: const GUITAR_PACK_NOTES */
   // Builder de filename(s) candidatos por pack. Devuelve array — el loader
@@ -10592,10 +10664,7 @@ window._loadFreePatsMulti = _loadFreePatsMulti;
   // arrancar al primer user gesture (Tone.js requirement)
   const _arrancarLoaders = () => {
     _loadPianoFromR2();
-    /* [v24.4] _initMeatbassSampler() removida — la función fue eliminada en v24.2
-       (cleanup contrabajo) pero quedó esta llamada huérfana, generando
-       ReferenceError al primer click. El bass_acoustic se carga por otra vía
-       (Tone.Sampler con BASS_SAMPLES_AAC embebido). */
+    // v27.280 — bass_acoustic se carga por Tone.Sampler con muestras R2.
 
     document.removeEventListener('click', _arrancarLoaders);
     document.removeEventListener('touchstart', _arrancarLoaders);
@@ -10630,7 +10699,7 @@ let stringsKillGain = null, stringsCurrentTi = -1;
 // v21.1.8 — REVERT del fix M1 v21.1.7. El intento de routing via killGain
 // causó cross-talk bass↔drums. Vuelta al .toDestination() original. El bug
 // del slider del bajo (reportado por Horacio) NO era para bass_synth sino
-// para contrabass (meatbass_*) que tiene OTRO mecanismo de routing. Volver a
+// para contrabass (sistema viejo) que tenía OTRO mecanismo de routing. Volver a
 // estado conocido bueno y diagnosticar separadamente.
 /* [v23.15] _buildBassSynthOnce eliminada (bass_synth deprecated) */
 
@@ -10653,7 +10722,7 @@ if (typeof Tone !== 'undefined') {
 // quedan limpios sin estas funciones.
 
 // ═══════════════════════════════════════════════════════════════════════
-// Sistema viejo (meatbassArcoSampler/PizzSampler/PercSampler con velocity
+// Sistema viejo (samplers con velocity
 // layers Soft/Mid/Hard) reemplazado por motor R2 unificado (window.bassSampler).
 // OL_FIEDLER_TEST helpers ELIMINADOS junto con los samplers Fiedler.
 // ═══════════════════════════════════════════════════════════════════════
@@ -10692,7 +10761,7 @@ function routeBassToTrack(ti) {
 }
 
 // v16.5.2-clean — Helper: dispara una nota en el sampler embedded apropiado.
-// drums por su propio path. Toda key fuera de meatbass_* → false → silencio.
+// drums por su propio path. Cualquier inst fuera de bass_acoustic queda en silencio.
 function _tryFireEmbeddedSampler(currentSound, midi, dur, when, vel, ti) {
   const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const note = noteNames[midi % 12] + (Math.floor(midi/12) - 1);
@@ -11282,8 +11351,8 @@ function midiToHz(m){return 440*Math.pow(2,(m-69)/12)}
 // o strings_legato/staccato/pizz, cada uno tendrá su propio _onXInstChanged
 // y el dispatcher central elegirá cuál llamar según la familia.
 function _onBassInstChanged(newKey) {
-  // v27.176 — Vaciada. La función original cambiaba la técnica del Meatbass
-  // (arco/pizz/perc) según el slot elegido. Como contrabass/meatbass_* fueron
+  // v27.176 — Vaciada. La función original cambiaba la técnica del bajo viejo
+  // (arco/pizz/perc) según el slot elegido. Como contrabass fue
   // eliminados en v24.2, hoy es no-op. Se mantiene la firma para no romper
   // los 2 callsites (línea 39521 y 43167) durante la cascada de cambio de inst.
 }
@@ -11733,7 +11802,7 @@ const INST_TO_SAMPLE = {
 // v16.5.2-clean — Mapping del placard nuevo (60 slots) → user slots del SLOADER.
 // Cuando el usuario suba un ZIP de chord-shots a un user_slot via SLOADER, el motor
 // los busca acá según la key del track. Solo keys con status='pte'/'audicion' se
-// mapean — las vivas (salamander/meatbass_*/drums) usan sus samplers nativos.
+// mapean — las vivas (salamander/bass_acoustic/drums) usan sus samplers nativos.
 // Keys muertas (electric, strato2, strato3, tele2, steel, nylon, concertFD, bassFD)
 // ELIMINADAS — eran del placard viejo y confundían la carga de samples nuevos.
 const WHEEL_KEY_TO_USER_SLOT = {
@@ -11966,6 +12035,8 @@ function buildChordNotes(root, suffix, octave) {
     'major':    [0, 4, 7],
     'sus2':     [0, 2, 7],
     'sus4':     [0, 5, 7],
+    'sus4add9': [0, 2, 5, 7],                 // v27.278 — Sus PRO1: sus sin ♭7 (no convierte a dominante)
+    'sus69':    [0, 2, 5, 7, 9],              // v27.278 — Sus PRO2: 6/9 sin tercera ni ♭7
     'add9':     [0, 4, 7, 14],
     'add11':    [0, 4, 7, 17],
     '6':        [0, 4, 7, 9],
@@ -11979,10 +12050,17 @@ function buildChordNotes(root, suffix, octave) {
     'maj7b5':   [0, 4, 6, 11],
     'maj7#5':   [0, 4, 8, 11],
     'maj7sus2': [0, 2, 7, 11],
+    // v27.278 — Lidio aumentado (aug + maj7). augmaj7 enarmónico funcional
+    // de maj7#5 — entrada propia para que el motor PRO use el nombre que
+    // refleja el modo (lydian augmented) y no la lectura "mayor con #5".
+    'augmaj7':  [0, 4, 8, 11],               // Aug PRO1 — mismo intervalo que maj7#5
+    'aug9maj7': [0, 4, 8, 11, 14],           // Aug PRO2
+    'aug13maj7':[0, 4, 8, 11, 14, 21],       // Aug PRO3 — omito 11 (igual que maj13)
     // === Dominante ===
     '7':        [0, 4, 7, 10],
     '9':        [0, 4, 7, 10, 14],
     '13':       [0, 4, 7, 10, 14, 21],       // omito 11
+    '13#11':    [0, 4, 7, 10, 14, 18, 21],   // v27.278 — Dom PRO3: lydian dominant
     '7b5':      [0, 4, 6, 10],
     'aug7':     [0, 4, 8, 10],               // = 7#5
     '9b5':      [0, 4, 6, 10, 14],
@@ -11991,6 +12069,9 @@ function buildChordNotes(root, suffix, octave) {
     '7#9':      [0, 4, 7, 10, 15],           // Hendrix chord
     '11':       [0, 7, 10, 14, 17],          // omito 3M para evitar choque con 11
     '9#11':     [0, 4, 7, 10, 14, 18],
+    '7#11':     [0, 4, 7, 10, 18],           // v27.278 — dom lydian sin 9 explícita
+    '7b13':     [0, 4, 7, 10, 20],           // v27.278 — Neo Soul/R&B (F#7b13 que faltaba)
+    '7b9b13':   [0, 4, 7, 10, 13, 20],       // v27.278 — V7alt simplificado
     'alt':      [0, 4, 10, 13, 15, 20],      // T 3M 7m b9 #9 b13
     '7sus4':    [0, 5, 7, 10],
     // === Menor ===
@@ -11998,13 +12079,21 @@ function buildChordNotes(root, suffix, octave) {
     'm7':       [0, 3, 7, 10],
     'm9':       [0, 3, 7, 10, 14],
     'm11':      [0, 3, 7, 10, 14, 17],
+    'm13':      [0, 3, 7, 10, 14, 17, 21],   // v27.278 — menor con 13 (Stevie/D'Angelo)
+    'm7add11':  [0, 3, 7, 10, 17],           // v27.278 — m11 sin la 9 (más limpio)
     'm6':       [0, 3, 7, 9],
     'm69':      [0, 3, 7, 9, 14],
     'madd9':    [0, 3, 7, 14],
     'm7b5':     [0, 3, 6, 10],               // half-diminished
+    // v27.278 — Semidim extendido (PRO1/2/3)
+    'm9b5':     [0, 3, 6, 10, 14],           // Semidim PRO1
+    'm11b5':    [0, 3, 6, 10, 14, 17],       // Semidim PRO2
+    'm11b5b13': [0, 3, 6, 10, 14, 17, 20],   // Semidim PRO3 (♭13 natural del Locrio #2)
     // === Dim / Aug ===
     'dim':      [0, 3, 6],
     'dim7':     [0, 3, 6, 9],
+    'dim9':     [0, 3, 6, 9, 14],            // v27.278 — Dim PRO1
+    'dim11':    [0, 3, 6, 9, 14, 17],        // v27.278 — Dim PRO2
     'aug':      [0, 4, 8],
     // === Minor-Major (m△) ===
     'mmaj7':    [0, 3, 7, 11],
@@ -12450,6 +12539,44 @@ async function preloadCommonChords() {
 // ─── Intervalos del acorde por sufijo (semitonos desde la fundamental) ───
 // Diferencia vs CHORD_V (guitarra): aquí son intervalos puros, sin estructura
 // de cuerdas. El motor pianístico arma sus propios voicings.
+
+/**
+ * v27.279 — Helper genérico para distribuir N notas a lo largo de un array
+ * de intervalos. Reemplaza el patrón frágil "[iv[0], iv[1] || 4, iv[2] || 7,
+ * ...]" que hardcodeaba tríada y hacía que técnicas armónicamente expresivas
+ * sonaran iguales al cambiar sufijo (maj7 vs maj13 sonaban idéntico).
+ *
+ * Comportamiento:
+ *   - iv.length == count → devuelve iv tal cual (o invertido si desc).
+ *   - iv.length <  count → padea agregando octava arriba del root al final.
+ *   - iv.length >  count → toma N notas distribuidas uniformemente
+ *     (siempre incluye root y nota más alta, espacia el resto).
+ *
+ * @param {number[]} iv - array de intervalos en semitonos
+ * @param {number} count - cantidad de notas deseadas en la secuencia
+ * @param {'asc'|'desc'} dir - orden de la secuencia
+ * @returns {number[]} - array de intervalos de longitud exactamente count
+ */
+function _arpFromIv(iv, count, dir) {
+  const n = count || 4;
+  if (!Array.isArray(iv) || iv.length === 0) iv = [0, 4, 7];
+  let seq;
+  if (iv.length === n) {
+    seq = iv.slice();
+  } else if (iv.length < n) {
+    // Pad con octavas del root al final
+    seq = iv.slice();
+    while (seq.length < n) seq.push(iv[0] + 12);
+  } else {
+    // Distribuir N notas uniformemente: root + (n-1) espaciadas
+    seq = [iv[0]];
+    const step = (iv.length - 1) / (n - 1);
+    for (let i = 1; i < n; i++) seq.push(iv[Math.round(i * step)]);
+  }
+  return dir === 'desc' ? seq.reverse() : seq;
+}
+window._arpFromIv = _arpFromIv;
+
 const PIANO_CHORD_IV = {
   // v16.3.6 — Cobertura completa de sufijos del wheel (FAMS).
   // Sincronizado con buildChordNotes — mismas fórmulas, mismas convenciones.
@@ -12502,6 +12629,25 @@ const PIANO_CHORD_IV = {
   mmaj7b5: [0, 3, 6, 11],
   mmaj9:    [0, 3, 7, 11, 14],
   mmaj11:   [0, 3, 7, 11, 14, 17],
+  // v27.279 — Sincronizado con INTERVALS motor (línea 11963). 16 sufijos
+  // nuevos. Sin estos, piano y strings caían a fallback 'major' al recibir
+  // cualquiera de los sufijos PRO 1/2/3, Neo Soul/R&B o lidio aumentado.
+  sus4add9: [0, 2, 5, 7],
+  sus69:    [0, 2, 5, 7, 9],
+  augmaj7:  [0, 4, 8, 11],
+  aug9maj7: [0, 4, 8, 11, 14],
+  aug13maj7:[0, 4, 8, 11, 14, 21],
+  '13#11':  [0, 4, 7, 10, 14, 18, 21],
+  '7#11':   [0, 4, 7, 10, 18],
+  '7b13':   [0, 4, 7, 10, 20],
+  '7b9b13': [0, 4, 7, 10, 13, 20],
+  m13:      [0, 3, 7, 10, 14, 17, 21],
+  m7add11:  [0, 3, 7, 10, 17],
+  m9b5:     [0, 3, 6, 10, 14],
+  m11b5:    [0, 3, 6, 10, 14, 17],
+  m11b5b13: [0, 3, 6, 10, 14, 17, 20],
+  dim9:     [0, 3, 6, 9, 14],
+  dim11:    [0, 3, 6, 9, 14, 17],
 };
 
 // ─── Mapeo de fallback: clips viejos con tech de guitarra → tech pianística ───
@@ -12864,18 +13010,23 @@ const PIANO_TECH_V = {
 
   // ─── 4. ARPEGGIO ─── Quebrar el acorde
   ARPEGGIO: [
-    { n:'Asc.', d:'Ascendente 1-3-5-8 · pop ballad clásico.',
+    { n:'Asc.', d:'Ascendente — distribuye 4 voces sobre TODO el acorde (responde a 9/11/13).',
       play: (rs, iv, bs, now) => {
         _firePianoMidi(PIANO_OCT_BASS + rs, now, 4*bs, 0.60);
-        const notes = [iv[0], iv[1] || 4, iv[2] || 7, 12];
+        // v27.279 — Antes hardcodeaba [iv[0], iv[1]||4, iv[2]||7, 12]: en maj13
+        // sonaba idéntico a maj7 porque ignoraba las extensiones. Ahora distribuye
+        // 4 notas sobre el array completo: para tríada → R-3-5-8va; para acorde
+        // extendido → R-3 (o 5)-7-9/11/13 según la riqueza disponible.
+        const notes = _arpFromIv(iv, 4, 'asc');
         notes.forEach((semi, i) => {
           _firePianoMidi(PIANO_OCT_MID + rs + semi, now + i*bs, bs*1.1, 0.55);
         });
       }},
-    { n:'Desc.', d:'Descendente 8-5-3-1 · cierre dramático (Let It Be).',
+    { n:'Desc.', d:'Descendente — cierre dramático sobre TODO el acorde (responde a 9/11/13).',
       play: (rs, iv, bs, now) => {
         _firePianoMidi(PIANO_OCT_BASS + rs, now, 4*bs, 0.60);
-        const notes = [12, iv[2] || 7, iv[1] || 4, iv[0]];
+        // v27.279 — Idem Asc., pero descendente. Para maj13: 13-7-3-R.
+        const notes = _arpFromIv(iv, 4, 'desc');
         notes.forEach((semi, i) => {
           _firePianoMidi(PIANO_OCT_MID + rs + semi, now + i*bs, bs*1.1, 0.55);
         });
@@ -13517,6 +13668,31 @@ const BASS_CHORD_INTERVALS = {
   'mmaj7b5':  { third: 3,    fifth: 6, seventh: 11,   sixth: null, ninth: null, eleventh: null, thirteenth: null },
   'mmaj9':    { third: 3,    fifth: 7, seventh: 11,   sixth: null, ninth: 14,   eleventh: null, thirteenth: null },
   'mmaj11':   { third: 3,    fifth: 7, seventh: 11,   sixth: null, ninth: 14,   eleventh: 17,   thirteenth: null },
+  // === v27.279 — Sincronizado con PIANO_CHORD_IV. Cada entrada con todos
+  // los chord tones declarados para que las técnicas de bass puedan acceder
+  // vía helpers _bassNinth / _bassEleventh / _bassThirteenth ===
+  // — Sus extendidos (sin ♭7, mantienen carácter modal) —
+  'sus4add9': { third: 5,    fifth: 7, seventh: null, sixth: null, ninth: 14,   eleventh: null, thirteenth: null },
+  'sus69':    { third: 5,    fifth: 7, seventh: null, sixth: 9,    ninth: 14,   eleventh: null, thirteenth: null },
+  // — Lidio aumentado (Aug + maj7) —
+  'augmaj7':  { third: 4,    fifth: 8, seventh: 11,   sixth: null, ninth: null, eleventh: null, thirteenth: null },
+  'aug9maj7': { third: 4,    fifth: 8, seventh: 11,   sixth: null, ninth: 14,   eleventh: null, thirteenth: null },
+  'aug13maj7':{ third: 4,    fifth: 8, seventh: 11,   sixth: null, ninth: 14,   eleventh: null, thirteenth: 21 },
+  // — Dom extendidos (PRO + Neo Soul/R&B) —
+  '13#11':    { third: 4,    fifth: 7, seventh: 10,   sixth: null, ninth: 14,   eleventh: 18,   thirteenth: 21 },
+  '7#11':     { third: 4,    fifth: 7, seventh: 10,   sixth: null, ninth: null, eleventh: 18,   thirteenth: null },
+  '7b13':     { third: 4,    fifth: 7, seventh: 10,   sixth: null, ninth: null, eleventh: null, thirteenth: 20 },
+  '7b9b13':   { third: 4,    fifth: 7, seventh: 10,   sixth: null, ninth: 13,   eleventh: null, thirteenth: 20 },
+  // — Menor extendidos —
+  'm13':      { third: 3,    fifth: 7, seventh: 10,   sixth: null, ninth: 14,   eleventh: 17,   thirteenth: 21 },
+  'm7add11':  { third: 3,    fifth: 7, seventh: 10,   sixth: null, ninth: null, eleventh: 17,   thirteenth: null },
+  // — Semidim extendidos (PRO 1/2/3 — ♭13 natural del Locrio #2) —
+  'm9b5':     { third: 3,    fifth: 6, seventh: 10,   sixth: null, ninth: 14,   eleventh: null, thirteenth: null },
+  'm11b5':    { third: 3,    fifth: 6, seventh: 10,   sixth: null, ninth: 14,   eleventh: 17,   thirteenth: null },
+  'm11b5b13': { third: 3,    fifth: 6, seventh: 10,   sixth: null, ninth: 14,   eleventh: 17,   thirteenth: 20 },
+  // — Dim extendidos (PRO 1/2) —
+  'dim9':     { third: 3,    fifth: 6, seventh: 9,    sixth: null, ninth: 14,   eleventh: null, thirteenth: null },
+  'dim11':    { third: 3,    fifth: 6, seventh: 9,    sixth: null, ninth: 14,   eleventh: 17,   thirteenth: null },
 };
 window.BASS_CHORD_INTERVALS = BASS_CHORD_INTERVALS;
 
@@ -13527,6 +13703,28 @@ window.BASS_CHORD_INTERVALS = BASS_CHORD_INTERVALS;
 function _bassChordTones(suffix) {
   const s = (suffix || '').toLowerCase();
   return BASS_CHORD_INTERVALS[s] || BASS_CHORD_INTERVALS.major;
+}
+
+// v27.281 — Helper paralelo al `iv` de PIANO_CHORD_IV / STRINGS para bass.
+// Devuelve el array COMPLETO de chord tones [0, 3, 5, 7, 9, 11, 13] filtrado
+// solo a los presentes en BASS_CHORD_INTERVALS[suffix]. Sirve como entrada
+// para _arpFromIv() y replica exactamente lo que piano/strings hacen.
+//
+// Sin esto, las técnicas bass que usaban _pocketMagicArp se quedaban en 4
+// notas [R, 3, 5, 7] máximo, ignorando 9/11/13 — por eso Dmaj7 = Dmaj9 =
+// Dmaj11 = Dmaj13 sonaban idéntico. Con este helper, maj13 → [0, 4, 11, 21],
+// maj9 → [0, 4, 7, 11, 14], maj11 → [0, 4, 7, 11, 14, 17], etc.
+function _bassIvFromSuffix(suffix) {
+  const t = _bassChordTones(suffix);
+  const iv = [0];
+  if (t.third       != null) iv.push(t.third);
+  if (t.fifth       != null) iv.push(t.fifth);
+  if (t.sixth       != null) iv.push(t.sixth);
+  if (t.seventh     != null) iv.push(t.seventh);
+  if (t.ninth       != null) iv.push(t.ninth);
+  if (t.eleventh    != null) iv.push(t.eleventh);
+  if (t.thirteenth  != null) iv.push(t.thirteenth);
+  return iv;
 }
 window._bassChordTones = _bassChordTones;
 
@@ -13811,24 +14009,18 @@ function _pocketChromApproach(targetRs, dir) {
 // si suffix es maj/m → fallback a triada normal
 // Retorna array de intervalos [0, x, y, z] o triada [0, 3, 7]
 function _pocketMagicArp(suffix) {
-  const s = (suffix || '').toLowerCase();
-  if (s.includes('m7b5') || s.includes('ø')) return [0, 3, 6, 10];
-  if (s.includes('dim7') || s.includes('°7')) return [0, 3, 6, 9];
-  if (s.includes('m6'))   return [0, 3, 7, 9];
-  if (s.includes('m9'))   return [0, 3, 10, 14];
-  if (s.includes('m7'))   return [0, 3, 7, 10];
-  if (s.includes('maj7') || s.includes('M7')) return [0, 4, 7, 11];
-  if (s.includes('m'))    return [0, 3, 7];
-  if (s.includes('7b9'))  return [0, 4, 10, 13];
-  if (s.includes('9'))    return [0, 4, 10, 14];
-  if (s.includes('13'))   return [0, 4, 10, 21];
-  if (s.includes('7'))    return [0, 4, 7, 10];
-  if (s.includes('sus4')) return [0, 5, 7];
-  if (s.includes('sus2')) return [0, 2, 7];
-  if (s.includes('dim'))  return [0, 3, 6];
-  if (s.includes('aug') || s.includes('+')) return [0, 4, 8];
-  if (s.includes('6'))    return [0, 4, 7, 9];
-  return [0, 4, 7]; // major default
+  // v27.279 — Reescrito desde cero. Antes usaba .includes() en cascada
+  // frágil que ruteaba mal sufijos nuevos: 'm13' caía en 'm' simple, 'm9b5'
+  // ignoraba el ♭5, '7b13' caía en '7' simple, '13#11' tocaba como '13', etc.
+  // Ahora consulta directo BASS_CHORD_INTERVALS, garantizando que el
+  // arpegio refleje EXACTAMENTE los chord tones declarados del sufijo.
+  // Siempre devuelve 4 elementos [R, 3, 5, 7] con fallback ♭7 si el acorde
+  // no tiene séptima, para mantener compat con código que hace arp[3].
+  const t = _bassChordTones(suffix);
+  const third   = t.third   != null ? t.third   : 4;
+  const fifth   = t.fifth   != null ? t.fifth   : 7;
+  const seventh = t.seventh != null ? t.seventh : 10;
+  return [0, third, fifth, seventh];
 }
 
 // Anticipation: toca el root del próximo chord en "and del 4"
@@ -14045,22 +14237,6 @@ const BASS_TECH_V = {
             }
           }
         },
-    { n:'Gallop cresc.', d:'Steve Harris gallop crescendo a power chord final.',
-          mode: 'T1-B',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const sx = bs * 0.25;
-            // Gallop crescendo - signature Iron Maiden buildup
-            for (let b = 0; b < 4; b++) {
-              const baseVel = 0.65 + (b/4) * 0.30;
-              _fireBassMidi(root, _bassTJit(now + b*bs + 0*sx), sx*1.5, baseVel);
-              _fireBassMidi(root, _bassTJit(now + b*bs + 2*sx), sx*0.80, baseVel - 0.10);
-              _fireBassMidi(root, _bassTJit(now + b*bs + 3*sx), sx*0.80, baseVel + 0.05);
-            }
-            // Note final unisono con crash de batería
-            _fireBassMidi(root, _bassTJit(now + 3.95*bs), sx*0.50, 1.00);
-          }
-        },
     { n:'Pedal V', d:'Pedal point — siempre 5ta sostenida bajo cambios armónicos.',
           mode: 'T1-A',
           play: (rs, suffix, bs, now, lb) => {
@@ -14087,13 +14263,6 @@ const BASS_TECH_V = {
             }
           }
         },
-    { n:'Drop cresc.', d:'Crescendo synth-bass con drop al beat 4.',
-          mode: 'T1-A',
-          play: (rs, suffix, bs, now, lb) => {
-            _fireBassMidi(BASS_OCT_LOW + rs, _bassTJit(now + 0*bs), bs*3.0, 0.55);
-            _fireBassMidi(BASS_OCT_LOW + rs, _bassTJit(now + 3*bs), bs*1.0, 0.95);
-          }
-        },
     { n:'Beatles drone', d:'Arpegio R-3-5-extensión signature pop melódico (enriquecido v20.10.5).',
           mode: 'T1-D',
           play: (rs, suffix, bs, now, lb) => {
@@ -14108,55 +14277,7 @@ const BASS_TECH_V = {
             });
           }
         },
-    { n:'Gallop 1b', d:'Steve Harris gallop quintuplet beat 4 — final unisono.',
-          mode: 'T1-B',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const sx = bs * 0.25;
-            const q = bs / 5;
-            // Beats 1-3: gallop normal
-            for (let b = 0; b < 3; b++) {
-              _fireBassMidi(root, _bassTJit(now + b*bs + 0*sx), sx*1.5, 0.78);
-              _fireBassMidi(root, _bassTJit(now + b*bs + 2*sx), sx*0.80, 0.68);
-              _fireBassMidi(root, _bassTJit(now + b*bs + 3*sx), sx*0.80, 0.78);
-            }
-            // Beat 4: gallop quintuplet final crescendo
-            for (let i = 0; i < 5; i++) {
-              _fireBassMidi(root, _bassTJit(now + 3*bs + i*q), q*0.80, 0.78 + i * 0.05);
-            }
-          }
-        },
-    { n:'Pump 8va 3b', d:'Octava jump 3 beats.',
-          mode: 'T1-B',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const sx = bs * 0.25;
-            for (let i = 0; i < 4; i++) {
-              _fireBassMidi(root, _bassTJit(now + i*sx), sx*0.80, 0.78);
-            }
-            for (let i = 4; i < 16; i++) {
-              const note = i % 2 === 0 ? root : root + 12;
-              _fireBassMidi(note, _bassTJit(now + i*sx), sx*0.80, 0.65 + ((i-4)/12) * 0.30);
-            }
-          }
-        },
-    { n:'Pump 8va 1b', d:'Octava quintuplet beat 4.',
-          mode: 'T1-B',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const sx = bs * 0.5;
-            const q = bs / 5;
-            for (let i = 0; i < 6; i++) {
-              _fireBassMidi(root, _bassTJit(now + i*sx), sx*0.85, 0.78);
-            }
-            // Beat 4: octava jump quintuplet
-            for (let i = 0; i < 5; i++) {
-              const note = i % 2 === 0 ? root : root + 12;
-              _fireBassMidi(note, _bassTJit(now + 3*bs + i*q), q*0.85, 0.78 + i * 0.05);
-            }
-          }
-        },
-  ],
+    ],
 
   // ─── OCTAVES ─────────────────────────────────────────────────────────
   OCTAVES: [
@@ -14212,51 +14333,7 @@ const BASS_TECH_V = {
             _fireBassMidi(BASS_OCT_LOW + rs + third, _bassTJit(now + 3.5*bs), bs*0.45, 0.72);
           }
         },
-    { n:'8va fig. 2b', d:'2 beats patch + 2 beats salto octava.',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 0*bs), bs*0.90, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 1*bs), bs*0.90, 0.75);
-            _fireBassMidi(BASS_OCT_LOW + rs + 12, _bassTJit(now + 2*bs), bs*0.85, 0.85);
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 3*bs), bs*0.85, 0.80);
-          }
-        },
-    { n:'8va fig. 1b', d:'3 beats patch + 1 beat octava jump.',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 0*bs), bs*0.90, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 1*bs), bs*0.90, 0.75);
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 2*bs), bs*0.90, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs + 12, _bassTJit(now + 3*bs), bs*0.90, 0.88);
-          }
-        },
-    { n:'Slap 8va 1b', d:'3 beats patch + 1 beat slap pop quick.',
-          mode: 'T1-B',
-          play: (rs, suffix, bs, now, lb) => {
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 0*bs),   bs*0.90, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 1*bs),   bs*0.90, 0.75);
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 2*bs),   bs*0.90, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 3*bs),   bs*0.20, 0.85);
-            _fireBassMidi(BASS_OCT_LOW + rs + 12, _bassTJit(now + 3.5*bs), bs*0.20, 0.82);
-          }
-        },
-    { n:'King slap fill', d:'Mark King slap fill — 16th popping ascendente.',
-          mode: 'T1-B',
-          play: (rs, suffix, bs, now, lb) => {
-            for (let i = 0; i < 16; i++) {
-              const note = (i % 2 === 0) ? rs : (rs + 12);
-              _fireBassMidi(BASS_OCT_LOW + note, _bassTJit(now + i*bs*0.25), bs*0.15, 0.78);
-            }
-          }
-        },
-    { n:'Synth fade', d:'Synth-bass fade out — root con decay largo.',
-          mode: 'T1-A',
-          play: (rs, suffix, bs, now, lb) => {
-            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 0*bs), bs*4.0, 0.65);
-            _fireBassMidi(BASS_OCT_LOW + rs + 12, _bassTJit(now + 0*bs), bs*4.0, 0.45);
-          }
-        },
-  ],
+    ],
 
   // ─── IN TWO ─────────────────────────────────────────────────────────
   IN_TWO: [
@@ -14302,8 +14379,15 @@ const BASS_TECH_V = {
     { n:'Arp asc.', d:'Arpegio ascendente R-3-5-7-8va con dynamic arc crescendo.',
           mode: 'T1-D',
           play: (rs, suffix, bs, now, lb) => {
-            const arp = _pocketMagicArp(suffix);
-            const seq = [arp[0], arp[1] || 4, arp[2] || 7, arp[3] || 10, 12, arp[2] || 7, arp[1] || 4, arp[0]];
+            // v27.281 — Reescrito para reaccionar a sufijos extendidos.
+            // Antes usaba _pocketMagicArp() que solo daba [R,3,5,7] máximo:
+            // Dmaj7 = Dmaj9 = Dmaj11 = Dmaj13 sonaban IDÉNTICO. Ahora usa
+            // _arpFromIv() sobre el array COMPLETO (mismo método que piano/
+            // strings): distribuye 4 notas únicas sobre todo el iv del sufijo.
+            // Mantiene la firma asc → octava → desc de 8 notas.
+            const iv = _bassIvFromSuffix(suffix);
+            const asc = _arpFromIv(iv, 4, 'asc');
+            const seq = [asc[0], asc[1], asc[2], asc[3], 12, asc[2], asc[1], asc[0]];
             seq.forEach((off, i) => {
               const isStruct = (i === 0 || i === 4);
               const subPos = i * 0.5;
@@ -14355,31 +14439,41 @@ const BASS_TECH_V = {
     { n:'Daft Punk', d:'Daft Punk "Get Lucky" — pop electrónico filter house.',
           mode: 'T1-B',
           play: (rs, suffix, bs, now, lb) => {
-            const third = _bassThird(suffix);
-            const fifth = _bassFifth(suffix);
-            _fireBassMidi(BASS_OCT_LOW + rs,         _bassTJit(now + 0*bs),   bs*0.45, 0.82);
-            _fireBassMidi(BASS_OCT_LOW + rs + fifth, _bassTJit(now + 1*bs),   bs*0.45, 0.75);
-            _fireBassMidi(BASS_OCT_LOW + rs + third, _bassTJit(now + 1.5*bs), bs*0.45, 0.72);
-            _fireBassMidi(BASS_OCT_LOW + rs + fifth, _bassTJit(now + 2*bs),   bs*0.45, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs,         _bassTJit(now + 2.5*bs), bs*0.45, 0.82);
-            _fireBassMidi(BASS_OCT_LOW + rs + third, _bassTJit(now + 3*bs),   bs*0.45, 0.72);
-            _fireBassMidi(BASS_OCT_LOW + rs + fifth, _bassTJit(now + 3.5*bs), bs*0.45, 0.78);
+            // v27.282 — Reacciona a sufijos extendidos. Antes usaba third/fifth
+            // fijos: maj7=maj9=maj11=maj13 sonaban igual. Ahora distribuye 4
+            // chord tones del iv completo y los mapea al pattern electronic.
+            const iv = _bassIvFromSuffix(suffix);
+            const seq = _arpFromIv(iv, 4, 'asc');
+            const lo  = seq[1];   // antes 'third'
+            const hi  = seq[2];   // antes 'fifth' (puede ser 9, 11, 13 según sufijo)
+            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 0*bs),   bs*0.45, 0.82);
+            _fireBassMidi(BASS_OCT_LOW + rs + hi, _bassTJit(now + 1*bs),   bs*0.45, 0.75);
+            _fireBassMidi(BASS_OCT_LOW + rs + lo, _bassTJit(now + 1.5*bs), bs*0.45, 0.72);
+            _fireBassMidi(BASS_OCT_LOW + rs + hi, _bassTJit(now + 2*bs),   bs*0.45, 0.78);
+            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 2.5*bs), bs*0.45, 0.82);
+            _fireBassMidi(BASS_OCT_LOW + rs + lo, _bassTJit(now + 3*bs),   bs*0.45, 0.72);
+            _fireBassMidi(BASS_OCT_LOW + rs + hi, _bassTJit(now + 3.5*bs), bs*0.45, 0.78);
           }
         },
     { n:'Squire prog', d:'Yes — syncopation prog rock pick aggressive (Roundabout).',
           mode: 'T10-B',
           play: (rs, suffix, bs, now, lb) => {
+            // v27.282 — Reacciona a sufijos extendidos. Antes third/fifth
+            // fijos: maj7=maj9=maj11=maj13 idénticos. Ahora _arpFromIv sobre
+            // iv completo. La octava arriba final se mantiene (firma Yes-prog).
             const root = BASS_OCT_LOW + rs;
-            const third = root + _bassThird(suffix);
-            const fifth = root + _bassFifth(suffix);
+            const iv  = _bassIvFromSuffix(suffix);
+            const seq = _arpFromIv(iv, 4, 'asc');
+            const lo  = root + seq[1];   // antes 'third'
+            const hi  = root + seq[2];   // antes 'fifth'
             const sx = bs * 0.25;   // 16ths
             // Yes prog: pattern sincopado con accents en offbeats
             _fireBassMidi(root,  _bassTJit(now + 0*sx),  sx*0.80, 0.88);    // beat 1
             _fireBassMidi(root,  _bassTJit(now + 3*sx),  sx*0.65, 0.72);    // and-of-1 sync
-            _fireBassMidi(fifth, _bassTJit(now + 4*sx),  sx*0.80, 0.82);    // beat 2
+            _fireBassMidi(hi,    _bassTJit(now + 4*sx),  sx*0.80, 0.82);    // beat 2
             _fireBassMidi(root,  _bassTJit(now + 6*sx),  sx*0.65, 0.68);    // and-of-2
-            _fireBassMidi(third, _bassTJit(now + 8*sx),  sx*0.80, 0.85);    // beat 3
-            _fireBassMidi(fifth, _bassTJit(now + 11*sx), sx*0.65, 0.72);    // off-beat 3
+            _fireBassMidi(lo,    _bassTJit(now + 8*sx),  sx*0.80, 0.85);    // beat 3
+            _fireBassMidi(hi,    _bassTJit(now + 11*sx), sx*0.65, 0.72);    // off-beat 3
             _fireBassMidi(root,  _bassTJit(now + 12*sx), sx*0.80, 0.85);    // beat 4
             _fireBassMidi(root + 12, _bassTJit(now + 14*sx), sx*0.65, 0.78); // octava arriba sync
           }
@@ -14387,13 +14481,16 @@ const BASS_TECH_V = {
     { n:'East smooth', d:'Clapton "Tears in Heaven" — pop adulto fingerstyle smooth.',
           mode: 'T1-A',
           play: (rs, suffix, bs, now, lb) => {
-            const third = _bassThird(suffix);
-            const fifth = _bassFifth(suffix);
-            _fireBassMidi(BASS_OCT_LOW + rs,         _bassTJit(now + 0*bs),   bs*0.90, 0.72);
-            _fireBassMidi(BASS_OCT_LOW + rs + fifth, _bassTJit(now + 1.5*bs), bs*0.45, 0.68);
-            _fireBassMidi(BASS_OCT_LOW + rs,         _bassTJit(now + 2*bs),   bs*0.90, 0.72);
-            _fireBassMidi(BASS_OCT_LOW + rs + third, _bassTJit(now + 3*bs),   bs*0.45, 0.68);
-            _fireBassMidi(BASS_OCT_LOW + rs + fifth, _bassTJit(now + 3.5*bs), bs*0.45, 0.65);
+            // v27.282 — Reacciona a sufijos extendidos.
+            const iv  = _bassIvFromSuffix(suffix);
+            const seq = _arpFromIv(iv, 4, 'asc');
+            const lo  = seq[1];   // antes 'third'
+            const hi  = seq[2];   // antes 'fifth'
+            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 0*bs),   bs*0.90, 0.72);
+            _fireBassMidi(BASS_OCT_LOW + rs + hi, _bassTJit(now + 1.5*bs), bs*0.45, 0.68);
+            _fireBassMidi(BASS_OCT_LOW + rs,      _bassTJit(now + 2*bs),   bs*0.90, 0.72);
+            _fireBassMidi(BASS_OCT_LOW + rs + lo, _bassTJit(now + 3*bs),   bs*0.45, 0.68);
+            _fireBassMidi(BASS_OCT_LOW + rs + hi, _bassTJit(now + 3.5*bs), bs*0.45, 0.65);
           }
         },
     { n:'Pino arp', d:"D'Angelo \"Voodoo\" — pop R&B pocket profundo + ghost notes (enriquecido v20.10.5).",
@@ -14430,125 +14527,21 @@ const BASS_TECH_V = {
             _fireBassMidi(BASS_OCT_LOW + rs + richest, _bassTJit(now + 3.75*bs), bs*0.35, 0.80);
           }
         },
-    { n:'Arp fill 3b', d:'1 beat patch + 3 beats arpegio melódico (enriquecido v20.10.4).',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            const third = _bassThird(suffix);
-            const fifth = _bassFifth(suffix);
-            // v20.10.4 — Última nota del arpegio consulta extensión más rica
-            const richest = _bassRichestAfter5(suffix);
-            _fireBassMidi(BASS_OCT_LOW + rs,           _bassTJit(now + 0*bs), bs*0.90, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs + third,   _bassTJit(now + 1*bs), bs*0.85, 0.75);
-            _fireBassMidi(BASS_OCT_LOW + rs + fifth,   _bassTJit(now + 2*bs), bs*0.85, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs + richest, _bassTJit(now + 3*bs), bs*0.85, 0.85);
-          }
-        },
-    { n:'Arp fill 2b', d:'2 beats patch + 2 beats arpegio rápido.',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            const third = _bassThird(suffix);
-            const fifth = _bassFifth(suffix);
-            _fireBassMidi(BASS_OCT_LOW + rs,         _bassTJit(now + 0*bs),   bs*0.90, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs,         _bassTJit(now + 1*bs),   bs*0.90, 0.75);
-            _fireBassMidi(BASS_OCT_LOW + rs + third, _bassTJit(now + 2*bs),   bs*0.45, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs + fifth, _bassTJit(now + 2.5*bs), bs*0.45, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs + 12,    _bassTJit(now + 3*bs),   bs*0.85, 0.85);
-          }
-        },
-    { n:'Arp 2b', d:'Arpegio 2 beats.',
-          mode: 'T1-C',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const third = root + _bassThird(suffix);
-            const fifth = root + _bassFifth(suffix);
-            const sx = bs * 0.5;
-            for (let i = 0; i < 4; i++) {
-              _fireBassMidi(root, _bassTJit(now + i*sx), sx*0.85, 0.78);
-            }
-            _fireBassMidi(third,     _bassTJit(now + 4*sx), sx*0.85, 0.85);
-            _fireBassMidi(fifth,     _bassTJit(now + 5*sx), sx*0.85, 0.88);
-            _fireBassMidi(root + 12, _bassTJit(now + 6*sx), sx*0.85, 0.92);
-            _fireBassMidi(root,      _bassTJit(now + 7*sx), sx*0.85, 0.95);
-          }
-        },
-    { n:'Arp 3b', d:'Arpegio 3 beats.',
-          mode: 'T1-C',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const third = root + _bassThird(suffix);
-            const fifth = root + _bassFifth(suffix);
-            const sx = bs * 0.5;
-            _fireBassMidi(root, _bassTJit(now + 0*sx), sx*0.85, 0.82);
-            _fireBassMidi(root, _bassTJit(now + 1*sx), sx*0.85, 0.72);
-            _fireBassMidi(third,     _bassTJit(now + 2*sx), sx*0.85, 0.82);
-            _fireBassMidi(fifth,     _bassTJit(now + 3*sx), sx*0.85, 0.85);
-            _fireBassMidi(root + 12, _bassTJit(now + 4*sx), sx*0.85, 0.92);
-            _fireBassMidi(fifth,     _bassTJit(now + 5*sx), sx*0.85, 0.82);
-            _fireBassMidi(third,     _bassTJit(now + 6*sx), sx*0.85, 0.78);
-            _fireBassMidi(root,      _bassTJit(now + 7*sx), sx*0.85, 0.95);
-          }
-        },
-    { n:'Arp + return', d:'Arpegio R-3-5-extensión + return descendente (enriquecido v20.10.4).',
-          mode: 'T1-C',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const third = root + _bassThird(suffix);
-            const fifth = root + _bassFifth(suffix);
-            // v20.10.4 — Cumbre del arpegio (beat 1.5) consulta extensión más rica.
-            // Para Cmaj9 toca la 9. Para Cmaj7 toca la 7. Para Cmajor cae a octava.
-            const cumbre = root + _bassRichestAfter5(suffix);
-            const sx = bs * 0.5;
-            // Arpegio ascending + descending (signature Glover Highway Star)
-            _fireBassMidi(root,      _bassTJit(now + 0*sx), sx*0.85, 0.78);
-            _fireBassMidi(third,     _bassTJit(now + 1*sx), sx*0.85, 0.82);
-            _fireBassMidi(fifth,     _bassTJit(now + 2*sx), sx*0.85, 0.85);
-            _fireBassMidi(cumbre,    _bassTJit(now + 3*sx), sx*0.85, 0.92);   // ← rica
-            _fireBassMidi(fifth,     _bassTJit(now + 4*sx), sx*0.85, 0.85);
-            _fireBassMidi(third,     _bassTJit(now + 5*sx), sx*0.85, 0.78);
-            _fireBassMidi(root + 2,  _bassTJit(now + 6*sx), sx*0.85, 0.72);   // passing
-            _fireBassMidi(root,      _bassTJit(now + 7*sx), sx*0.85, 0.95);   // resolve
-          }
-        },
-    { n:'Arp 1b', d:'Arpegio quintuplet R-3-5-oct-R beat 4.',
-          mode: 'T1-C',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const third = root + _bassThird(suffix);
-            const fifth = root + _bassFifth(suffix);
-            const sx = bs * 0.5;
-            const q = bs / 5;
-            for (let i = 0; i < 6; i++) {
-              _fireBassMidi(root, _bassTJit(now + i*sx), sx*0.85, 0.78);
-            }
-            // Beat 4: arpegio quintuplet
-            _fireBassMidi(root,      _bassTJit(now + 3*bs + 0*q), q*0.85, 0.78);
-            _fireBassMidi(third,     _bassTJit(now + 3*bs + 1*q), q*0.85, 0.82);
-            _fireBassMidi(fifth,     _bassTJit(now + 3*bs + 2*q), q*0.85, 0.85);
-            _fireBassMidi(root + 12, _bassTJit(now + 3*bs + 3*q), q*0.85, 0.92);
-            _fireBassMidi(root,      _bassTJit(now + 3*bs + 4*q), q*0.85, 1.00);
-          }
-        },
-  
     { n:'Full ext.', d:'Arpegio completo con extensiones (R-3-5-7-9-11-13 según suffix).',
       play: (rs, suffix, bs, now, lb) => {
         // v26.4 — TÉCNICA PARA "SEGUIR EL ACORDE" DEL PIANO.
+        // v27.281 — Usa _bassIvFromSuffix(suffix) para acceder al array
+        // COMPLETO de chord tones (era _pocketMagicArp que cortaba en 4).
         // Toca cada extensión del acorde como una nota, distribuidas
         // uniformemente en los 4 beats del patrón canónico.
-        //   major  → C-E-G          (3 notas, 1 cada 1.33 beats)
-        //   7      → C-E-G-Bb       (4 notas, 1 por beat)
-        //   maj7   → C-E-G-B
-        //   m7     → C-Eb-G-Bb
-        //   m7b5   → C-Eb-Gb-Bb
-        //   dim    → C-Eb-Gb
-        //   aug    → C-E-G#
-        //   9      → C-E-Bb-D       (la 9na sube a oct superior)
-        //   13     → C-E-Bb-A       (la 13 en clase A)
-        //   sus4   → C-F-G
-        //   sus2   → C-D-G
-        //   6      → C-E-G-A
-        const arp = _pocketMagicArp(suffix);
-        const step = (4 * bs) / arp.length;
-        arp.forEach((semi, i) => {
+        //   major  → R-3-5            (3 notas, 1 cada 1.33 beats)
+        //   maj7   → R-3-5-7          (4 notas, 1 por beat)
+        //   maj9   → R-3-5-7-9        (5 notas distribuidas)
+        //   maj11  → R-3-5-7-9-11     (6 notas)
+        //   maj13  → R-3-5-7-9-13     (6 notas)
+        const iv = _bassIvFromSuffix(suffix);
+        const step = (4 * bs) / iv.length;
+        iv.forEach((semi, i) => {
           _fireBassMidi(BASS_OCT_LOW + rs + semi, _bassTJit(now + i*step),
             step*0.85, 0.78 - i*0.02);
         });
@@ -14561,9 +14554,15 @@ const BASS_TECH_V = {
     { n:'Carter', d:'Ron Carter — chord-tone targeting + voice-leading suave.',
           mode: 'T1-D',
           play: (rs, suffix, bs, now, lb) => {
-            const t = _bassThird(suffix), f = _bassFifth(suffix);
-            const arp = _pocketMagicArp(suffix);
-            const seventh = arp.length >= 4 ? arp[3] : 10;
+            // v27.282 — Walking jazz auténtico Ron Carter: ahora toca chord
+            // tones extendidos (9, 11, 13) cuando el sufijo los tiene. Antes
+            // usaba _pocketMagicArp (max 7ma). Mantiene el timing y los roles
+            // struct/pass del groove jazz, solo las notas reflejan el iv.
+            const iv  = _bassIvFromSuffix(suffix);
+            const seq = _arpFromIv(iv, 4, 'asc');
+            const t = seq[1];        // antes 'third'
+            const f = seq[2];        // antes 'fifth'
+            const seventh = seq[3];  // antes 'seventh' (ahora puede ser 9/11/13)
             _pocketFire(BASS_OCT_LOW + rs,           now + 0*bs, bs*0.92, 0.82, { role:'struct', pos:0, genre:'jazz' });
             _pocketFire(BASS_OCT_LOW + rs + t,       now + 1*bs, bs*0.85, 0.74, { role:'pass',   pos:1, genre:'jazz' });
             _pocketFire(BASS_OCT_LOW + rs + f,       now + 2*bs, bs*0.88, 0.78, { role:'struct', pos:2, genre:'jazz' });
@@ -14606,15 +14605,20 @@ const BASS_TECH_V = {
             _fireBassMidi(root,        _bassTJit(now + 7*sx), sx*0.80, 0.88);   // root closing
           }
         },
-    { n:'Diatonic walk', d:'4 notas ascendentes (root-3-5-octava) — entrada McCartney.',
+    { n:'Diatonic walk', d:'4 notas ascendentes: root-3-5-(7/9/11/13) — reacciona al sufijo.',
           mode: 'T1-D',
           play: (rs, suffix, bs, now, lb) => {
             const third = _bassThird(suffix);
             const fifth = _bassFifth(suffix);
-            _fireBassMidi(BASS_OCT_LOW + rs,         _bassTJit(now + 0*bs), bs*0.85, 0.72);
-            _fireBassMidi(BASS_OCT_LOW + rs + third, _bassTJit(now + 1*bs), bs*0.85, 0.75);
-            _fireBassMidi(BASS_OCT_LOW + rs + fifth, _bassTJit(now + 2*bs), bs*0.85, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs + 12,    _bassTJit(now + 3*bs), bs*0.85, 0.85);
+            // v27.280 — La 4ta nota antes era octava muerta (rs+12) → en maj7,
+            // maj9, maj13 sonaba idéntico al mayor base. Ahora usa la extensión
+            // más rica disponible: tríada → octava; maj7 → ♮7; maj9 → 9; maj13
+            // → 13; m11b5b13 → ♭13; etc. Walking jazz auténtico.
+            const richest = _bassRichestAfter5(suffix);
+            _fireBassMidi(BASS_OCT_LOW + rs,           _bassTJit(now + 0*bs), bs*0.85, 0.72);
+            _fireBassMidi(BASS_OCT_LOW + rs + third,   _bassTJit(now + 1*bs), bs*0.85, 0.75);
+            _fireBassMidi(BASS_OCT_LOW + rs + fifth,   _bassTJit(now + 2*bs), bs*0.85, 0.78);
+            _fireBassMidi(BASS_OCT_LOW + rs + richest, _bassTJit(now + 3*bs), bs*0.85, 0.85);
           }
         },
   ],
@@ -14624,9 +14628,14 @@ const BASS_TECH_V = {
     { n:'Jamerson', d:'James Jamerson Motown — dotted-8th + ghost notes + cromatismos signature.',
           mode: 'T1-D',
           play: (rs, suffix, bs, now, lb) => {
-            const t = _bassThird(suffix), f = _bassFifth(suffix);
-            const arp = _pocketMagicArp(suffix);
-            const seventh = arp.length >= 4 ? arp[3] : 10;
+            // v27.282 — Jamerson Motown groove. Reacciona a sufijos
+            // extendidos: maj9/maj13 ahora se distinguen del maj7 simple.
+            // Ghosts y timing del groove intactos.
+            const iv  = _bassIvFromSuffix(suffix);
+            const seq = _arpFromIv(iv, 4, 'asc');
+            const t = seq[1];        // antes 'third'
+            const f = seq[2];        // antes 'fifth'
+            const seventh = seq[3];  // antes 'seventh'
             _pocketFire(BASS_OCT_LOW + rs,           now + 0*bs,    bs*0.70, 0.86, { role:'accent', pos:0,   genre:'motown' });
             _pocketGhost(BASS_OCT_LOW + rs,          now + 0.75*bs, bs);
             _pocketFire(BASS_OCT_LOW + rs + f,       now + 1*bs,    bs*0.45, 0.74, { role:'pass',   pos:1,   genre:'motown' });
@@ -14641,9 +14650,11 @@ const BASS_TECH_V = {
     { n:'Pino R&B', d:"Pino Palladino — bajo profundo + ghost notes + anticipation R&B.",
           mode: 'T1-C',
           play: (rs, suffix, bs, now, lb) => {
-            const f = _bassFifth(suffix);
-            const arp = _pocketMagicArp(suffix);
-            const richest = arp.length >= 4 ? arp[3] : 10;
+            // v27.282 — Pino Palladino R&B/soul. Reacciona a sufijos extendidos.
+            const iv  = _bassIvFromSuffix(suffix);
+            const seq = _arpFromIv(iv, 4, 'asc');
+            const f = seq[2];        // antes 'fifth'
+            const richest = seq[3];  // antes la última del arpegio (puede ser 9/11/13)
             _pocketFire(BASS_OCT_LOW + rs,           now + 0*bs,    bs*0.82, 0.90, { role:'accent', pos:0,   genre:'soul' });
             _pocketGhost(BASS_OCT_LOW + rs,          now + 0.75*bs, bs);
             _pocketFire(BASS_OCT_LOW + rs + f,       now + 1.5*bs,  bs*0.55, 0.74, { role:'pass',   pos:1.5, genre:'soul' });
@@ -14656,9 +14667,13 @@ const BASS_TECH_V = {
     { n:'Jamerson 25%', d:'Jamerson "no toca dos compases iguales" — patrón base + variación 25%.',
           mode: 'T1-D',
           play: (rs, suffix, bs, now, lb) => {
-            const t = _bassThird(suffix), f = _bassFifth(suffix);
-            const arp = _pocketMagicArp(suffix);
-            const seventh = arp.length >= 4 ? arp[3] : 10;
+            // v27.282 — Jamerson 25% (variante con probabilidades). Reacciona
+            // a sufijos extendidos manteniendo la aleatoriedad del groove.
+            const iv  = _bassIvFromSuffix(suffix);
+            const seq = _arpFromIv(iv, 4, 'asc');
+            const t = seq[1];        // antes 'third'
+            const f = seq[2];        // antes 'fifth'
+            const seventh = seq[3];  // antes 'seventh'
             _pocketFire(BASS_OCT_LOW + rs, now + 0*bs, bs*0.90, 0.82, { role:'struct', pos:0, genre:'motown' });
             if (Math.random() < 0.25) _pocketGhost(BASS_OCT_LOW + rs, now + 0.75*bs, bs);
             _pocketFire(BASS_OCT_LOW + rs + f, now + 1*bs, bs*0.60, 0.74, { role:'pass', pos:1, genre:'motown' });
@@ -14731,54 +14746,6 @@ const BASS_TECH_V = {
 
   // ─── FILL ─────────────────────────────────────────────────────────
   FILL: [
-    { n:'Walk-up 4b', d:'Walk-up cromático ascending hacia el siguiente acorde.',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const sx = bs * 0.5;
-            // Walk-up cromático ascending durante 4 beats
-            for (let i = 0; i < 8; i++) {
-              _fireBassMidi(root + i, _bassTJit(now + i*sx), sx*0.85, 0.72 + i * 0.03);
-            }
-          }
-        },
-    { n:'Walk-down 4b', d:'Descenso cromático desde octava al root.',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const sx = bs * 0.5;
-            // Walk-down cromático descending from octave
-            for (let i = 0; i < 8; i++) {
-              _fireBassMidi(root + 12 - i, _bassTJit(now + i*sx), sx*0.85, 0.72 + (i/8) * 0.20);
-            }
-          }
-        },
-    { n:'Walk-up 3b', d:'Walk-up cromático 3 beats.',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const sx = bs * 0.5;
-            // Beat 1: pumping normal
-            _fireBassMidi(root, _bassTJit(now + 0*sx), sx*0.85, 0.85);
-            _fireBassMidi(root, _bassTJit(now + 1*sx), sx*0.85, 0.72);
-            // Beats 2-4: walk-up cromático
-            for (let i = 2; i < 8; i++) {
-              _fireBassMidi(root + (i-1), _bassTJit(now + i*sx), sx*0.85, 0.72 + (i/8) * 0.25);
-            }
-          }
-        },
-    { n:'Walk-down 3b', d:'Walk-down 3 beats hacia el root.',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const sx = bs * 0.5;
-            _fireBassMidi(root, _bassTJit(now + 0*sx), sx*0.85, 0.85);
-            _fireBassMidi(root, _bassTJit(now + 1*sx), sx*0.85, 0.72);
-            for (let i = 2; i < 8; i++) {
-              _fireBassMidi(root + 12 - (i-1), _bassTJit(now + i*sx), sx*0.85, 0.72 + (i/8) * 0.20);
-            }
-          }
-        },
     { n:'Walk-up 2b', d:'Walk-up cromático 2 beats.',
           mode: 'T1-D',
           play: (rs, suffix, bs, now, lb) => {
@@ -14805,37 +14772,6 @@ const BASS_TECH_V = {
             }
           }
         },
-    { n:'Walk-up 1b', d:'Walk-up quintuplet beat 4.',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const sx = bs * 0.5;
-            const q = bs / 5;   // quintuplet
-            // Beats 1-3: pumping normal
-            for (let i = 0; i < 6; i++) {
-              _fireBassMidi(root, _bassTJit(now + i*sx), sx*0.85, 0.78);
-            }
-            // Beat 4: walk-up quintuplet
-            for (let i = 0; i < 5; i++) {
-              _fireBassMidi(root + i, _bassTJit(now + 3*bs + i*q), q*0.85, 0.78 + i * 0.05);
-            }
-          }
-        },
-    { n:'Walk-down 1b', d:'Walk-down quintuplet beat 4.',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            const root = BASS_OCT_LOW + rs;
-            const sx = bs * 0.5;
-            const q = bs / 5;
-            for (let i = 0; i < 6; i++) {
-              _fireBassMidi(root, _bassTJit(now + i*sx), sx*0.85, 0.78);
-            }
-            // Beat 4: walk-down quintuplet
-            for (let i = 0; i < 5; i++) {
-              _fireBassMidi(root + 5 - i, _bassTJit(now + 3*bs + i*q), q*0.85, 0.78 + i * 0.05);
-            }
-          }
-        },
     { n:'Pop walk-up', d:'Walk-up suave hacia el siguiente acorde, ajustado al suffix.',
           mode: 'T1-D',
           play: (rs, suffix, bs, now, lb) => {
@@ -14857,17 +14793,6 @@ const BASS_TECH_V = {
             const _w = _bassWalkUp(suffix, 'up', 2);
             _fireBassMidi(BASS_OCT_LOW + rs + _w[0], _bassTJit(now + 3*bs),   bs*0.45, 0.75);
             _fireBassMidi(BASS_OCT_LOW + rs + _w[1], _bassTJit(now + 3.5*bs), bs*0.45, 0.85);
-          }
-        },
-    { n:'Boogie 2b', d:'2 beats patch + 2 beats walk ajustado al suffix.',
-          mode: 'T1-D',
-          play: (rs, suffix, bs, now, lb) => {
-            // v20.10.1 — Walk-up de 2 notas correcto según suffix
-            const w = _bassWalkUp(suffix, 'up', 2);
-            _fireBassMidi(BASS_OCT_LOW + rs,        _bassTJit(now + 0*bs), bs*0.90, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs,        _bassTJit(now + 1*bs), bs*0.90, 0.75);
-            _fireBassMidi(BASS_OCT_LOW + rs + w[0], _bassTJit(now + 2*bs), bs*0.85, 0.78);
-            _fireBassMidi(BASS_OCT_LOW + rs + w[1], _bassTJit(now + 3*bs), bs*0.85, 0.85);
           }
         },
     { n:'Slide 1b', d:'Slide chromatic up beat 4 — bajo signature rock.',
@@ -15193,23 +15118,29 @@ const STRINGS_TECH_V = {
         intervals.forEach(iv => _fireStringsMidi(_stringsMidi(rs, iv),
           when + 0.30, bs*3.5, 0.45));
       }},
-    { n:'Asc.', d:'Ascendente · R-3-5-8 distribuido en 4 beats.',
+    { n:'Asc.', d:'Ascendente — distribuye 4 voces sobre TODO el acorde (responde a 9/11/13).',
       play: (rs, intervals, bs, when) => {
-        const seq = [0, intervals[1] || 4, intervals[2] || 7, 12];
+        // v27.279 — Antes hardcodeaba [0, intervals[1]||4, intervals[2]||7, 12]:
+        // en maj13 sonaba idéntico a maj7. Ahora distribuye sobre el array
+        // completo: tríada → R-3-5-8va; acorde extendido → R + ext distribuidas.
+        const seq = _arpFromIv(intervals, 4, 'asc');
         for (let b = 0; b < 4; b++) {
           _fireStringsMidi(_stringsMidi(rs, seq[b]), when + b*bs, bs*0.85, 0.58);
         }
       }},
-    { n:'Desc.', d:'Descendente · 8-5-3-R · cierre dramático.',
+    { n:'Desc.', d:'Descendente — cierre dramático sobre TODO el acorde (responde a 9/11/13).',
       play: (rs, intervals, bs, when) => {
-        const seq = [12, intervals[2] || 7, intervals[1] || 4, 0];
+        const seq = _arpFromIv(intervals, 4, 'desc');
         for (let b = 0; b < 4; b++) {
           _fireStringsMidi(_stringsMidi(rs, seq[b]), when + b*bs, bs*0.85, 0.58);
         }
       }},
-    { n:'Asc-Desc', d:'Sube y baja simétrico · efecto "campanas".',
+    { n:'Asc-Desc', d:'Sube y baja simétrico — usa extensiones cuando existen.',
       play: (rs, intervals, bs, when) => {
-        const seq = [0, intervals[1] || 4, intervals[2] || 7, intervals[1] || 4];
+        // v27.279 — Sube 3 notas distribuidas + baja a la 2da. En tríada
+        // es R-3-5-3; en acorde extendido toca la extensión más alta y vuelve.
+        const up = _arpFromIv(intervals, 3, 'asc');
+        const seq = [up[0], up[1], up[2], up[1]];
         for (let b = 0; b < 4; b++) {
           _fireStringsMidi(_stringsMidi(rs, seq[b]), when + b*bs, bs*0.90, 0.55);
         }
@@ -35188,7 +35119,7 @@ function playStringsChord(root, suffix, tech, varName, bpm, lb) {
 //   9. TRAVIS picking (bajo en 1+3, melódico en 2+4)  [nuevo]
 //  10. VOZ pattern (bajo+5ta+arpegio 3 notas)         [nuevo]
 // ═══════════════════════════════════════════════════════════════════════
-function playChord(root, suffix, tech, bpm) {
+function playChord(root, suffix, tech, bpm, explicitVar) {
   // v27.15 — Silenciar previews de wheels durante playback.
   // El playback del sequencer setea window._inPlaybackTick=true antes
   // de cada llamada, así esa única ruta sí suena. Cualquier OTRA
@@ -35217,14 +35148,27 @@ function playChord(root, suffix, tech, bpm) {
 
   if (_isPianoFamily(currentSound)) {
     if (!_activePianoLoaded(currentSound)) return;
+    // v27.332 — explicitVar prioritario sobre find(r,s). Bug reportado por
+    // Horacio: cambiar la subtécnica de un clip durante playback NO cambiaba
+    // el sonido (solo cambiaba el texto del clip). Causa raíz: este find
+    // por (r,s) sin sb es ambiguo cuando hay clips con mismo (r,s) en otros
+    // compases — agarra el primero, no el activo. El motor de playback
+    // ya sabe cuál es el clip activo (resuelto por sb) y ahora pasa cl.v
+    // como 5to argumento explícito. Cuando se pasa explicitVar, lo usamos
+    // directo. Si no se pasa (callers viejos: preview, mockups), fallback
+    // al comportamiento legacy del find.
     let _pianoVar = '';
-    try {
-      const _t = G && G.tracks && G.tracks[currentTrackIdx];
-      if (_t && _t.clips) {
-        const _cl = _t.clips.find(c => c.r === root && c.s === suffix);
-        if (_cl) _pianoVar = _cl.v || '';
-      }
-    } catch(e) {}
+    if (typeof explicitVar === 'string') {
+      _pianoVar = explicitVar;
+    } else {
+      try {
+        const _t = G && G.tracks && G.tracks[currentTrackIdx];
+        if (_t && _t.clips) {
+          const _cl = _t.clips.find(c => c.r === root && c.s === suffix);
+          if (_cl) _pianoVar = _cl.v || '';
+        }
+      } catch(e) {}
+    }
 
     if (typeof playPianoChord === 'function') {
       playPianoChord(root, suffix, tech, _pianoVar, bpm);
@@ -35244,16 +35188,29 @@ function playChord(root, suffix, tech, bpm) {
     if (!_activeBassLoaded(currentSound)) return;
     let _bassVar = '';
     let _bassLb = 4;
-    try {
-      const _t = G && G.tracks && G.tracks[currentTrackIdx];
-      if (_t && _t.clips) {
-        const _cl = _t.clips.find(c => c.r === root && c.s === suffix);
-        if (_cl) {
-          _bassVar = _cl.v || '';
-          _bassLb = _cl.lb || 4;
+    // v27.332 — explicitVar prioritario (mismo razonamiento que branch piano arriba).
+    if (typeof explicitVar === 'string') {
+      _bassVar = explicitVar;
+      // _bassLb sigue del find: lb del clip activo. Si find falla, queda 4.
+      try {
+        const _t = G && G.tracks && G.tracks[currentTrackIdx];
+        if (_t && _t.clips) {
+          const _cl = _t.clips.find(c => c.r === root && c.s === suffix);
+          if (_cl) _bassLb = _cl.lb || 4;
         }
-      }
-    } catch(e) {}
+      } catch(e) {}
+    } else {
+      try {
+        const _t = G && G.tracks && G.tracks[currentTrackIdx];
+        if (_t && _t.clips) {
+          const _cl = _t.clips.find(c => c.r === root && c.s === suffix);
+          if (_cl) {
+            _bassVar = _cl.v || '';
+            _bassLb = _cl.lb || 4;
+          }
+        }
+      } catch(e) {}
+    }
     if (typeof playBassChord === 'function') {
       playBassChord(root, suffix, tech, _bassVar, bpm, _bassLb);
     }
@@ -35266,16 +35223,28 @@ function playChord(root, suffix, tech, bpm) {
     if (!_activeStringsLoaded(currentSound)) return;
     let _stringsVar = '';
     let _stringsLb = 4;
-    try {
-      const _t = G && G.tracks && G.tracks[currentTrackIdx];
-      if (_t && _t.clips) {
-        const _cl = _t.clips.find(c => c.r === root && c.s === suffix);
-        if (_cl) {
-          _stringsVar = _cl.v || '';
-          _stringsLb = _cl.lb || 4;
+    // v27.332 — explicitVar prioritario (mismo razonamiento que branch piano arriba).
+    if (typeof explicitVar === 'string') {
+      _stringsVar = explicitVar;
+      try {
+        const _t = G && G.tracks && G.tracks[currentTrackIdx];
+        if (_t && _t.clips) {
+          const _cl = _t.clips.find(c => c.r === root && c.s === suffix);
+          if (_cl) _stringsLb = _cl.lb || 4;
         }
-      }
-    } catch(e) {}
+      } catch(e) {}
+    } else {
+      try {
+        const _t = G && G.tracks && G.tracks[currentTrackIdx];
+        if (_t && _t.clips) {
+          const _cl = _t.clips.find(c => c.r === root && c.s === suffix);
+          if (_cl) {
+            _stringsVar = _cl.v || '';
+            _stringsLb = _cl.lb || 4;
+          }
+        }
+      } catch(e) {}
+    }
     if (typeof playStringsChord === 'function') {
       playStringsChord(root, suffix, tech, _stringsVar, bpm, _stringsLb);
     }
@@ -37213,16 +37182,30 @@ function clipGestureEnd(e, st){
     const _effectiveDrum = !!t.drum && t.inst === 'drums';
     if (_effectiveDrum) {
       // v20.6.1 — Preview drum clip: _resolveDrumVariant + variant.play
-      try {
-        const _v = (typeof _resolveDrumVariant === 'function')
-          ? _resolveDrumVariant(clip, t) : null;
-        if (_v && typeof _v.play === 'function') {
-          const _ctx = (typeof getCtx === 'function') ? getCtx() : null;
-          const _now = _ctx ? _ctx.currentTime : 0;
-          const _bs = 60 / (G.bpm || 120);
-          _v.play(null, null, _bs, _now);
-        }
-      } catch (e) { console.warn('[v21.1.10] drum preview error:', e); }
+      // v27.331 — NO disparar el preview de drums cuando está en modo PLAY.
+      // Horacio reportó que al hacer doble click sobre un compás de batería
+      // en modo play (para abrir el editor) sonaba "horrible". Causa raíz:
+      // el preview reproduce el PATTERN completo del clip arrancando en el
+      // tiempo del click → desincronizado con el clock global → choca con
+      // el mismo pattern que ya está sonando como parte del loop. Otros
+      // instrumentos no tienen este problema porque su preview es
+      // playChord() (toque puntual, no un compás entero rítmico).
+      // Fix: skip el preview drum cuando G.playing — el clip ya está
+      // sonando, el preview agregaría doble pattern fuera de fase.
+      // Cuando NO está en play el preview se mantiene (feedback útil
+      // al seleccionar un clip de drums sin pisar otro audio).
+      if (!G.playing) {
+        try {
+          const _v = (typeof _resolveDrumVariant === 'function')
+            ? _resolveDrumVariant(clip, t) : null;
+          if (_v && typeof _v.play === 'function') {
+            const _ctx = (typeof getCtx === 'function') ? getCtx() : null;
+            const _now = _ctx ? _ctx.currentTime : 0;
+            const _bs = 60 / (G.bpm || 120);
+            _v.play(null, null, _bs, _now);
+          }
+        } catch (e) { console.warn('[v21.1.10] drum preview error:', e); }
+      }
     } else {
       // v21.1.13 — Auto-corregir state inconsistente. Si t.drum=true pero
       // t.inst no es 'drums', limpiar la flag para que no vuelva a confundir.
@@ -37509,18 +37492,104 @@ function _proEnrichQuality(clip, idx, clips, style){
   return map[clip.s] || clip.s;
 }
 
+// v27.283 — Sistema PRO aditivo puro 1/2/3 por familia armónica.
+// Identifica la familia del sufijo y agrega N extensiones sin alterar el mood,
+// la raíz ni el modo (tipo) del acorde. Filosofía: base ⊂ PRO1 ⊂ PRO2 ⊂ PRO3.
+//
+// Tabla por familia (todos los niveles agregan SOLO chord tones diatónicos,
+// nunca alteran 3ª/5ª/raíz/séptima existentes):
+//
+//   Familia      Base      PRO1 (+1)      PRO2 (+2)        PRO3 (+3)
+//   ─────────    ──────    ─────────────  ──────────────   ─────────────
+//   Mayor        C         Cmaj7          Cmaj9            Cmaj13
+//   Menor        Cm        Cm7            Cm9              Cm11
+//   Dominante    C7        C9             C13              C7#9 (Hendrix)
+//   Semidim      Cm7b5     Cm9b5          Cm11b5           Cm11b5b13
+//   Disminuido   Cdim7     Cdim9          Cdim11           = PRO2 (satura)
+//   Sus          Csus      Csus(add9)     Csus(6/9)        = PRO2 (satura)
+//   Aumentado    Caug      Caug(maj7)     Caug9(maj7)      Caug13(maj7)
+//
+// v27.284 — Dominante PRO3: cambio de C13(#11) Lidio dominante (jazz cerebral
+// que sale del mood pop/rock) a C7#9 (Hendrix chord, Purple Haze). El #9 es
+// ♭3 enharmónico → ambigüedad mayor/menor del blues. Mainstream rock/blues/
+// funk/R&B (Hendrix, James Brown, Stevie Wonder, Steely Dan). Anclado en el
+// mood pop/rock real de la app. Rompe aditivo estricto (omite 9 y 13) pero
+// dim/sus ya saturan PRO3=PRO2, así que el sistema no es 100% aditivo igual.
+// La regla real es "mantener el carácter mayor/menor/dom sin alterar la 3ª".
+//
+// El sistema preserva los acordes que el usuario YA enriqueció a mano: si
+// cl.s está más alto en la escalera que el nivel pedido, no se toca.
+const _PRO_LEVELS_BY_FAMILY = {
+  major:   ['',       'maj7',     'maj9',      'maj13'],
+  minor:   ['m',      'm7',       'm9',        'm11'],
+  dom:     ['7',      '9',        '13',        '7#9'],       // PRO3 Hendrix chord (Purple Haze)
+  semidim: ['m7b5',   'm9b5',     'm11b5',     'm11b5b13'],
+  dim:     ['dim7',   'dim9',     'dim11',     'dim11'],     // PRO3 satura en PRO2
+  sus:     ['sus4',   'sus4add9', 'sus69',     'sus69'],     // PRO3 satura en PRO2
+  aug:     ['aug',    'augmaj7',  'aug9maj7',  'aug13maj7'],
+};
+
+// Identifica la familia armónica desde el sufijo del acorde.
+// Devuelve la clave de _PRO_LEVELS_BY_FAMILY o null si no identificable.
+function _proFamilyOf(suffix) {
+  const s = (suffix || '').toLowerCase().trim();
+  // Sinónimos de tríada
+  if (s === '' || s === 'major' || s === 'maj') return 'major';
+  if (s === 'minor' || s === 'min') return 'minor';
+  // Sus (sin 3ª): debe chequearse ANTES de mayor/menor porque "sus" empieza con 's'
+  if (s === 'sus' || /^sus[24]/.test(s)) return 'sus';
+  // Disminuido (incluye dim7, dim9, dim11)
+  if (/^dim/.test(s)) return 'dim';
+  // Semidim (m con b5): m7b5, m9b5, m11b5, m11b5b13
+  if (/^m\d*b5/.test(s) || s === 'ø' || s === 'half-dim') return 'semidim';
+  // Aumentado: aug, augmaj7, aug9maj7, aug13maj7, +
+  if (/^aug/.test(s) || s === '+') return 'aug';
+  // Dominante: arranca con dígito (7, 9, 11, 13) o "7#11", "7b9", etc.
+  if (/^(7|9|11|13)/.test(s)) return 'dom';
+  // Menor: arranca con 'm' pero NO con 'maj' (negative lookahead).
+  // Captura: 'm', 'm7', 'm9', 'm11', 'm13', 'mmaj7', 'mmaj9' (todos minor).
+  // Excluye: 'maj7', 'maj9', 'maj11', 'maj13' (caen al default major).
+  if (/^m(?!aj)/.test(s)) return 'minor';
+  // Default: mayor (cubre maj7, maj9, maj11, maj13, 6, 6/9, add9, etc.)
+  return 'major';
+}
+
+// Aplica nivel PRO al sufijo manteniendo la familia.
+// Reglas:
+//   · level 1/2/3 → upgrade aditivo según escalera de la familia.
+//   · Si el sufijo NO está en la escalera (ej: 'm6', 'add9', '7b9') → no tocar.
+//   · Si el sufijo ya está en un nivel ≥ pedido → preservar (nunca reduce).
+function _applyProLevel(suffix, level) {
+  if (!level || level < 1 || level > 3) return suffix;
+  const fam = _proFamilyOf(suffix);
+  const ladder = _PRO_LEVELS_BY_FAMILY[fam];
+  if (!ladder) return suffix;
+  const sLower = (suffix || '').toLowerCase().trim();
+  // Normalizar sinónimos
+  const norm = (sLower === 'major' || sLower === 'maj') ? ''
+             : (sLower === 'minor' || sLower === 'min') ? 'm'
+             : sLower;
+  const currIdx = ladder.indexOf(norm);
+  // Sufijo exótico (no en escalera): no tocar — respeta la elección del usuario.
+  if (currIdx === -1) return suffix;
+  // Ya está en el nivel pedido o más alto: preservar.
+  if (currIdx >= level) return suffix;
+  return ladder[level];
+}
+window._proFamilyOf = _proFamilyOf;
+window._applyProLevel = _applyProLevel;
+window._PRO_LEVELS_BY_FAMILY = _PRO_LEVELS_BY_FAMILY;
+
 // Aplica/revierte enriquecimiento PRO sobre todos los clips de todos los tracks.
 // Toggle: si ya estaba aplicado, revierte. Si no, aplica.
 function togglePro(){
   if(!G || !G.tracks){ return; }
-  const style = G._loadedProgStyle || 'pop';
 
-  // v27.271 — Ciclo de niveles: 0 (reposo) → 1 → 2 → 3 → 0.
-  // MAX_PRO_LEVELS controla cuántos niveles están activos. Por ahora solo el
-  // nivel 1 tiene fórmula (_proEnrichQuality) → MAX=2 (loopea 0↔1).
-  // PENDIENTE: definir fórmulas de complejización N2 y N3; al implementarlas,
-  // subir MAX_PRO_LEVELS a 4 y rutear cada nivel a su fórmula en _applyProLevel.
-  const MAX_PRO_LEVELS = 2;
+  // v27.283 — Ciclo de 4 niveles: 0 (reposo) → 1 → 2 → 3 → 0.
+  // Cada nivel aplica una fórmula aditiva pura según la familia armónica del
+  // acorde original (ver _PRO_LEVELS_BY_FAMILY). Independiente del estilo:
+  // un Cmaj con PRO2 siempre va a Cmaj9, sin importar si el tema es jazz/pop/rock.
+  const MAX_PRO_LEVELS = 4;
 
   // 1) Revertir lo que esté aplicado (cualquier nivel previo).
   if(G._proApplied){
@@ -37543,22 +37612,20 @@ function togglePro(){
     undoPush && undoPush('PRO desactivado');
     if(typeof toast === 'function') toast('Volvió a versión simple');
   } else {
-    // Aplicar la fórmula del nivel `next`. Hoy todos los niveles usan la
-    // fórmula 1 (_proEnrichQuality); cuando se definan N2/N3 se ramifica aquí.
+    // Aplicar nivel aditivo a cada clip.
     undoPush && undoPush('PRO ' + next + ' aplicado');
     let changedCount = 0;
     G.tracks.forEach(t => {
       if(!t.clips) return;
-      t.clips.forEach((c, i) => {
-        if(!c || !c.s) return;
-        const newS = _proEnrichQuality(c, i, t.clips, style);
+      t.clips.forEach(c => {
+        if(!c || c.s == null) return;
+        const newS = _applyProLevel(c.s, next);
         if(newS !== c.s){ c._sOrig = c.s; c.s = newS; changedCount++; }
       });
     });
     G._proApplied = true;
     if(typeof toast === 'function'){
-      const styleLabel = (typeof STYLE_LABEL_BY_ID !== 'undefined' && STYLE_LABEL_BY_ID[style]) || style.toUpperCase();
-      toast('PRO ' + next + ' · ' + styleLabel + ' · ' + changedCount + ' acordes');
+      toast('PRO ' + next + ' · ' + changedCount + ' acordes enriquecidos');
     }
   }
 
@@ -37678,6 +37745,11 @@ function togglePlay(){
     const tsBtn = document.getElementById('ts-play-btn');
     if (tsIc) { tsIc.className = 'ts-play-ic pause-icon'; tsIc.innerHTML = '<div class="pause-bar"></div><div class="pause-bar"></div>'; }
     if (tsBtn) { tsBtn.classList.add('playing'); }
+    // v27.306 — Sincronizar también el botón play en el header del chord-sheet
+    const csHeaderPlayIc = document.getElementById('cs-header-play-ic');
+    const csHeaderPlayBtn = document.getElementById('cs-header-play-btn');
+    if (csHeaderPlayIc) { csHeaderPlayIc.className = 'ts-play-ic pause-icon'; csHeaderPlayIc.innerHTML = '<div class="pause-bar"></div><div class="pause-bar"></div>'; }
+    if (csHeaderPlayBtn) { csHeaderPlayBtn.classList.add('playing'); }
     updatePHHeight();
     document.getElementById('ph').style.display='block';
     // v27.2 — Loop region: si está activo y playPos está fuera del rango, saltar a start
@@ -37698,6 +37770,11 @@ function togglePlay(){
     const tsBtn = document.getElementById('ts-play-btn');
     if (tsIc) { tsIc.className = 'ts-play-ic play-icon'; tsIc.innerHTML = ''; }
     if (tsBtn) { tsBtn.classList.remove('playing'); }
+    // v27.306 — Sincronizar también el botón play en el header del chord-sheet
+    const csHeaderPlayIc = document.getElementById('cs-header-play-ic');
+    const csHeaderPlayBtn = document.getElementById('cs-header-play-btn');
+    if (csHeaderPlayIc) { csHeaderPlayIc.className = 'ts-play-ic play-icon'; csHeaderPlayIc.innerHTML = ''; }
+    if (csHeaderPlayBtn) { csHeaderPlayBtn.classList.remove('playing'); }
     stopPB();G.activeClip=null;
     G.tracks.forEach((_,i)=>renderTrack(i));
     document.getElementById('ph').style.display='none';
@@ -38098,7 +38175,11 @@ function startPB(){
             window._currentTrackSound = t.sound || (typeof getDefaultSound === 'function' ? getDefaultSound(t.inst) : '') || '';
             // v27.15 — Playback real del sequencer (no preview): marcar flag
             window._inPlaybackTick = true;
-            try { playChord(cl.r,cl.s,cl.tech,G.bpm); } finally { window._inPlaybackTick = false; }
+            // v27.332 — Pasar cl.v como 5to argumento explícito. Sin esto,
+            // playChord caía a `find(c => c.r===root && c.s===suffix)` ambiguo
+            // y los cambios de subtécnica desde el chord-editor no se reflejaban
+            // en el audio durante playback (bug reportado por Horacio).
+            try { playChord(cl.r,cl.s,cl.tech,G.bpm,cl.v); } finally { window._inPlaybackTick = false; }
           }
           currentSound=ps;currentOctShift=po;currentTrackIdx=pti;
           G.activeClip={ti,ci};
@@ -39108,7 +39189,7 @@ function openChordSheet(clip,ti,ci){
         .replace(/by\s+note/i,  '(notas)')
         .replace(/by\s+chord/i, '(acordes)')
         .replace(/by\s+loop/i,  '(loop)');
-      _elMT.textContent = trackName + (_layerStr ? ' · ' + _layerStr : '');
+      _elMT.textContent = '';
     }
   } catch(_e) {}
 
@@ -39213,8 +39294,7 @@ function updateHero(clip){
       setGradeTop(null);
   }
   document.getElementById('cs-int').textContent=INTERVALS[clip.s]||'';
-  // v17.4.0 — refrescar grilla técnica del chord-editor (modo contextual + filtrado)
-  try { if (typeof _renderChordSheetTechFormula === 'function') _renderChordSheetTechFormula(clip); } catch(_e) {}
+  // v27.324 — Llamada a _renderChordSheetTechFormula eliminada (grilla retirada).
   // v15.0.47 — Hook de sincronía: cualquier cambio de clip refresca el
   // botón ref del CONFIG + carrusel + editor LNF (si está abierto).
   // paletasBuildRow tiene early-return si el botón no está montado, así
@@ -40117,7 +40197,7 @@ function mixerSlideWheel(ti, dir){
   // fix en _instApplyKeyChange). Sin este reset, cambiar inst de drums a
   // bass dejaba drum=true → click disparaba batería.
   t.drum = (newKey === 'drums');
-  // v16.5.32-clean: si el nuevo inst es meatbass_*, recargar técnica en sampler.
+  // v16.5.32-clean: si el nuevo inst es bass_acoustic, recargar.
   try { _onBassInstChanged(newKey); } catch(e) {}
   try{ updateTrackBus(ti); }catch(e){}
   setTimeout(() => {
@@ -40766,6 +40846,18 @@ function openSheet(id){
   // Fix: aplicar inert SOLO a los hijos de #app que NO son el sheet abierto,
   // ni el backdrop, ni overlays globales. Así VO/NVDA ignora lo tapado, pero
   // el sheet abierto sigue siendo interactivo.
+  // v27.304 — FIX DEFINITIVO: cuando se abre el chord-sheet (o inst-sheet),
+  // promocionar automáticamente el track siendo editado. De esa forma, _promoteActive
+  // será true, PROMOTE_KEEP_INTERACTIVE (que ya tiene 'transport','bot') aplicará,
+  // y el transporte quedará interactivo. Cuando se cierra el editor, _restoreTrackOrder()
+  // despromociona el track. Así el transporte funciona mientras editas acordes/instrumentos.
+  if ((id === 'chord-sheet' || id === 'inst-sheet') && G.editRef && G.editRef.ti !== undefined) {
+    try {
+      if (typeof window._promoteTrackToTop === 'function') {
+        window._promoteTrackToTop(G.editRef.ti);
+      }
+    } catch(_) {}
+  }
   try{
     const app = document.getElementById('app');
     if(app){
@@ -40783,10 +40875,15 @@ function openSheet(id){
       //   - view-seq:  contiene el .track-row.promoted con sus clips (el aislamiento
       //                v20.5.5 con pe:none en .track-row:not(.promoted) bloquea los
       //                tracks no promovidos, así que dejarlo no-inert es seguro).
+      // v27.292 — Horacio: con chord-sheet abierto el Play/Rewind del FOOTER
+      // no respondían al click. Causa: #transport y #bot reciben inert porque
+      // no estaban en esta whitelist. Agregados ambos para que el transport
+      // del footer (Play, Rewind, BPM, Compases, Tiempo, Snap) y el footer
+      // entero (zoom, loop, undo) sigan respondiendo durante el sheet.
       // A11y: estos elementos están VISIBLES durante el sheet — coherente que
       // VO/NVDA los pueda leer y operar. Apple HIG 2.1/4.0 sigue OK.
       const PROMOTE_KEEP_INTERACTIVE = new Set([
-        'hdr-band1','hdr-band2','view-seq'
+        'hdr-band1','hdr-band2','view-seq','transport','bot'
       ]);
       const _promoteActive = (typeof window._promotedTrackTi !== 'undefined'
                               && window._promotedTrackTi !== null);
@@ -42801,20 +42898,12 @@ function openInstSheet(ti) {
 
   G.editTi = ti; // para que renderInstFx use el track activo
 
-  // v16.3.23 — Sprint 3.5: badge de capa en el título del inst-sheet.
-  // Como el inst-sheet edita el TRACK (no un clip puntual), uso el primer
-  // clip del track como representante para evaluar la capa. Si no hay
-  // clips, no muestro badge (solo "Editor Instrumentos").
+  // v27.288 — Eliminado el badge de capa "· by Note/Chord/Loop" del título.
+  // Pedido directo de Horacio: solo "Editor Instrumentos".
   try {
     const _isTitleEl = document.getElementById('is-title');
     if (_isTitleEl) {
-      let _isBadge = '';
-      const _firstClip = (t.clips && t.clips.length > 0) ? t.clips[0] : null;
-      if (_firstClip) {
-        const _layerLabel = _getActiveLayerLabel(t.inst, _firstClip.r, _firstClip.s, _firstClip.tech || INST_EDIT.tech);
-        if (_layerLabel) _isBadge = ` · ${_layerLabel}`;
-      }
-      _isTitleEl.textContent = 'Editor Instrumentos' + _isBadge;
+      _isTitleEl.textContent = 'Editor Instrumentos';
     }
   } catch(_e) { /* si falla, mantengo el título original */ }
 
@@ -42880,7 +42969,7 @@ function _instInferVarFromClips(t, tech){
 //   steel    → Guitar 5   (slot loader: user_guitar_5)
 //   nylon    → Concierto Nylon (ORIGINAL, intocable)
 //   user_guitar_6 → Guitar 6 (sin foto, slot vacío)
-// v16.3.35 — CLEANUP MAYOR + STRINGS VPO + MEATBASS
+// v16.3.35 — CLEANUP MAYOR + STRINGS VPO + BASS
 //   Guitarra: 1 sola familia visible. Concierto Nylon + Concierto Nylon 2.
 //   Piano: solo Salamander.
 //   Strings: nuevo (Virtual Playing Orchestra), 7 variantes ensemble/sections/solos.
@@ -43148,7 +43237,7 @@ function _activeBassSampler(inst, velocity){
 
   // ─────── LEGACY (Pasos 1-2 originales · pre-v17) ───────
   // Aliases legacy del inst → técnica física (cuando el track conserva inst
-  // viejo meatbass_*, la técnica sale del propio inst, no del clip).
+  // sistema viejo, la técnica sale del propio inst, no del clip).
   if (inst === 'bass_acoustic' && window._bassSamplers && window._bassSamplers.arco) {
     window.bassSampler = window._bassSamplers.arco;
     return window._bassSamplers.arco;
@@ -43195,10 +43284,11 @@ function routePianoFamilyToTrack(ti, inst){
 
 
 /** Rutea bass al bus del track.
- *  v27.176 — Solo bass_acoustic queda como inst del bajo en Light. */
+ *  v27.176 — Solo bass_acoustic queda como inst del bajo en Light.
+ *  v27.280 — Rename interno del cache key (legacy → 'bass'). */
 function routeBassFamilyToTrack(ti, inst){
   if (inst === 'bass_acoustic') {
-    return _routeKill(bassKillGain, 'meatbass', ti);
+    return _routeKill(bassKillGain, 'bass', ti);
   }
   return null;
 }
@@ -43279,7 +43369,7 @@ function killPianoFamilyIfActive(ti){
 }
 
 /** v16.5.2-clean — Mata el sampler bass R2 (window.bassSampler) en el track ti.
- *  Tras cleanup mayor: solo 1 sampler de bajo (Meatbass R2 unificado). Las 3
+ *  Tras cleanup mayor: solo 1 sampler de bajo (bass_acoustic R2 unificado). Las 3
  *  técnicas comparten el mismo Tone.Sampler + 1 killGain (bassKillGain). */
 function killBassFamilyIfActive(ti){
   if (!audioCtx) return;
@@ -43712,7 +43802,7 @@ function _instApplyKeyChange(newKey){
   t.drum = (newKey === 'drums');
   // v20.2.2 — sincronizar wheel SONIDO con las variantes del nuevo inst
   try { _syncSoundWheelVisibility('inst-sheet', newKey); } catch(_){}
-  // v16.5.32-clean: si el nuevo inst es meatbass_*, recargar técnica en sampler.
+  // v16.5.32-clean: si el nuevo inst es bass_acoustic, recargar.
   try { _onBassInstChanged(newKey); } catch(e) {}
   try{ updateTrackBus(INST_EDIT.ti); }catch(e){}
   // ─── v15.0.82-DEMO — FIX CONTAGIO PIANO ↔ GUITARRA ────────────────────────
@@ -44943,16 +45033,15 @@ const PROGRESSIONS_DATA = {  // v27.177 — ROCK · 8 progresiones (4 mayores + 
         d:'La progresión fundadora del rock: tres acordes diatónicos sin alteraciones. Estructura simétrica y puramente jónica que sostiene el 95% del rock-and-roll clásico.',
         hist:'Chuck Berry, Wild Thing (The Troggs), La Bamba (Ritchie Valens), Twist and Shout. Tres acordes y la verdad — Lou Reed dixit.',
         tracks:[
-          {n:'Drums', inst:'drums', vol:.82, defaultEstilo:'rock', defaultTech:'PATCH_1', defaultVar:'8vos hat', comp:true, compMix:.45,
+          {n:'Drums', inst:'drums', vol:.80, defaultEstilo:'rock', defaultTech:'PATCH_1', defaultVar:'8vos hat', comp:true, compMix:.40,
             drumPattern:[
               {tech:'PATCH_1', v:'8vos hat'},
               {tech:'PATCH_1', v:'8vos hat'},
-              {tech:'PATCH_1', v:'Open hat'},
-              {tech:'FILL_2B', v:'Snare roll'},
+              {tech:'FILL_2B', v:'Linear 16ths'},
             ]},
-          {n:'Bass', inst:'bass_acoustic', vol:.86, octShift:0, defaultTech:'PULSE', defaultVar:'AC/DC 8ths', comp:true, compMix:.40},
-          {n:'Piano', inst:'salamander', vol:.74, octShift:0, defaultTech:'BLOCK', defaultVar:'Pulse', reverb:true, reverbMix:.20},
-          {n:'Strings', inst:'strings_ensemble', vol:.55, octShift:0, defaultTech:'PAD', defaultVar:'Open', reverb:true, reverbMix:.55},
+          {n:'Bass', inst:'bass_acoustic', vol:.82, octShift:0, defaultTech:'PULSE', defaultVar:'AC/DC 8ths', comp:true, compMix:.35},
+          {n:'Piano', inst:'salamander', vol:.75, octShift:0, defaultTech:'BLOCK', defaultVar:'On 1 + 3', reverb:true, reverbMix:.20},
+          {n:'Strings', inst:'strings_ensemble', vol:.50, octShift:0, defaultTech:'PAD', defaultVar:'Octava', reverb:true, reverbMix:.50},
         ],
       },
       { n:2, name:'Mixolidio setentero', p:'I - bVII - IV - I',
@@ -44961,17 +45050,16 @@ const PROGRESSIONS_DATA = {  // v27.177 — ROCK · 8 progresiones (4 mayores + 
         d:'Modo mixolidio en estado puro: el bVII actúa como intercambio modal (subdominante prestada del menor paralelo) y resuelve vía cadencia plagal (bVII–IV–I). Tagg lo llama "el acorde más rock del rock".',
         hist:'Sweet Home Alabama (Lynyrd Skynyrd), Ramblin\' Man (Allman Brothers), Sympathy for the Devil (Stones), The Weight (The Band). El sonido del sur de los EE.UU.',
         tracks:[
-          {n:'Drums', inst:'drums', vol:.78, defaultEstilo:'rock', defaultTech:'PATCH_2', defaultVar:'Walking Moon', comp:true, compMix:.35,
+          {n:'Drums', inst:'drums', vol:.80, defaultEstilo:'rock', defaultTech:'PATCH_2', defaultVar:'Walking Moon', comp:true, compMix:.35,
             drumPattern:[
               {tech:'PATCH_2', v:'Walking Moon'},
               {tech:'PATCH_2', v:'Walking Moon'},
-              {tech:'PATCH_2', v:'Roxanne feel'},
               {tech:'FILL_2B', v:'Phil Collins descend'},
             ]},
-          {n:'Bass', inst:'bass_acoustic', vol:.84, octShift:0, defaultTech:'BROKEN_CHORD', defaultVar:'Pino arp', reverb:false},
-          {n:'Piano 1', inst:'salamander', vol:.76, octShift:-1, defaultTech:'BALLAD', defaultVar:'Bridge Water', reverb:true, reverbMix:.28, sustain:true, sustainMix:.50},
-          {n:'Piano 2', inst:'salamander', vol:.70, octShift:+1, defaultTech:'MELODIC', defaultVar:'Top + chord', reverb:true, reverbMix:.40, chorus:true, chorusMix:.20},
-          {n:'Strings', inst:'strings_ensemble', vol:.58, octShift:0, defaultTech:'PAD', defaultVar:'Open', reverb:true, reverbMix:.60},
+          {n:'Bass', inst:'bass_acoustic', vol:.82, octShift:0, defaultTech:'IN_TWO', defaultVar:'Boom-chick', comp:true, compMix:.30},
+          {n:'Piano 1', inst:'salamander', vol:.75, octShift:-1, defaultTech:'BLOCK', defaultVar:'Bass + Chord', reverb:true, reverbMix:.22},
+          {n:'Piano 2', inst:'salamander', vol:.65, octShift:+1, defaultTech:'BLOCK', defaultVar:'On 1 + 3', reverb:true, reverbMix:.25},
+          {n:'Strings', inst:'strings_ensemble', vol:.50, octShift:0, defaultTech:'PAD', defaultVar:'Open', reverb:true, reverbMix:.55},
         ],
       },
       { n:3, name:'Eje moderno', p:'I - V - vi - IV',
@@ -44980,17 +45068,16 @@ const PROGRESSIONS_DATA = {  // v27.177 — ROCK · 8 progresiones (4 mayores + 
         d:'La "Axis progression" — Stephenson (2002) la identifica como nuevo eje tonal del rock post-1980. Richards (MTO 23.3) muestra cómo la ambigüedad tonal entre I y vi le da su poder anímico (six-based minor).',
         hist:'Don\'t Stop Believin\' (Journey), With or Without You (U2), Let It Be (Beatles), No Woman No Cry (Marley). El "Axis of Awesome" patentado.',
         tracks:[
-          {n:'Drums', inst:'drums', vol:.80, defaultEstilo:'rock', defaultTech:'PATCH_1', defaultVar:'8vos hat', comp:true, compMix:.40,
+          {n:'Drums', inst:'drums', vol:.80, defaultEstilo:'rock', defaultTech:'PATCH_1', defaultVar:'Ride bell', comp:true, compMix:.38,
             drumPattern:[
-              {tech:'PATCH_1', v:'8vos hat'},
-              {tech:'PATCH_1', v:'8vos hat'},
+              {tech:'PATCH_1', v:'Ride bell'},
               {tech:'PATCH_1', v:'Ride bell'},
               {tech:'FILL_2B', v:'Linear 16ths'},
             ]},
-          {n:'Bass', inst:'bass_acoustic', vol:.85, octShift:0, defaultTech:'PULSE', defaultVar:'Pump 8va 3b', comp:true, compMix:.45},
-          {n:'Piano 1', inst:'salamander', vol:.78, octShift:-1, defaultTech:'BLOCK', defaultVar:'Bass + Chord', reverb:true, reverbMix:.25, sustain:true, sustainMix:.40},
-          {n:'Piano 2', inst:'salamander', vol:.68, octShift:+1, defaultTech:'ARPEGGIO', defaultVar:'Asc.', reverb:true, reverbMix:.50, chorus:true, chorusMix:.25},
-          {n:'Strings', inst:'strings_ensemble', vol:.60, octShift:0, defaultTech:'PAD', defaultVar:'Open', reverb:true, reverbMix:.55},
+          {n:'Bass', inst:'bass_acoustic', vol:.82, octShift:0, defaultTech:'PULSE', defaultVar:'Pedal V', comp:true, compMix:.35},
+          {n:'Piano 1', inst:'salamander', vol:.75, octShift:-1, defaultTech:'BLOCK', defaultVar:'Pulse', reverb:true, reverbMix:.22},
+          {n:'Piano 2', inst:'salamander', vol:.65, octShift:+1, defaultTech:'HOLD', defaultVar:'Whole', reverb:true, reverbMix:.30},
+          {n:'Strings', inst:'strings_ensemble', vol:.50, octShift:0, defaultTech:'PAD', defaultVar:'Open', reverb:true, reverbMix:.55},
         ],
       },
       { n:4, name:'Doo-Wop rocker', p:'I - vi - IV - V',
@@ -44999,16 +45086,15 @@ const PROGRESSIONS_DATA = {  // v27.177 — ROCK · 8 progresiones (4 mayores + 
         d:'La "50s progression" que define el doo-wop y permea todo el rock-balada moderno. Termina en V (semicadencia abierta) — la falta de resolución a I genera el tirón emocional característico.',
         hist:'Stand By Me (Ben E. King), Every Breath You Take (Police), Earth Angel (Penguins), Eternal Flame (Bangles). La cadencia del corazón roto.',
         tracks:[
-          {n:'Drums', inst:'drums', vol:.72, defaultEstilo:'rock', defaultTech:'PATCH_2', defaultVar:'Roxanne feel', comp:true, compMix:.30,
+          {n:'Drums', inst:'drums', vol:.78, defaultEstilo:'rock', defaultTech:'PATCH_2', defaultVar:'Roxanne feel', comp:true, compMix:.30,
             drumPattern:[
               {tech:'PATCH_2', v:'Roxanne feel'},
               {tech:'PATCH_2', v:'Roxanne feel'},
-              {tech:'PATCH_2', v:'Roxanne feel'},
-              {tech:'FILL_2B', v:'Snare roll'},
+              {tech:'FILL_1B', v:'Flam splash'},
             ]},
           {n:'Bass', inst:'bass_acoustic', vol:.82, octShift:0, defaultTech:'IN_TWO', defaultVar:'Boom-chick'},
-          {n:'Piano', inst:'salamander', vol:.76, octShift:0, defaultTech:'BALLAD', defaultVar:'Let It Be', reverb:true, reverbMix:.30, sustain:true, sustainMix:.60},
-          {n:'Strings', inst:'strings_ensemble', vol:.62, octShift:0, defaultTech:'LEGATO', defaultVar:'Slurred', reverb:true, reverbMix:.65},
+          {n:'Piano', inst:'salamander', vol:.75, octShift:0, defaultTech:'BLOCK', defaultVar:'On 1 + 3', reverb:true, reverbMix:.25},
+          {n:'Strings', inst:'strings_ensemble', vol:.50, octShift:0, defaultTech:'HOLD', defaultVar:'Whole', reverb:true, reverbMix:.55},
         ],
       },
     ],
@@ -45019,17 +45105,16 @@ const PROGRESSIONS_DATA = {  // v27.177 — ROCK · 8 progresiones (4 mayores + 
         d:'Modo eólico puro — Everett (2004) lo identifica como el núcleo tonal del rock minor moderno. El movimiento descendente i-bVII-bVI dibuja un descenso modal característico (Andalusian shadow).',
         hist:'All Along the Watchtower (Hendrix/Dylan), Stairway to Heaven (Zeppelin), House of the Rising Sun (Animals), Hotel California (Eagles). El rock que cuenta historias oscuras.',
         tracks:[
-          {n:'Drums', inst:'drums', vol:.80, defaultEstilo:'rock', defaultTech:'PATCH_3', defaultVar:'Half-time', comp:true, compMix:.45,
+          {n:'Drums', inst:'drums', vol:.80, defaultEstilo:'rock', defaultTech:'PATCH_3', defaultVar:'Half-time', comp:true, compMix:.40,
             drumPattern:[
               {tech:'PATCH_3', v:'Half-time'},
               {tech:'PATCH_3', v:'Half-time'},
-              {tech:'PATCH_3', v:'Ghost notes'},
-              {tech:'FILL_3B', v:'Bonham triplet'},
+              {tech:'FILL_2B', v:'Phil Collins descend'},
             ]},
-          {n:'Bass', inst:'bass_acoustic', vol:.88, octShift:0, defaultTech:'PULSE', defaultVar:'Lemmy drive', dist:true, distMix:.30, comp:true, compMix:.50},
-          {n:'Piano', inst:'salamander', vol:.72, octShift:-1, defaultTech:'BLOCK', defaultVar:'Oct bass', reverb:true, reverbMix:.30, sustain:true, sustainMix:.55},
-          {n:'Strings 1', inst:'strings_ensemble', vol:.65, octShift:-1, defaultTech:'PAD', defaultVar:'Octava', reverb:true, reverbMix:.70},
-          {n:'Strings 2', inst:'strings_violin', vol:.55, octShift:+1, defaultTech:'LEGATO', defaultVar:'Bow change', reverb:true, reverbMix:.75},
+          {n:'Bass', inst:'bass_acoustic', vol:.82, octShift:0, defaultTech:'HOLD', defaultVar:'Heavy hold', comp:true, compMix:.40},
+          {n:'Piano 1', inst:'salamander', vol:.75, octShift:-1, defaultTech:'HOLD', defaultVar:'Whole', reverb:true, reverbMix:.25},
+          {n:'Piano 2', inst:'salamander', vol:.65, octShift:+1, defaultTech:'PAD', defaultVar:'+ Bajo 8va', reverb:true, reverbMix:.30},
+          {n:'Strings', inst:'strings_ensemble', vol:.50, octShift:0, defaultTech:'PAD', defaultVar:'Octava', reverb:true, reverbMix:.55},
         ],
       },
       { n:2, name:'Cadencia andaluza', p:'i - bVII - bVI - V',
@@ -45038,16 +45123,15 @@ const PROGRESSIONS_DATA = {  // v27.177 — ROCK · 8 progresiones (4 mayores + 
         d:'Cadencia andaluza con V dominante (prestado de menor armónico). Descenso por grados conjuntos en el bajo (i–bVII–bVI–V = mi–re–do–si) que crea un tirón gravitacional clásico.',
         hist:'Hit the Road Jack (Ray Charles), Stray Cat Strut (Stray Cats), Sultans of Swing (Dire Straits), While My Guitar Gently Weeps (Beatles). Sabor flamenco infiltrado al rock.',
         tracks:[
-          {n:'Drums', inst:'drums', vol:.76, defaultEstilo:'rock', defaultTech:'PATCH_2', defaultVar:'Steppers', comp:true, compMix:.40,
+          {n:'Drums', inst:'drums', vol:.78, defaultEstilo:'rock', defaultTech:'PATCH_2', defaultVar:'Steppers', comp:true, compMix:.35,
             drumPattern:[
               {tech:'PATCH_2', v:'Steppers'},
               {tech:'PATCH_2', v:'Steppers'},
-              {tech:'PATCH_2', v:'Bed Too Big'},
-              {tech:'FILL_2B', v:'Stewart Copeland'},
+              {tech:'FILL_2B', v:'Linear 16ths'},
             ]},
-          {n:'Bass', inst:'bass_acoustic', vol:.85, octShift:0, defaultTech:'WALKING', defaultVar:'JPJ chromatic'},
-          {n:'Piano', inst:'salamander', vol:.74, octShift:0, defaultTech:'BLOCK', defaultVar:'Anticipated', reverb:true, reverbMix:.25, chorus:true, chorusMix:.18},
-          {n:'Strings', inst:'strings_ensemble', vol:.60, octShift:0, defaultTech:'PIZZICATO', defaultVar:'Pluck', reverb:true, reverbMix:.45},
+          {n:'Bass', inst:'bass_acoustic', vol:.82, octShift:0, defaultTech:'IN_TWO', defaultVar:'Boom-chick', comp:true, compMix:.30},
+          {n:'Piano', inst:'salamander', vol:.75, octShift:0, defaultTech:'BLOCK', defaultVar:'On 1 + 3', reverb:true, reverbMix:.22},
+          {n:'Strings', inst:'strings_ensemble', vol:.50, octShift:0, defaultTech:'LEGATO', defaultVar:'Slurred', reverb:true, reverbMix:.55},
         ],
       },
       { n:3, name:'Rocker dórico', p:'i - IV - i - bVII',
@@ -45056,17 +45140,16 @@ const PROGRESSIONS_DATA = {  // v27.177 — ROCK · 8 progresiones (4 mayores + 
         d:'Modo dórico — el IV mayor (no diatónico al menor natural) es la firma dórica. Genera un brillo modal que contrasta con la oscuridad del i. Coexiste con el bVII modal mixolidio (préstamo cruzado).',
         hist:'Light My Fire (The Doors), Oye Como Va (Santana), Born to Be Wild (Steppenwolf), Smoke on the Water (Deep Purple). Rock latino-modal de organ y power.',
         tracks:[
-          {n:'Drums', inst:'drums', vol:.80, defaultEstilo:'rock', defaultTech:'PATCH_1', defaultVar:'Ride bell', comp:true, compMix:.40,
+          {n:'Drums', inst:'drums', vol:.80, defaultEstilo:'rock', defaultTech:'PATCH_1', defaultVar:'Ride bell', comp:true, compMix:.38,
             drumPattern:[
               {tech:'PATCH_1', v:'Ride bell'},
               {tech:'PATCH_1', v:'Ride bell'},
-              {tech:'PATCH_1', v:'Open hat'},
               {tech:'FILL_2B', v:'Linear 16ths'},
             ]},
-          {n:'Bass', inst:'bass_acoustic', vol:.85, octShift:0, defaultTech:'GROOVE', defaultVar:'Jamerson', comp:true, compMix:.40},
-          {n:'Piano 1', inst:'salamander', vol:.76, octShift:0, defaultTech:'BLOCK', defaultVar:'Pulse', reverb:true, reverbMix:.22},
-          {n:'Piano 2', inst:'salamander', vol:.62, octShift:+1, defaultTech:'HOLD', defaultVar:'Drone', reverb:true, reverbMix:.55, chorus:true, chorusMix:.40},
-          {n:'Strings', inst:'strings_ensemble', vol:.58, octShift:0, defaultTech:'PAD', defaultVar:'Open', reverb:true, reverbMix:.60},
+          {n:'Bass', inst:'bass_acoustic', vol:.82, octShift:0, defaultTech:'PULSE', defaultVar:'AC/DC 8ths', comp:true, compMix:.35},
+          {n:'Piano 1', inst:'salamander', vol:.75, octShift:0, defaultTech:'BLOCK', defaultVar:'Pulse', reverb:true, reverbMix:.22},
+          {n:'Piano 2', inst:'salamander', vol:.65, octShift:+1, defaultTech:'HOLD', defaultVar:'Drone', reverb:true, reverbMix:.32},
+          {n:'Strings', inst:'strings_ensemble', vol:.50, octShift:0, defaultTech:'PAD', defaultVar:'Open', reverb:true, reverbMix:.55},
         ],
       },
       { n:4, name:'Modal power', p:'i - bIII - bVII - IV',
@@ -45075,16 +45158,15 @@ const PROGRESSIONS_DATA = {  // v27.177 — ROCK · 8 progresiones (4 mayores + 
         d:'Modal blend: bIII (relativo mayor, eólico) + bVII (mixolidio) + IV (dórico) — cruce de los tres modos menores característicos del rock. Power-chord paradise.',
         hist:'Smells Like Teen Spirit (Nirvana), Beat It (Michael Jackson), Eye of the Tiger (Survivor), Self Esteem (Offspring). El sonido del rock de estadio post-80s.',
         tracks:[
-          {n:'Drums', inst:'drums', vol:.84, defaultEstilo:'rock', defaultTech:'PATCH_3', defaultVar:'4-on-floor', comp:true, compMix:.50,
+          {n:'Drums', inst:'drums', vol:.82, defaultEstilo:'rock', defaultTech:'PATCH_3', defaultVar:'4-on-floor', comp:true, compMix:.45,
             drumPattern:[
               {tech:'PATCH_3', v:'4-on-floor'},
               {tech:'PATCH_3', v:'4-on-floor'},
-              {tech:'PATCH_3', v:'Triplet kick'},
               {tech:'FILL_1B', v:'Tom tumble'},
             ]},
-          {n:'Bass', inst:'bass_acoustic', vol:.88, octShift:0, defaultTech:'PULSE', defaultVar:'Gallop', dist:true, distMix:.35, comp:true, compMix:.55},
-          {n:'Piano', inst:'salamander', vol:.70, octShift:-1, defaultTech:'BLOCK', defaultVar:'Oct bass', reverb:true, reverbMix:.25},
-          {n:'Strings', inst:'strings_ensemble', vol:.62, octShift:0, defaultTech:'MARCATO', defaultVar:'Hit on 1', reverb:true, reverbMix:.50},
+          {n:'Bass', inst:'bass_acoustic', vol:.84, octShift:0, defaultTech:'PULSE', defaultVar:'AC/DC 8ths', comp:true, compMix:.40},
+          {n:'Piano', inst:'salamander', vol:.74, octShift:-1, defaultTech:'BLOCK', defaultVar:'Oct bass', reverb:true, reverbMix:.22},
+          {n:'Strings', inst:'strings_ensemble', vol:.52, octShift:0, defaultTech:'MARCATO', defaultVar:'Hits 1+3', reverb:true, reverbMix:.50},
         ],
       },
     ],
@@ -46356,7 +46438,7 @@ window._catalogSoundsFor = _catalogSoundsFor;
 // de la familia a la que pertenece. Source of truth: INST_FAMILIES (60 slots).
 // Usado por _currentTechList para decidir qué tabla de técnicas mostrar.
 // NO se usa en el motor de audio (ese sigue usando _isPianoFamily/_isBassFamily
-// que filtran solo por keys VIVAS — salamander, meatbass_*, drums).
+// que filtran solo por keys VIVAS — salamander, bass_acoustic, drums).
 function _famIdForInstKey(inst){
   if (!inst || !Array.isArray(INST_FAMILIES)) return null;
   for (const fam of INST_FAMILIES) {
@@ -46863,7 +46945,15 @@ function hwsBuild(n, items, sel, onMove, onRelease){
   items.forEach(function(it, idx){
     var el = document.createElement('div');
     el.className = 'cew-hw-item';
-    el.textContent = typeof it === 'string' ? it : (it&&it.label?it.label:'');
+    // v27.322 — Soporte opt-in para HTML rico (sufijos con <sup>). Si el item
+    // trae `html`, se usa innerHTML; si no, textContent (default seguro,
+    // retrocompatible para todos los demás wheels: root, fam, tech, dur, oct,
+    // subtech). _splitSufDisplay() decide qué sufijos emiten html.
+    if(it && typeof it === 'object' && it.html){
+      el.innerHTML = it.html;
+    } else {
+      el.textContent = typeof it === 'string' ? it : (it&&it.label?it.label:'');
+    }
     el.dataset.itemIdx = idx;  // v16.3.9 — para tap-en-item preview
     // v16.3.1 — soporte de items disabled (sin samples para esta opción)
     if(it && typeof it === 'object' && it.disabled) {
@@ -46895,7 +46985,12 @@ function hwsBuild(n, items, sel, onMove, onRelease){
     items.forEach(function(it, idx){
       var el = document.createElement('div');
       el.className = 'cew-hw-item';
-      el.textContent = typeof it === 'string' ? it : (it&&it.label?it.label:'');
+      // v27.322 — Mismo soporte opt-in que el build inicial (ver arriba).
+      if(it && typeof it === 'object' && it.html){
+        el.innerHTML = it.html;
+      } else {
+        el.textContent = typeof it === 'string' ? it : (it&&it.label?it.label:'');
+      }
       el.dataset.itemIdx = idx;
       if(it && typeof it === 'object' && it.disabled) {
         el.classList.add('disabled');
@@ -47520,7 +47615,14 @@ function _cewBuildSufWheel(famIdx, sufIdx, clip){
   const fam = FAMS[famIdx] || FAMS[0];
   const items = fam.sufs.map(s => {
     const d = SUF_D[s] !== undefined ? SUF_D[s] : s;
-    const item = { label: rd + (d || 'M') };
+    const dispSuf = d || 'M';
+    const item = { label: rd + dispSuf };
+    // v27.322 — Mismo split que buildW2: alteraciones/sus/add/maj-tras-aug
+    // van a <sup>. Si no hay sup, hwsBuild cae a textContent con label.
+    const sp = _splitSufDisplay(dispSuf);
+    if (sp.sup){
+      item.html = rd + sp.base + '<sup>' + sp.sup + '</sup>';
+    }
     if (!isSufAvailable(_cap, _sufToSample(s))) item.disabled = true;
     return item;
   });
@@ -47833,7 +47935,10 @@ function _cewPlayPreviewClip(clip){
     window._currentClipLb   = clip.lb || 4;
     window._currentClipVar  = clip.v || '';
     window._currentClipTech = clip.tech || '';
-    playChord(clip.r, clip.s, clip.tech, G.bpm);
+    // v27.332 — Pasar clip.v explícito como 5to arg (espejo del motor principal).
+    // Sin esto, en preview con clips de mismo (r,s) en otros compases, playChord
+    // podía agarrar via find la subtech del clip equivocado.
+    playChord(clip.r, clip.s, clip.tech, G.bpm, clip.v);
     window._currentClipLb   = _pCcLb;
     window._currentClipVar  = _pCcVar;
     window._currentClipTech = _pCcTech;
@@ -47894,9 +47999,18 @@ function cewDualBuild(famIdx, sufIdx){
   function buildW2(fi, sel){
     var items = FAMS[fi].sufs.map(function(s){
       var d = SUF_D[s] !== undefined ? SUF_D[s] : s;
-      var label = rd + (d || 'M');
+      var dispSuf = d || 'M';
+      var label = rd + dispSuf;
       var sampleSuf = _sufToSample(s);
       var item = { label: label };
+      // v27.322 — Si el sufijo tiene parte de superíndice (alteración/sus/add/
+      // maj-tras-aug), emitir HTML con <sup>. Si no, hwsBuild cae a textContent
+      // con `label` (camino retrocompatible). rd y dispSuf vienen de tablas
+      // hardcoded (NOTE_D + SUF_D) sin chars HTML — no requiere escape.
+      var sp = _splitSufDisplay(dispSuf);
+      if (sp.sup){
+        item.html = rd + sp.base + '<sup>' + sp.sup + '</sup>';
+      }
       if (!isSufAvailable(_capC, sampleSuf)) {
         item.disabled = true;
       }
@@ -48175,8 +48289,7 @@ function cewUpdateRowVals(clip){
   } catch(_e) {}
   _set('cew-tech-disp', _techDisp);
   _set('cew-var-disp', _varDisp);
-  // v17.4.0 — refrescar grilla técnica del chord-editor cuando cambia tech/sub
-  try { if (typeof _renderChordSheetTechFormula === 'function') _renderChordSheetTechFormula(clip); } catch(_e) {}
+  // v27.324 — Llamada a _renderChordSheetTechFormula eliminada (grilla retirada).
   // v17.5.5 — auto-fit del texto del item activo si se sale del recuadro azul
   try { if (typeof _autoFitWheelText === 'function') requestAnimationFrame(_autoFitWheelText); } catch(_e) {}
   
@@ -50783,9 +50896,9 @@ function lnfSaveAndClose(btnEl){
       if (!LNF_CUSTOM_PRESETS[i]) { hasSlot = true; break; }
     }
     if (!hasSlot) {
-      // Resolver target: botón clickeado, o fallback al inferior, o al diskette
+      // v27.286 — Resolver target: botón clickeado, o fallback al diskette
+      // (.lnf-back). El botón inferior fue eliminado en v27.286.
       let target = (btnEl && btnEl.nodeType === 1) ? btnEl : null;
-      if (!target) target = document.getElementById('lnf-save-bottom-btn');
       if (!target) target = document.querySelector('.lnf-back');
       _lnfFlashSaveAlert(target);
       return;
@@ -51794,9 +51907,32 @@ function bpmNudge(dir){
     document.addEventListener('pointerdown', (e) => {
       if(!twin.isOpen()) return;
       if(panel.contains(e.target)) return;
+      let _tgt = e.target;
+      if (_tgt && (_tgt.id === 'app' || _tgt.id === 'app-frame' || _tgt.tagName === 'BODY' || _tgt.tagName === 'HTML')) {
+        try {
+          const _under = document.elementFromPoint(e.clientX, e.clientY);
+          if (_under) _tgt = _under;
+        } catch(_) {}
+      }
+      // Después del fix de target, verificar de nuevo si está dentro del panel
+      if(panel.contains(_tgt)) return;
+      // v27.290 + v27.292 — Horacio: el chord-sheet NUNCA debe cerrarse al
+      // tocar play / pause / rewind. La v27.290 (excepciones por ID) no
+      // funcionaba PORQUE el footer (#transport, #bot) recibía `inert` al
+      // abrir el chord-sheet — los clicks ni siquiera llegaban a procesar.
+      // En v27.292 agregamos 'transport' y 'bot' a PROMOTE_KEEP_INTERACTIVE
+      // (función openSheet) → los clicks ahora SÍ llegan, y esta excepción
+      // los preserva: tap sobre play/rewind/pause → togglePlay/rewind corre
+      // pero el chord-sheet queda abierto. El usuario escucha mientras edita.
+      if (twin.id === 'chord-sheet' && _tgt.closest && (
+        _tgt.closest('#play-btn, #hdr-play-btn, #ts-play-btn, #rewind-btn') ||
+        _tgt.closest('[onclick*="togglePlay"], [onclick*="rewind"]')
+      )) {
+        return;
+      }
       // No cerrar si el tap es sobre overlays activos
-      if(e.target.closest && e.target.closest('.native-confirm')) return;
-      if(e.target.closest && e.target.closest('#cew-overlay')) return;
+      if(_tgt.closest && _tgt.closest('.native-confirm')) return;
+      if(_tgt.closest && _tgt.closest('#cew-overlay')) return;
       // v27.25 — EXCEPCIÓN DKV: si el tap es dentro del Drum Kit View
       // (overlay completo: grip, panel, botón ✕, SVG del kit), NO cerrar
       // el chord-sheet ni el inst-sheet. El DKV es un ANEXO del editor de
@@ -51808,7 +51944,7 @@ function bpmNudge(dir){
       //   2. Al cerrar el DKV con ✕ → vuelve al chord-editor (no al
       //      sequencer). Antes el click del ✕ cerraba también el chord-sheet
       //      por culpa de este listener.
-      if(e.target.closest && e.target.closest('#dkv-overlay')) return;
+      if(_tgt.closest && _tgt.closest('#dkv-overlay')) return;
       // v27.26 — EXCEPCIÓN TRANSPORT + UNDO: los botones de transport
       // (Play/Pause/Rewind/Loop) y Undo son ACCIONES que el usuario
       // dispara MIENTRAS está editando un clip o instrumento. NO cerrar
@@ -51816,7 +51952,7 @@ function bpmNudge(dir){
       // rebobinar para reauditar, activar loop, o deshacer un paso sin
       // perder el editor abierto. Mismo principio que .ttl/track-row:
       // mantener el editor "sticky" durante el flujo de composición.
-      if(e.target.closest && e.target.closest('#play-btn, #rewind-btn, #loop-btn, #hdr-play-btn, #undo-btn')) return;
+      if(_tgt.closest && _tgt.closest('#play-btn, #rewind-btn, #loop-btn, #hdr-play-btn, #undo-btn')) return;
       // v27.230 — Horacio: desde el mixer, dar play cerraba el sheet. La
       // excepción v27.26 cubría el #hdr-play-btn original pero NO cubría
       // otros botones del header agregados después (loop-btn-h, hdr-live-btn,
@@ -51828,10 +51964,12 @@ function bpmNudge(dir){
       // de #transport, NO dentro de #hdr-row. v27.230 no resolvía porque
       // closest('#hdr-row') nunca matcheaba el target real. Agregado #transport
       // a la excepción.
-      if(e.target.closest && e.target.closest('#hdr-row, #bot, #transport')) return;
+      // v27.300 — Las excepciones ahora usan _tgt (resuelto por elementFromPoint
+      // si el target reportado por el sandbox era #app/body genérico).
+      if(_tgt.closest && _tgt.closest('#hdr-row, #bot, #transport')) return;
       // Para el config: no cerrar si el tap fue sobre el propio botón ⚙
       // (que ya hace toggle por su cuenta — sino doble-cierre)
-      if(twin.id === 'hdr-config-menu' && e.target.closest && e.target.closest('.hdr-config')) return;
+      if(twin.id === 'hdr-config-menu' && _tgt.closest && _tgt.closest('.hdr-config')) return;
       // v25.2 — STICKY CHORD-SHEET (causa raíz del cierre por click en compás):
       // si es el chord-sheet y el tap es sobre un clip del sequencer (.ttl) o
       // sobre el track-row promovido completo, NO cerrar. El usuario quiere
@@ -51841,9 +51979,9 @@ function bpmNudge(dir){
       // inst-sheet del track promovido, los taps sobre clips del sequencer NO
       // cierran el editor (permite que el cambio de técnica se aplique a todos
       // los compases visibles sin perder el sheet abierto).
-      if ((twin.id === 'chord-sheet' || twin.id === 'inst-sheet') && e.target.closest && (
-           e.target.closest('.ttl') ||
-           e.target.closest('.track-row.promoted')
+      if ((twin.id === 'chord-sheet' || twin.id === 'inst-sheet') && _tgt.closest && (
+           _tgt.closest('.ttl') ||
+           _tgt.closest('.track-row.promoted')
          )) return;
       // Cierre asíncrono — el click del botón X (si lo tocaron) gana primero
       setTimeout(() => {
@@ -52815,7 +52953,7 @@ async function sloaderClearSlot(slot){
 function _sloaderInvalidateLoader(slot){
     // sampler asociado todavía. El usuario carga ZIP via SLOADER y queda en
   // SAMPLES_PACK_V2 (línea ~23700) hasta que se conecte un loader real al slot.
-  // v27.176 — Reload via _switchMeatbassTechnique eliminado (meatbass borrado).
+  // v27.176 — Reload eliminado (legacy switcher borrado).
 }
 
 // ─── ZIP processing ────────────────────────────────────────────────────────
@@ -53141,7 +53279,7 @@ async function _sloaderLoadIndividualNotes(){
     // v16.5.2-clean — Disparar reload del sampler si hay loader específico.
         // queda en SAMPLES_PACK_V2 como buffer crudo hasta que se conecte un loader
     // real a la nueva familia/variante (futuro: gtr_strat, str_violin, etc.).
-    // v27.176 — Reload via _switchMeatbassTechnique eliminado (meatbass borrado).
+    // v27.176 — Reload eliminado (legacy switcher borrado).
     
     _sloaderStatus(`✓ ${_slotDisplay(slot)} activo en runtime. Probá tocar el instrumento.`, true);
     _sloaderPendingZip = null;
@@ -54124,8 +54262,6 @@ const TECH_FORMULAS = {
     ],
     ARCO_FX: [
       { events: [{beat:1,notes:['T'],dur:1},{beat:2,notes:['T'],dur:1},{beat:3,notes:['T'],dur:1},{beat:4,notes:['T'],dur:1}] },
-      { events: [{beat:1,notes:['T'],dur:1},{beat:2,notes:['T'],dur:1},{beat:3,notes:['T'],dur:1},{beat:4,notes:['T'],dur:1}] },
-      { events: [{beat:1,notes:['T'],dur:1},{beat:2,notes:['T'],dur:1},{beat:3,notes:['T'],dur:1},{beat:4,notes:['T'],dur:1}] },
       { events: [{beat:1,notes:['T'],dur:0.5},{beat:2,notes:['T'],dur:0.5},{beat:3,notes:['T'],dur:0.5},{beat:4,notes:['T'],dur:0.5}] },
       { events: [{beat:1,notes:['T'],dur:1},{beat:2,notes:['T'],dur:1},{beat:3,notes:['T'],dur:1},{beat:4,notes:['T'],dur:1}] },
       { events: [{beat:1,notes:['T'],dur:0.3},{beat:2,notes:['T'],dur:0.3},{beat:3,notes:['T'],dur:0.3},{beat:4,notes:['T'],dur:0.3}] },
@@ -54138,7 +54274,6 @@ const TECH_FORMULAS = {
   },
   STRINGS: {
     PAD: [
-      { events: [{beat:1,notes:['T','3','5','7'],dur:4}] },
       { events: [{beat:1,notes:['T','3','5','7'],dur:4}] },
       { events: [{beat:1,notes:['T-','3','5','7'],dur:4}] },
       { events: [{beat:1,notes:['T','T+'],dur:4}] },
@@ -54216,7 +54351,6 @@ const TECH_FORMULAS = {
       { compact: 'T-(6) en 1, 2.5, 3.5 · (3·5·3+·T+) ×6 sincopados — samba acelerado' },
     ],
     PLANCHADO: [
-      { events: [{beat:1,notes:['T-','5-','T','3','5','T+'],dur:4}] },
       { events: [{beat:1,notes:['T-','5-','T','3','5','T+'],dur:4}] },
     ],
     SILENCIO: [
@@ -54380,7 +54514,7 @@ function _familyForInst(inst) {
   const s = String(inst).toLowerCase();
   // Fallback rápido por string match — robusto incluso si las helpers no existen
   if (s === 'piano' || s === 'salamander' || /piano/.test(s)) return 'PIANO';
-  if (s === 'contrabass' || /^meatbass/.test(s) || /^bass[_-]/.test(s) || s === 'bass') return 'BASS';
+  if (s === 'contrabass' || /^bass[_-]/.test(s) || s === 'bass') return 'BASS';
   if (/^strings?[_-]/.test(s) || /^str[_-]/.test(s) || s === 'str_violin' || s === 'str_ensamble') return 'STRINGS';
   if (/guitar|gtr|nylon|electric.*gtr|acoustic.*gtr/.test(s) || s === 'nylon' || s === 'electric' || s === 'acoustic') return 'GUITAR';
   // Si las helpers existen, dar una segunda chance
@@ -54420,74 +54554,9 @@ function _subIdxByVariantName(family, techKey, variantName) {
 // FIX v17.5.2: detectar familia buscando directamente qué TECH_FORMULAS
 // contiene (clip.tech, clip.v) — NO depende de detectar el inst del track,
 // que era la fuente de bugs (clip de bajo en track de piano y casos así).
-function _renderChordSheetTechFormula(clip) {
-  try {
-    const elTarget = document.getElementById('cs-tech-formula');
-    if (!elTarget || !clip) return;
-
-    const techKey = clip.tech || '';
-    const variantName = clip.v || '';
-
-    // Modo Director Preset
-    if (techKey === '__PRESET__') {
-      elTarget.innerHTML = '<div class="tf-compact">— Director Preset activo —</div>';
-      return;
-    }
-
-    // v20.10.2 — STYLE-AWARE: si el clip tiene estilo y la familia es BASS,
-    // intentar primero BASS_STYLE_FORMULAS (técnicas nuevas: PATCH_1/2/3,
-    // INTRO/OUTRO/FILL_*). Si encuentra fórmula, renderiza y termina.
-    // Fallback al TECH_FORMULAS legacy si no hay match.
-    if (clip.estilo && typeof _resolveBassStyleFormula === 'function') {
-      const _styleFormula = _resolveBassStyleFormula(clip);
-      if (_styleFormula) {
-        const html = _renderTechFormulaGrid(_styleFormula, { mode: 'contextual', suffix: clip.s || 'major', filter: true });
-        elTarget.innerHTML = html;
-        return;
-      }
-    }
-
-    // Buscar la familia que contiene (techKey, variantName) — LEGACY path
-    let family = null, subIdx = -1;
-    if (techKey && TECH_FORMULAS) {
-      for (const fam of ['PIANO', 'BASS', 'STRINGS', 'GUITAR']) {
-        if (!TECH_FORMULAS[fam] || !TECH_FORMULAS[fam][techKey]) continue;
-        const idx = _subIdxByVariantName(fam, techKey, variantName);
-        if (idx >= 0) { family = fam; subIdx = idx; break; }
-      }
-    }
-
-    // Si no se encontró por (tech, v), intentar inferir familia desde el track
-    // y usar la primera técnica del catálogo como fallback.
-    if (!family) {
-      let tr = null;
-      if (window.G && Array.isArray(G.tracks)) {
-        if (G.editRef && G.editRef.ti != null && G.tracks[G.editRef.ti]) tr = G.tracks[G.editRef.ti];
-        if (!tr) {
-          for (let i = 0; i < G.tracks.length; i++) {
-            const t = G.tracks[i];
-            if (t && Array.isArray(t.clips) && t.clips.indexOf(clip) >= 0) { tr = t; break; }
-          }
-        }
-        if (!tr && G.activeTi != null && G.tracks[G.activeTi]) tr = G.tracks[G.activeTi];
-      }
-      const inst = tr && tr.inst;
-      if (inst && /drum/i.test(inst)) { elTarget.innerHTML = ''; return; }
-      const fam2 = inst ? _familyForInst(inst) : null;
-      if (fam2 && TECH_FORMULAS[fam2]) {
-        family = fam2;
-        const firstTech = Object.keys(TECH_FORMULAS[family])[0];
-        if (firstTech) subIdx = 0;
-      }
-    }
-
-    if (!family || subIdx < 0) return; // preservar placeholder
-    const formula = _getTechFormula(family, clip.tech || Object.keys(TECH_FORMULAS[family])[0], subIdx);
-    if (!formula) return;
-    const html = _renderTechFormulaGrid(formula, { mode: 'contextual', suffix: clip.s || 'major', filter: true });
-    elTarget.innerHTML = html;
-  } catch (_e) {}
-}
+// v27.324 — _renderChordSheetTechFormula ELIMINADA. La grilla cs-tech-formula
+// del chord-editor fue retirada del header. TECH_FORMULAS sigue siendo usado
+// por _renderInstSheetTechFormula (inst-sheet del track-editor).
 
 // Render para inst-sheet: abstracto, sin filtrado.
 // Lee INST_EDIT.tech / INST_EDIT.varName (snapshot vivo de los wheels), NO el
@@ -54582,7 +54651,7 @@ function _setChordSheetMeta(compN, trackName, layerLabel, trackIdx) {
       .replace(/by\s+note/i,  '(notas)')
       .replace(/by\s+chord/i, '(acordes)')
       .replace(/by\s+loop/i,  '(loop)');
-    elT.textContent = trackName + (layerStr ? ' · ' + layerStr : '');
+    elT.textContent = '';
   }
 }
 
@@ -54590,25 +54659,10 @@ function _setChordSheetMeta(compN, trackName, layerLabel, trackIdx) {
 // Hooks reactivos (monkey patches no-invasivos)
 // ────────────────────────────────────────────────────────────────────
 
-// Hook a updateHero — refresca grilla cada vez que cambia el acorde
-if (typeof window.updateHero === 'function') {
-  const _origUpdateHero = window.updateHero;
-  window.updateHero = function(clip) {
-    const r = _origUpdateHero.apply(this, arguments);
-    try { _renderChordSheetTechFormula(clip); } catch (e) {}
-    return r;
-  };
-}
-
-// Hook a cewUpdateRowVals — refresca grilla cada vez que cambia tech/sub/oct
-if (typeof window.cewUpdateRowVals === 'function') {
-  const _origCewUpdate = window.cewUpdateRowVals;
-  window.cewUpdateRowVals = function(clip) {
-    const r = _origCewUpdate.apply(this, arguments);
-    try { _renderChordSheetTechFormula(clip); } catch (e) {}
-    return r;
-  };
-}
+// v27.324 — Hooks a updateHero y cewUpdateRowVals ELIMINADOS. Estos hooks
+// existían SOLO para refrescar la grilla cs-tech-formula (ya eliminada).
+// No se necesitan más: updateHero y cewUpdateRowVals siguen funcionando
+// nativamente sin monkey-patch.
 
 // Re-seteo del header del chord-sheet cuando se abre. El cs-title viejo queda
 // vacío (display:none por CSS) y el meta queda en cs-meta-compas / cs-meta-track.
@@ -54635,7 +54689,7 @@ if (typeof window.openChordSheet === 'function') {
           }
         } catch(_) {}
         _setChordSheetMeta(compN, trackName, layerLabel, ti);
-        _renderChordSheetTechFormula(clip);
+        // v27.324 — Llamada a _renderChordSheetTechFormula eliminada (grilla retirada).
       }
     } catch (e) { console.warn('[v17.4.0] openChordSheet meta error:', e); }
     return r;
@@ -54697,7 +54751,7 @@ window._chordHasGrade = _chordHasGrade;
 window._renderTechFormulaGrid = _renderTechFormulaGrid;
 window._getTechFormula = _getTechFormula;
 window._subIdxByVariantName = _subIdxByVariantName;
-window._renderChordSheetTechFormula = _renderChordSheetTechFormula;
+// v27.324 — window._renderChordSheetTechFormula export ELIMINADO (función borrada).
 window._renderInstSheetTechFormula = _renderInstSheetTechFormula;
 window._setChordSheetMeta = _setChordSheetMeta;
 
@@ -54762,30 +54816,19 @@ window._autoFitWheelText = _autoFitWheelText;
 
 console.log('[v17.4.3] TECH_FORMULAS cargado · 113 fórmulas · helpers + hooks reactivos OK');
 
-// v17.4.3 — Watcher defensivo: cada 400ms, si el chord-sheet o inst-sheet
-// están abiertos, refresca la grilla. Atrapa cualquier caso donde los hooks
-// directos no se hayan disparado (cambio de inst, navegación entre clips,
-// reapertura del sheet, etc.). El polling es barato y solo opera cuando hay
-// sheets visibles.
+// v17.4.3 — Watcher defensivo: cada 400ms, si el inst-sheet está abierto,
+// refresca la grilla técnica. Atrapa cualquier caso donde los hooks directos
+// no se hayan disparado. El polling es barato y solo opera cuando hay sheet
+// visible.
+// v27.324 — Watcher del chord-sheet ELIMINADO (grilla cs-tech-formula retirada).
+// Solo queda el del inst-sheet (is-tech-formula sigue activo).
 (function setupTechFormulaWatcher() {
-  let csVisible = false, isVisible = false;
-  let lastCsKey = '', lastIsKey = '';
+  let isVisible = false;
+  let lastIsKey = '';
   setInterval(() => {
     try {
-      const cs = document.getElementById('chord-sheet');
       const is = document.getElementById('inst-sheet');
-      const csNowVisible = cs && cs.classList && cs.classList.contains('on');
       const isNowVisible = is && is.classList && is.classList.contains('on');
-
-      if (csNowVisible && window.G && G.editRef && G.editRef.clip) {
-        const c = G.editRef.clip;
-        const key = (c.r||'') + '|' + (c.s||'') + '|' + (c.tech||'') + '|' + (c.v||'') + '|' + (c.lb||'');
-        if (key !== lastCsKey || !csVisible) {
-          lastCsKey = key;
-          _renderChordSheetTechFormula(c);
-        }
-      }
-      csVisible = csNowVisible;
 
       if (isNowVisible && typeof INST_EDIT !== 'undefined' && INST_EDIT.ti != null) {
         const key = (INST_EDIT.inst||'') + '|' + (INST_EDIT.tech||'') + '|' + (INST_EDIT.varName||'');
@@ -55539,7 +55582,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.277',
+    version: 'v27.332',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -56110,49 +56153,10 @@ function _dkvInit() {
       });
     }
 
-    // v22.4 — Click en grilla del chord-sheet del FULL (cs-tech-formula) → abre DKV
-    // SOLO cuando el track activo es drums (T5 batería).
-    const csTechFormula = document.getElementById('cs-tech-formula');
-    if (csTechFormula) {
-      csTechFormula.style.cursor = 'pointer';
-      csTechFormula.addEventListener('click', function(e){
-        e.stopPropagation();
-        // v22.4 — Chequear si el chord-sheet activo es para drums por SEÑALES DOM
-        try {
-          const cs = document.getElementById('chord-sheet');
-          if (!cs || !cs.classList.contains('on')) return;
-          const meta = (document.getElementById('cs-meta-track')?.textContent || '').toLowerCase();
-          const title = (document.getElementById('cs-title')?.textContent || '').toLowerCase();
-          const isDrumsSheet = cs.classList.contains('chord-sheet-no-sound') ||
-                               cs.classList.contains('is-sheet-drums') ||
-                               meta.includes('bater') || meta.includes('drum') ||
-                               title.includes('bater') || title.includes('drum');
-          if (isDrumsSheet && typeof window.openDrumKitView === 'function') {
-            window.openDrumKitView();
-          }
-        } catch(err) { /* silenciado */ }
-      });
-    }
-    // Mismo listener para .cs-col-center (zona más grande de click)
-    document.querySelectorAll('#chord-sheet .cs-col-center').forEach(function(el){
-      el.style.cursor = 'pointer';
-      el.addEventListener('click', function(e){
-        if (e.target.closest('button')) return;
-        try {
-          const cs = document.getElementById('chord-sheet');
-          if (!cs || !cs.classList.contains('on')) return;
-          const meta = (document.getElementById('cs-meta-track')?.textContent || '').toLowerCase();
-          const title = (document.getElementById('cs-title')?.textContent || '').toLowerCase();
-          const isDrumsSheet = cs.classList.contains('chord-sheet-no-sound') ||
-                               cs.classList.contains('is-sheet-drums') ||
-                               meta.includes('bater') || meta.includes('drum') ||
-                               title.includes('bater') || title.includes('drum');
-          if (isDrumsSheet && typeof window.openDrumKitView === 'function') {
-            window.openDrumKitView();
-          }
-        } catch(err) { /* silenciado */ }
-      });
-    });
+    // v27.324 — Listeners click en cs-tech-formula y .cs-col-center ELIMINADOS.
+    // El primero buscaba un elemento que ya no existe (grilla retirada). El
+    // segundo era redundante: el botón #cs-drum-kit-btn dentro de .cs-col-center
+    // ya dispara openDrumKitView() directamente via onclick.
 
     // Sync periódico del BPM desde header (cada 500ms — ya existe el sync()
     // del Light, sumamos un re-render del kit display si está abierto)
@@ -56195,11 +56199,46 @@ window.openDrumKitView = function() {
       document.body.appendChild(overlay);
     }
     overlay.classList.add('on');
-    // v27.25 — Resetear altura a calc(70vh - 10px) al abrir.
-    // 10px más bajo que v27.24 según pedido visual. El tope del panel queda
-    // 10px por debajo de la posición anterior, tapando la foto sin pasarse.
+    // v27.25 — Resetear altura del panel al abrir.
+    // v27.328 — CAMBIO RAÍZ: en vez de setear style.height inline (que pisa
+    // las media queries CSS y rompe el responsive), BORRAR el inline para
+    // que las reglas CSS gobiernen según el viewport.
+    // v27.329 — CÁLCULO DINÁMICO inicial: tomó .track-row como anchor. Bug:
+    // el chord-editor está MÁS ABAJO que el último track del sequencer y
+    // sobresalía por encima del DKV (se veía el botón "Vista kit" que lo
+    // había abierto).
+    // v27.330 — ANCHOR CORRECTO: el TOP del DKV se alinea con el TOP del
+    // chord-sheet (el panel que lo abrió). Así:
+    //   · el DKV cubre EXACTAMENTE el chord-editor (no se ve más el botón)
+    //   · el sequencer + clip activo queda visible ARRIBA del chord-editor
+    //     (que ahora está oculto detrás del DKV)
+    //   altura_panel = innerHeight - rect.top_chord_sheet
+    // Si el chord-sheet no está abierto (caso defensivo), se cae al CSS
+    // responsive (removeProperty) → comportamiento de v27.328.
     const panel = document.getElementById('dkv-panel');
-    if (panel) { panel.style.transition = 'none'; panel.style.height = 'calc(70vh - 10px)'; }
+    if (panel) {
+      panel.style.transition = 'none';
+      let _appliedDynamic = false;
+      try {
+        const chordSheet = document.getElementById('chord-sheet');
+        if (chordSheet && chordSheet.classList.contains('on')) {
+          const r = chordSheet.getBoundingClientRect();
+          if (r && r.top > 0 && r.top < window.innerHeight) {
+            const desired = window.innerHeight - r.top;
+            // clamp defensivo: nunca menos que 200px ni más que 95vh
+            const minPx = 200;
+            const maxPx = window.innerHeight * 0.95;
+            const finalPx = Math.max(minPx, Math.min(desired, maxPx));
+            panel.style.height = finalPx + 'px';
+            _appliedDynamic = true;
+          }
+        }
+      } catch(_e) {}
+      if (!_appliedDynamic) {
+        // Fallback: dejar que las 3 media queries CSS gobiernen
+        panel.style.removeProperty('height');
+      }
+    }
     _dkvSyncBpmFromHeader();
     // Re-instalar hook por si el catálogo cargó después
     _dkvInstallHook();
@@ -56518,6 +56557,26 @@ setTimeout(function(){
       if (st.mode === 'create' && G.loop) {
         G.loop.active = true;
         _redraw();
+      }
+
+      // v27.288 — Tap CORTO fuera de zona loop (sin completar long-press, sin drag)
+      // → posicionar playhead. ESTRICTAMENTE ADITIVO al comportamiento existente:
+      // long-press (>450ms) sigue creando loop, drag sigue funcionando, doble-tap
+      // sigue eliminando loop, toggle middle sigue activando/desactivando.
+      if (st.mode === 'long-press-pending' && !st.moved && st.beat0 !== undefined) {
+        const targetBeat = Math.floor(st.beat0);
+        const maxBeat = (G.bars || 4) * (G.bpb || 4) - 1;
+        const newPos = Math.max(0, Math.min(targetBeat, maxBeat));
+        G.playPos = newPos;
+        // Asegurar que el playhead sea VISIBLE (por default display:none hasta el play).
+        // Si está en play ya está visible; si está pausado, hacerlo aparecer para que
+        // el usuario vea dónde va a arrancar.
+        const ph = document.getElementById('ph');
+        if (ph) {
+          if (typeof updatePHHeight === 'function') updatePHHeight();
+          ph.style.display = 'block';
+        }
+        if (typeof updatePH === 'function') updatePH();
       }
 
       lastTap = Date.now();
