@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.333</title>
+<title>OnlyLoops · v27.334</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -3425,7 +3425,7 @@ body.loop-active #loop-btn-h svg{stroke:#5C4500}
 .s-lbl{font-size:8px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--acc);display:block;margin-bottom:8px}
 
 /* ═══ CHORD EDITOR ═══ */
-.cd-hero{display:flex;align-items:flex-start;gap:2px;margin-bottom:4px}
+.cd-hero{display:flex;align-items:flex-start;gap:2px;margin-bottom:1px} /* v27.334 — Horacio: -3px más de interlineado (margin-bottom 4→1) entre el acorde grande y la fila inferior, sumándose a los -10px de v27.333. Total comprimido: -13px. */
 .cd-root{font-family:var(--serif);font-size:58px;font-weight:600;font-style:italic;line-height:.88;color:var(--ink);letter-spacing:-.5px}
 .cd-suf{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--acc);align-self:flex-start;margin-top:8px;letter-spacing:-.2px}
 .cd-int{font-family:var(--mono);font-size:12px;color:var(--ink2);letter-spacing:.3px;margin-bottom:10px}/* v17.5.12 — fórmula del acorde +20%: 10→12px */
@@ -9063,7 +9063,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.333</span>
+      <span class="title" id="dkv-title">Vista kit · v27.334</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55591,7 +55591,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.333',
+    version: 'v27.334',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
