@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.332</title>
+<title>OnlyLoops · v27.333</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -8104,9 +8104,14 @@ body.mixer-dragging *{touch-action:none !important}
   /* v17.5.4 — Línea divisoria sutil que separa el HERO (acorde + grilla +
      iconos/meta) de los wheels de abajo. Define visualmente el header.
      v27.57 — padding-bottom 8→4 y margin-bottom 10→4 (-10px verticales) para
-     que el wheel DURACIÓN entre completo en iPhone sin scroll interno. */
-  padding-bottom: 4px;
-  margin-bottom: 4px;
+     que el wheel DURACIÓN entre completo en iPhone sin scroll interno.
+     v27.333 — Horacio: -10px más de interlineado entre el acorde y la fila
+     inferior (intervalos + Track·Compás). padding-bottom 4→0 y margin-bottom
+     4→0 (-8px aquí); los 2px restantes salen del padding-top del
+     .cs-header-footer (ver más abajo). Header gana 10px verticales para que
+     el wheel DURACIÓN no se corte con el footer en portrait. */
+  padding-bottom: 0;
+  margin-bottom: 0;
   border-bottom: 0.5px solid var(--rule, rgba(0,0,0,.12));
 }
 .cs-header-3col .cs-col-left {
@@ -8168,7 +8173,11 @@ body.mixer-dragging *{touch-action:none !important}
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  padding: 2px 0 4px;
+  /* v27.325 — padding original: 2px 0 4px. v27.333 — Horacio: -10px de
+     interlineado total entre el acorde grande y esta fila. Padding-top 2→0
+     (-2px aquí); los otros 8px se restaron en .cs-header-3col padding-bottom
+     + margin-bottom. Padding-bottom 4px se mantiene (separa de los wheels). */
+  padding: 0 0 4px;
   min-height: 0;
 }
 .cs-header-footer #cs-int        { text-align: left;  flex: 0 1 auto; }
@@ -9054,7 +9063,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.332</span>
+      <span class="title" id="dkv-title">Vista kit · v27.333</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -55582,7 +55591,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.332',
+    version: 'v27.333',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
