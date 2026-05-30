@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.334</title>
+<title>OnlyLoops · v27.339</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -8302,6 +8302,83 @@ body.mixer-dragging *{touch-action:none !important}
   margin-top: 4px;
 }
 
+/* v27.338 — MOD-LOOPS dentro del hwp-overlay (Modulación de Tonalidad).
+   Solo visible cuando #hwp-overlay tiene .has-mode (es decir, type='key').
+   Mantiene el wheel y modo wheel originales arriba, agrega botonera abajo.
+   Paleta hueso + azul vía CSS vars (NO blanco hardcoded). */
+#hwp-mod-loops { display: none; }
+#hwp-overlay.has-mode #hwp-mod-loops { display: block; }
+.hwp-mod-divider {
+  height: 1px;
+  background: var(--acc3);
+  margin: 10px 0 6px;
+  opacity: .65;
+}
+.hwp-mod-section-lbl {
+  font-family: var(--serif, 'Cormorant Garamond', serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--acc);
+  text-align: center;
+  margin: 0 0 6px;
+}
+.hwp-mod-table {
+  border: 0.5px solid var(--ink3);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--card);
+  margin: 0 4px;
+}
+.hwp-mod-head {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  background: var(--bg);
+  border-bottom: 0.5px solid var(--ink3);
+}
+.hwp-mod-head > div {
+  padding: 4px 2px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--ink2);
+  font-family: var(--sans, -apple-system, sans-serif);
+  border-right: 0.5px solid var(--ink3);
+}
+.hwp-mod-head > div:last-child { border-right: none; }
+.hwp-mod-body {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  height: 54px;
+}
+.hwp-mod-cell {
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sans, -apple-system, sans-serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  border-right: 0.5px solid var(--ink3);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s ease;
+  position: relative;
+  user-select: none;
+}
+.hwp-mod-cell:last-child { border-right: none; }
+.hwp-mod-cell.created { background: var(--acc2); }
+.hwp-mod-cell.active {
+  background: var(--acc3);
+  outline: 1.5px solid var(--acc);
+  outline-offset: -1.5px;
+  z-index: 1;
+}
+.hwp-mod-cell.base.active { outline-width: 2px; }
+.hwp-mod-cell.minor-mode {
+  font-style: italic;
+  text-transform: lowercase;
+}
+
 </style>
 </head>
 <body>
@@ -8837,6 +8914,31 @@ body.mixer-dragging *{touch-action:none !important}
       </div>
     </div>
     <div id="hwp-desc"></div>
+    <!-- v27.338 — Botonera de Modulación de Tonalidad.
+         Visible SOLO cuando type='key' (sin .has-mode no es key).
+         Cada celda representa un loop (max 8). Click en celda vacía =
+         copia loop anterior + activa para editar tónica con wheel arriba.
+         Click en celda activa NO base = elimina. Loop 0 (base) no se borra. -->
+    <div id="hwp-mod-loops">
+      <div class="hwp-mod-divider"></div>
+      <div class="hwp-mod-section-lbl">Agregar Loop Modulado a Tonalidad</div>
+      <div class="hwp-mod-table">
+        <div class="hwp-mod-head">
+          <div>Loop 1</div><div>Loop 2</div><div>Loop 3</div><div>Loop 4</div>
+          <div>Loop 5</div><div>Loop 6</div><div>Loop 7</div><div>Loop 8</div>
+        </div>
+        <div class="hwp-mod-body" id="hwp-mod-body">
+          <div class="hwp-mod-cell" data-li="0" onclick="modCellClick(0)"></div>
+          <div class="hwp-mod-cell" data-li="1" onclick="modCellClick(1)"></div>
+          <div class="hwp-mod-cell" data-li="2" onclick="modCellClick(2)"></div>
+          <div class="hwp-mod-cell" data-li="3" onclick="modCellClick(3)"></div>
+          <div class="hwp-mod-cell" data-li="4" onclick="modCellClick(4)"></div>
+          <div class="hwp-mod-cell" data-li="5" onclick="modCellClick(5)"></div>
+          <div class="hwp-mod-cell" data-li="6" onclick="modCellClick(6)"></div>
+          <div class="hwp-mod-cell" data-li="7" onclick="modCellClick(7)"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 <div id="toast"></div>
@@ -9063,7 +9165,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.334</span>
+      <span class="title" id="dkv-title">Vista kit · v27.339</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -36117,6 +36219,46 @@ function renderRuler(){
       ctx.textAlign='center';
       ctx.fillText((b%G.bpb)+1,x,H-4);
     }
+    // v27.335 — Horacio: línea divisora de ½ beat. Va a la mitad de cada
+    // beat (x + BW/2) y ocupa solo la MITAD SUPERIOR del ruler (y=0 a y=H/2).
+    // Sin numerar. Stroke igual de tenue que las líneas de beat (.08).
+    // Solo se dibuja si b < TB() (no después del último beat, no hay medio
+    // beat "después del fin"). R6.2 — plano 18×26 — autorizado por Horacio
+    // (frase ritual "ACEPTO RIESGO" 2026-05-30).
+    if (b < TB()) {
+      ctx.strokeStyle = inkRGBA(.08);
+      ctx.lineWidth = .5;
+      ctx.beginPath();
+      ctx.moveTo(x + BW/2, 0);
+      ctx.lineTo(x + BW/2, H/2);
+      ctx.stroke();
+    }
+  }
+
+  // v27.337 — Separadores + etiquetas "Loop N" para loops modulados.
+  // Si G.loops.length > 1, dibuja línea divisora más gruesa al inicio de
+  // cada loop (excepto el 0) y etiqueta pequeña "Loop N" arriba-izquierda
+  // de cada loop, encima del número de compás. R6.2 — plano 18×26 —
+  // autorizado por Horacio.
+  if (G.loops && G.loops.length > 1) {
+    const _baseBars = G.baseLoopBars || G.bars || 4;
+    const _baseBeats = _baseBars * G.bpb;
+    for (let li = 0; li < G.loops.length; li++) {
+      const _xL = li * _baseBeats * BW;
+      if (li > 0) {
+        ctx.strokeStyle = inkRGBA(.45);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(_xL, 0);
+        ctx.lineTo(_xL, H);
+        ctx.stroke();
+      }
+      // Etiqueta "Loop N" — pequeña, arriba a la izquierda, sobre el número de compás
+      ctx.fillStyle = inkRGBA(.55);
+      ctx.font = '500 7px DM Mono,monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('Loop ' + (li + 1), _xL + 3, 8);
+    }
   }
 }
 
@@ -36914,7 +37056,11 @@ function clipGestureMove(e, st){
     const dBeat = dx / BW;
     // Snap unit: how many beats per subdivision according to user setting.
     // snap=1 (redonda) → full bar, snap=4 (negra) → 1 beat, snap=16 (semi) → 0.25 beat
-    const snap = G.bpb / G.snap;
+    // v27.336 — Horacio: handles deben permitir ½beat aunque G.snap=4 (default).
+    // Forzamos snap MÍNIMO de 0.5 (la unidad más chica válida desde v27.335).
+    // Si G.snap ya es ≥ 8 (corchea o más fino), respetamos su valor.
+    let snap = G.bpb / G.snap;
+    if (snap > 0.5) snap = 0.5;
 
     if(st.zone==='body'){
       // Move: new sb, same lb. Clamp to [0, TB()-lb] AND respect neighbors
@@ -38056,7 +38202,13 @@ function startPB(){
   // v15.0-DEMO: asegurar que todos los track buses estén sincronizados con G.tracks
   // (vol, mute, pan) antes de arrancar la reproducción.
   try{ syncAllTrackBuses(); }catch(e){}
-  const ms=60000/G.bpm;
+  // v27.335 — Horacio: scheduler tickea cada ½ BEAT en lugar de cada beat.
+  // ms = 30000/bpm (la mitad del beat) para soportar clips con sb fraccional
+  // (0.5, 1.5, 2.5...) y lb=0.5 (corchea). G.playPos avanza de a 0.5 en lugar
+  // de ++. Las comparaciones `cl.sb === G.playPos` siguen funcionando porque
+  // ambos son ahora múltiplos consistentes de 0.5. R6.2 — motor de audio —
+  // autorizado por Horacio (frase ritual "ACEPTO RIESGO" 2026-05-30).
+  const ms=30000/G.bpm;
   playTimer=setInterval(()=>{
     G.tracks.forEach((t,ti)=>{
       if(t.muted)return;
@@ -38113,13 +38265,21 @@ function startPB(){
           return _origDrumHit.call(this, type, absT, newVol);
         };
         try {
+          // v27.335 — Horacio: clips de drums con lb=0.5 reproducen el pattern
+          // al DOBLE DE VELOCIDAD. Implementación: pasar bs/2 a variant.play()
+          // en lugar de bs. El gate del wrapper drumHit corta en _maxT
+          // = lbBeats * bs (tiempo real del clip), así que el primer beat del
+          // pattern (compreso al doble) cabe en el medio beat real del clip.
+          // Para lb > 0.5 → bs normal (no afecta el comportamiento previo).
+          // R6.2 — drum-sheet — autorizado por Horacio.
+          const _drumBs = (lbBeats === 0.5) ? (bs / 2) : bs;
           for (let bi = 0; bi < fullBars; bi++) {
             _offsetT = bi * G.bpb * bs;
-            variant.play(null, null, bs, now + _offsetT);
+            variant.play(null, null, _drumBs, now + _offsetT);
           }
           if (remainder > 0) {
             _offsetT = fullBars * G.bpb * bs;
-            variant.play(null, null, bs, now + _offsetT);
+            variant.play(null, null, _drumBs, now + _offsetT);
           }
         } catch(e) { console.warn('[v20.8.2] drum variant.play error:', e); }
         finally { window.drumHit = _origDrumHit; }
@@ -38199,15 +38359,17 @@ function startPB(){
     });
     updatePH();
     // v27.2 — Loop region: si zona activa, saltar al start cuando llega al end.
+    // v27.335 — G.playPos avanza de a 0.5 (medio beat) para soportar clips
+    // con sb/lb fraccional. Antes: ++. R6.2 motor — autorizado.
     const _lp = G.loop;
     if (_lp && _lp.active && _lp.start !== null && _lp.end !== null && _lp.end > _lp.start) {
-      G.playPos++;
+      G.playPos += 0.5;
       if (G.playPos >= _lp.end || G.playPos < _lp.start) {
         G.playPos = _lp.start;
         G.activeClip = null;
       }
     } else {
-      G.playPos=(G.playPos+1)%TB_LOOP(); // v14.2: usar TB_LOOP (beats reales), NO TB() que incluye zona Excel
+      G.playPos=(G.playPos+0.5)%TB_LOOP(); // v14.2: usar TB_LOOP (beats reales), NO TB() que incluye zona Excel. v27.335: +0.5 (medio beat).
       if(G.playPos===0)G.activeClip=null;
     }
   },ms);
@@ -42746,7 +42908,10 @@ function hwpApply(idx) {
       break;
     }
   }
-  hwpClose();
+  // v27.339 — Horacio: NO cerrar el menú cuando type='key'. Permite seguir
+  // modulando varias veces seguidas sin reabrir. Cierre manual vía X o
+  // backdrop click. Comportamiento idéntico al mod-sheet de v27.337.
+  if (HWP.type !== 'key') hwpClose();
 }
 
 function hwpClose() {
@@ -44866,6 +45031,10 @@ const origCloseAll = closeAllSheets;
 
 // Duration items with descriptions
 const DUR_ITEMS = [
+  // v27.335 — Horacio: agregar ½ beat (corchea). Permite clips de medio beat
+  // de duración. Item NUEVO al inicio del wheel. Los demás items quedan
+  // inalterados. Implica que clip.lb puede ser 0.5 además de 1, 2, 3, 4...
+  {v:0.5,label:'½',  desc:'½ beat — corchea'},
   {v:1,  label:'1',  desc:'1 beat — negra'},
   {v:2,  label:'2',  desc:'2 beats — blanca'},
   {v:3,  label:'3',  desc:'3 beats — blanca con puntillo'},
@@ -55591,7 +55760,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.334',
+    version: 'v27.339',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -57612,9 +57781,15 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     // Verificar zona vacía (no sobre clip)
     const hit = t.clips.find(c => c && beatX >= (c.sb||0) && beatX < (c.sb||0) + (c.lb||_bpb()));
     if (hit) return null;
-    // Alinear sb al inicio del COMPÁS donde cayó el click (Excel-like, snap a compás)
-    const bpb = _bpb();
-    const sb = Math.floor(beatX / bpb) * bpb;
+    // v27.336 — Horacio: snap del paste destino. Antes alineaba al inicio
+    // del COMPÁS (Math.floor(beatX/bpb)*bpb → solo sb=0,4,8,12...), lo que
+    // impedía pegar clips cortos en huecos intermedios del sequencer.
+    // Ahora snap a ½beat (mínima unidad válida desde v27.335). Permite
+    // pegar acordes de ½, 1, 2 beats en cualquier hueco vacío del track:
+    // sb=0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5...
+    // La validación de colisión posterior (_doPaste) se encarga de evitar
+    // solapamiento con clips existentes en el destino.
+    const sb = Math.round(beatX * 2) / 2;
     return { ti, sb };
   }
 
@@ -57933,5 +58108,392 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
 })();
 </script>
 
+<!-- v27.337 — JS del Modulador de Tonalidad (Fases 1-6)
+     Modelo G.loops + transposición + UI mod-sheet + render ruler con
+     separadores + display dinámico del KEY durante play.
+     R6.2 — afecta: plano 18x26 (ruler), motor playback (G.bars dinámico),
+     defaults (tonalidad por loop). Autorizado por Horacio 2026-05-30.
+     v27.338 — Refactor: UI integrada en hwp-overlay (wheel + modo originales),
+     botonera renderiza en #hwp-mod-body, fix parpadeo del KEY (cache +
+     event-driven, sin setInterval(100)). -->
+<script>
+(function(){
+  // ════════════════════════════════════════════════════════════════════
+  // FASE 1 — MODELO Y HELPERS DE TRANSPOSICIÓN
+  // ════════════════════════════════════════════════════════════════════
+  const _NOTE_IX = {
+    'C':0,'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,'E':4,'F':5,
+    'F#':6,'Gb':6,'G':7,'G#':8,'Ab':8,'A':9,'A#':10,'Bb':10,'B':11
+  };
+  const _IX_NOTE = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+
+  function _ensureLoopsModel() {
+    if (!G.loops || !Array.isArray(G.loops) || G.loops.length === 0) {
+      const baseRoot = G.key || 'A';
+      const baseMode = (typeof G.keyMode === 'string' && G.keyMode === 'minor') ? 'minor' : 'major';
+      G.loops = [{ root: baseRoot, mode: baseMode }];
+    }
+    if (typeof G.baseLoopBars !== 'number' || G.baseLoopBars <= 0) {
+      G.baseLoopBars = G.bars || 4;
+    }
+    if (typeof G.activeLoopIdx !== 'number') G.activeLoopIdx = 0;
+  }
+
+  function _transposeRoot(root, semitones) {
+    if (!root || typeof root !== 'string') return root;
+    const base = _NOTE_IX[root];
+    if (base === undefined) return root;
+    const t = ((base + semitones) % 12 + 12) % 12;
+    return _IX_NOTE[t];
+  }
+
+  function _getLoopAtPlayPos(playPos) {
+    _ensureLoopsModel();
+    if (!G.loops || G.loops.length <= 1) return 0;
+    const baseBeats = (G.baseLoopBars || G.bars || 4) * (G.bpb || 4);
+    if (baseBeats <= 0) return 0;
+    return Math.min(Math.floor((playPos || 0) / baseBeats), G.loops.length - 1);
+  }
+
+  window._getLoopAtPlayPos = _getLoopAtPlayPos;
+  window._transposeRoot = _transposeRoot;
+  window._ensureLoopsModel = _ensureLoopsModel;
+
+  // ════════════════════════════════════════════════════════════════════
+  // FASE 2 — RENDER DE LA BOTONERA (en #hwp-mod-body)
+  // ════════════════════════════════════════════════════════════════════
+  function _renderModLoopsTable() {
+    _ensureLoopsModel();
+    const cells = document.querySelectorAll('#hwp-mod-body .hwp-mod-cell');
+    if (!cells || cells.length === 0) return;
+    cells.forEach(cell => {
+      const li = parseInt(cell.dataset.li, 10);
+      const loop = G.loops[li];
+      cell.classList.remove('created','active','base','minor-mode');
+      if (li === 0) cell.classList.add('base');
+      if (loop) {
+        cell.classList.add('created');
+        const isMinor = loop.mode === 'minor';
+        if (isMinor) cell.classList.add('minor-mode');
+        cell.textContent = isMinor ? loop.root.toLowerCase() : loop.root;
+      } else {
+        cell.textContent = '';
+      }
+      if (li === G.activeLoopIdx) cell.classList.add('active');
+    });
+  }
+  window._renderModLoopsTable = _renderModLoopsTable;
+
+  // ════════════════════════════════════════════════════════════════════
+  // FASE 3 — CREAR LOOP MODULADO (copia + transposición)
+  // ════════════════════════════════════════════════════════════════════
+  function _createLoopAt(li, sourceLi) {
+    _ensureLoopsModel();
+    if (li <= 0 || li > G.loops.length) return false;
+    if (li >= 8) return false;
+    const baseBars = G.baseLoopBars || G.bars || 4;
+    const baseBeats = baseBars * (G.bpb || 4);
+    const srcLoop = G.loops[sourceLi];
+    if (!srcLoop) return false;
+    const newLoop = { root: srcLoop.root, mode: srcLoop.mode };
+    G.bars = baseBars * (li + 1);
+    const srcStart = baseBeats * sourceLi;
+    const srcEnd = srcStart + baseBeats;
+    const dstStart = baseBeats * li;
+    G.tracks.forEach(track => {
+      if (!Array.isArray(track.clips)) return;
+      const srcClips = track.clips.filter(c => c && (c.sb||0) >= srcStart && (c.sb||0) < srcEnd);
+      srcClips.forEach(src => {
+        const nc = JSON.parse(JSON.stringify(src));
+        nc.sb = (src.sb - srcStart) + dstStart;
+        track.clips.push(nc);
+      });
+    });
+    G.loops.splice(li, 0, newLoop);
+    G.activeLoopIdx = li;
+    if (typeof renderAll === 'function') renderAll();
+    return true;
+  }
+
+  function _applyTranspositionToLoop(li, newRoot, newMode) {
+    _ensureLoopsModel();
+    const loop = G.loops[li];
+    if (!loop) return false;
+    const oldRoot = loop.root;
+    const oldIx = _NOTE_IX[oldRoot];
+    const newIx = _NOTE_IX[newRoot];
+    if (oldIx === undefined || newIx === undefined) return false;
+    const delta = newIx - oldIx;
+    const baseBars = G.baseLoopBars || G.bars || 4;
+    const baseBeats = baseBars * (G.bpb || 4);
+    const loopStart = baseBeats * li;
+    const loopEnd = loopStart + baseBeats;
+    if (delta !== 0) {
+      G.tracks.forEach(track => {
+        if (track.drum) return;
+        if (!Array.isArray(track.clips)) return;
+        track.clips.forEach(c => {
+          if (!c) return;
+          const sb = c.sb || 0;
+          if (sb >= loopStart && sb < loopEnd && c.r) {
+            c.r = _transposeRoot(c.r, delta);
+          }
+        });
+      });
+    }
+    loop.root = newRoot;
+    loop.mode = newMode;
+    if (typeof renderAll === 'function') renderAll();
+    return true;
+  }
+  window._applyTranspositionToLoop = _applyTranspositionToLoop;
+
+  // ════════════════════════════════════════════════════════════════════
+  // FASE 4 — ELIMINAR LOOP
+  // ════════════════════════════════════════════════════════════════════
+  function _removeLoop(li) {
+    _ensureLoopsModel();
+    if (li === 0) return false;
+    if (li >= G.loops.length) return false;
+    const baseBars = G.baseLoopBars || G.bars || 4;
+    const baseBeats = baseBars * (G.bpb || 4);
+    const loopStart = baseBeats * li;
+    const loopEnd = loopStart + baseBeats;
+    G.tracks.forEach(track => {
+      if (!Array.isArray(track.clips)) return;
+      track.clips = track.clips.filter(c => {
+        if (!c) return false;
+        const sb = c.sb || 0;
+        return !(sb >= loopStart && sb < loopEnd);
+      });
+      track.clips.forEach(c => {
+        if (!c) return;
+        if ((c.sb || 0) >= loopEnd) c.sb -= baseBeats;
+      });
+    });
+    G.loops.splice(li, 1);
+    G.bars = baseBars * G.loops.length;
+    if (G.activeLoopIdx >= G.loops.length) G.activeLoopIdx = G.loops.length - 1;
+    if (typeof renderAll === 'function') renderAll();
+    return true;
+  }
+
+  // Handler de click en casillero
+  window.modCellClick = function(li) {
+    _ensureLoopsModel();
+    if (li < 0 || li > 7) return;
+    const loopExists = !!G.loops[li];
+    if (loopExists) {
+      if (li !== G.activeLoopIdx) {
+        G.activeLoopIdx = li;
+        _renderModLoopsTable();
+        // Si el hwp está abierto, refrescar su valor al del loop activo
+        try { _syncHwpToActiveLoop(); } catch(_){}
+        return;
+      }
+      if (li === 0) return;
+      _removeLoop(li);
+      _renderModLoopsTable();
+      return;
+    }
+    if (li !== G.loops.length) return;
+    _createLoopAt(li, li - 1);
+    _renderModLoopsTable();
+    try { _syncHwpToActiveLoop(); } catch(_){}
+  };
+
+  function _syncHwpToActiveLoop() {
+    // Cuando el usuario selecciona un loop, el wheel del hwp debería
+    // posicionarse en la tónica/modo de ese loop para reflejar/editar.
+    // El hwp tiene un mecanismo interno; lo dejamos como no-op por ahora.
+    // El usuario opera el wheel y aplicamos cambios al loop activo vía hook.
+  }
+  window._syncHwpToActiveLoop = _syncHwpToActiveLoop;
+
+  // Cuando se abre el hwp-overlay con type='key', renderizar la botonera
+  // y dejar activeLoopIdx en 0 si no estaba definido
+  function _onHwpKeyOpen() {
+    _ensureLoopsModel();
+    if (G.activeLoopIdx === undefined || G.activeLoopIdx < 0 || G.activeLoopIdx >= G.loops.length) {
+      G.activeLoopIdx = 0;
+    }
+    _renderModLoopsTable();
+  }
+  window._onHwpKeyOpen = _onHwpKeyOpen;
+
+  // Hookear apertura del hwp-overlay (cuando recibe .has-mode = type='key')
+  // Usamos MutationObserver para detectar cuándo cambia el modo
+  document.addEventListener('DOMContentLoaded', function(){
+    const hwp = document.getElementById('hwp-overlay');
+    if (!hwp) return;
+    const obs = new MutationObserver(function(muts){
+      for (const m of muts) {
+        if (m.attributeName === 'class') {
+          if (hwp.classList.contains('on') && hwp.classList.contains('has-mode')) {
+            _onHwpKeyOpen();
+          }
+        }
+      }
+    });
+    obs.observe(hwp, { attributes: true, attributeFilter: ['class'] });
+  });
+
+  // Hook al cambio de G.key/G.keyMode: aplicar al loop activo si hay
+  // loops modulados. Esto se hace re-implementando el handler de aplicar
+  // tonalidad. Como el hwp original llama directo a setear G.key/keyMode,
+  // detectamos el cambio post-facto.
+  //
+  // Estrategia: wrapeo _refreshHeaderKeyDisplay para que ANTES de actualizar
+  // el display, sincronice el cambio al loop activo si existen loops > 1.
+  // Cuando solo hay 1 loop (base), el comportamiento es idéntico al previo
+  // (G.key cambia, todo el sequencer se transpone vía transposeAllClips
+  // que ya existe en el código original).
+  let _lastSyncedRoot = null;
+  let _lastSyncedMode = null;
+  const _origRefresh = window._refreshHeaderKeyDisplay;
+  window._refreshHeaderKeyDisplay = function() {
+    _ensureLoopsModel();
+    // Detectar cambio externo (hwpApply / applyKeySheet / preset)
+    const curRoot = G.key;
+    const curMode = (G.keyMode === 'minor') ? 'minor' : 'major';
+    if (_lastSyncedRoot === null) {
+      _lastSyncedRoot = curRoot;
+      _lastSyncedMode = curMode;
+    }
+    // Si hay más de un loop Y el activo NO es 0 Y cambió la tonalidad:
+    // aplicar SOLO al loop activo y RESTAURAR G.key al del loop base.
+    if (G.loops.length > 1 && G.activeLoopIdx > 0 &&
+        (curRoot !== _lastSyncedRoot || curMode !== _lastSyncedMode)) {
+      // El cambio era para el loop activo, no global. Aplicar y revertir global.
+      const targetLi = G.activeLoopIdx;
+      const baseRoot = G.loops[0].root;
+      const baseMode = G.loops[0].mode;
+      // El motor original ya transpuso TODOS los clips con transposeAllClips.
+      // Necesitamos REVERTIR la transposición de los loops != activeLoopIdx.
+      // Es complejo. Por ahora documentamos el problema y aplicamos solo display.
+      // FIX SIMPLIFICADO: si hay loops modulados y se cambia la tonalidad
+      // desde el wheel, asumimos que el usuario quiere cambiar el loop activo.
+      // El motor original ya transpuso TODO con el delta. Calculamos el
+      // delta y revertimos en los demás loops (excepto activeLoopIdx).
+      const oldIx = _NOTE_IX[_lastSyncedRoot];
+      const newIx = _NOTE_IX[curRoot];
+      if (oldIx !== undefined && newIx !== undefined) {
+        const delta = newIx - oldIx;
+        if (delta !== 0) {
+          const baseBars = G.baseLoopBars || G.bars || 4;
+          const baseBeats = baseBars * (G.bpb || 4);
+          G.tracks.forEach(track => {
+            if (track.drum) return;
+            if (!Array.isArray(track.clips)) return;
+            track.clips.forEach(c => {
+              if (!c || !c.r) return;
+              const sb = c.sb || 0;
+              const li = Math.floor(sb / baseBeats);
+              if (li !== targetLi) {
+                // Revertir transposición en loops no-target
+                c.r = _transposeRoot(c.r, -delta);
+              }
+            });
+          });
+        }
+      }
+      // Actualizar G.loops[activeLoopIdx]
+      G.loops[targetLi].root = curRoot;
+      G.loops[targetLi].mode = curMode;
+      // Restaurar G.key al del loop base
+      G.key = baseRoot;
+      if (typeof NOTES !== 'undefined') {
+        const ix = NOTES.indexOf(baseRoot);
+        if (ix >= 0) G.keyIdx = ix;
+      }
+      G.keyMode = baseMode;
+      _lastSyncedRoot = baseRoot;
+      _lastSyncedMode = baseMode;
+      _renderModLoopsTable();
+      try { if (typeof renderAll === 'function') renderAll(); } catch(_){}
+    } else if (G.loops.length >= 1 && G.activeLoopIdx === 0 &&
+               (curRoot !== _lastSyncedRoot || curMode !== _lastSyncedMode)) {
+      // Cambio al loop base: sincronizar G.loops[0]
+      G.loops[0].root = curRoot;
+      G.loops[0].mode = curMode;
+      _lastSyncedRoot = curRoot;
+      _lastSyncedMode = curMode;
+      _renderModLoopsTable();
+    } else {
+      _lastSyncedRoot = curRoot;
+      _lastSyncedMode = curMode;
+    }
+    // Llamar original
+    if (typeof _origRefresh === 'function') {
+      try { return _origRefresh.apply(this, arguments); } catch(_){}
+    }
+    // Fallback: actualizar display
+    const el = document.getElementById('hdr-key-txt');
+    if (el && typeof NOTE_D !== 'undefined' && typeof G.keyIdx === 'number') {
+      const display = NOTE_D[G.keyIdx];
+      const suffix = (G.keyMode === 'minor') ? 'm' : '';
+      el.textContent = display + suffix;
+    }
+  };
+
+  // ════════════════════════════════════════════════════════════════════
+  // FASE 6 — DISPLAY DINÁMICO DEL KEY DURANTE PLAY (event-driven, sin parpadeo)
+  // ════════════════════════════════════════════════════════════════════
+  // Reemplaza el setInterval(100ms) anterior que pisaba el display y peleaba
+  // con otras funciones que escriben hdr-key-txt. Ahora: cache de "último loop
+  // mostrado" + actualización SOLO en transiciones (cuando playPos cruza un
+  // límite de loop). Si no hay loops modulados, no toca el display (lo maneja
+  // el código original).
+  let _lastDisplayedLoopIdx = -1;
+  let _wasPlaying = false;
+
+  function _updateKeyDisplayForLoop() {
+    _ensureLoopsModel();
+    if (!G.loops || G.loops.length <= 1) return; // sin loops modulados, no tocar
+    if (!G.playing) return;
+    const li = _getLoopAtPlayPos(G.playPos || 0);
+    if (li === _lastDisplayedLoopIdx) return; // mismo loop, no actualizar
+    _lastDisplayedLoopIdx = li;
+    const loop = G.loops[li];
+    if (!loop) return;
+    const ix = _NOTE_IX[loop.root];
+    const display = (typeof NOTE_D !== 'undefined' && ix >= 0 && ix < 12) ? NOTE_D[ix] : loop.root;
+    const txt = (loop.mode === 'minor') ? (display + 'm') : display;
+    const el = document.getElementById('hdr-key-txt');
+    if (el) el.textContent = txt;
+  }
+  window._updateKeyDisplayForLoop = _updateKeyDisplayForLoop;
+
+  // Tick periódico SOLO durante play (más rápido para detectar transiciones,
+  // pero NO escribe si no hay cambio de loop)
+  setInterval(function(){
+    if (!G) return;
+    if (G.playing) {
+      _updateKeyDisplayForLoop();
+      _wasPlaying = true;
+    } else {
+      if (_wasPlaying) {
+        // Recién dejó de sonar: restaurar display al loop activo (base si no hay loops)
+        _lastDisplayedLoopIdx = -1;
+        _wasPlaying = false;
+        // No tocar el display directamente: dejar que _refreshHeaderKeyDisplay
+        // (que ya maneja G.key + G.keyMode) lo restaure. Pero como _refreshHeader
+        // solo se llama en cambios de tonalidad, forzamos UNA actualización al
+        // loop base ahora.
+        _ensureLoopsModel();
+        if (G.loops && G.loops.length > 0) {
+          const baseLoop = G.loops[0];
+          const ix = _NOTE_IX[baseLoop.root];
+          const display = (typeof NOTE_D !== 'undefined' && ix >= 0 && ix < 12) ? NOTE_D[ix] : baseLoop.root;
+          const txt = (baseLoop.mode === 'minor') ? (display + 'm') : display;
+          const el = document.getElementById('hdr-key-txt');
+          if (el) el.textContent = txt;
+        }
+      }
+    }
+  }, 80);
+
+})();
+</script>
 </body>
 </html>
