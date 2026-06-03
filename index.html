@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.340</title>
+<title>OnlyLoops · v27.411</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -2434,6 +2434,14 @@ body.has-promoted-track .track-row:not(.promoted) .ttl {
 body.has-promoted-track .track-row.promoted .tlbl-zone-open {
   pointer-events: none;
 }
+/* v27.406 — SONG (OnlySongs): red de seguridad. Las líneas son ventanas del
+   mismo track y TODAS deben ser editables (clips, handles, sidebar de partes,
+   lírica) sin importar el promote. Reactiva fila + sidebar completos. */
+html.app-songs body.has-promoted-track .track-row:not(.promoted),
+html.app-songs body.has-promoted-track .track-row:not(.promoted) .tlbl,
+html.app-songs body.has-promoted-track .track-row:not(.promoted) .tlbl-song {
+  pointer-events: auto !important;
+}
 /* v20.5.6 — Botones de transport (Play / Rewind) siguen activos durante
    promote. Permite escuchar el track mientras se edita clip a clip. */
 body.has-promoted-track #play-btn,
@@ -2483,6 +2491,16 @@ body.has-promoted-track #rewind-btn {
 }
 .ts-play-btn:active {
   transform: scale(.92);
+}
+/* v27.341 — Horacio: mismo glow del header (#play-btn.playing) para los
+   plays del inst-editor + mixer + chord-sheet header. Cambio de color a
+   var(--err) + box-shadow rojizo + animación ppulse pulsante (definida en
+   L2167). Estado controlado por classList.add/remove('playing') ya cableado
+   en togglePlay (L37902, L37907). */
+.ts-play-btn.playing {
+  background: var(--err);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 3px 12px rgba(138,32,16,.45);
+  animation: ppulse .9s ease-in-out infinite;
 }
 .ts-play-ic {
   width: 16px;
@@ -2694,6 +2712,12 @@ body.has-promoted-track #rewind-btn {
   background:#C4423A;
   clip-path:polygon(50% 100%,0 0,100% 0);
 }
+/* v27.411 — SONG (OnlySongs): el playhead rojo es una línea vertical única
+   (posición = playPos*BW). En el layout ENVUELTO de la canción no representa
+   la posición real (se iría al infinito a la derecha). En SONG la posición la
+   marca el GLOW (clip activo, línea por línea). Se oculta SOLO por clase: al
+   volver a LOOP (clase fuera) reaparece sola, sin tocar JS. */
+html.app-songs #ph{ display:none !important; }
 
 /* ═══════════════════════════════════════════════
    CLIP GLOW — halo respirando alrededor del clip ACTIVO durante play.
@@ -2752,6 +2776,14 @@ body.has-promoted-track #rewind-btn {
     opacity:0;
     box-shadow:0 0 0 0 transparent, inset 0 0 0 0 transparent;
   }
+}
+/* v27.388 — SONG: glow SOLO interno (inset), confinado a la celda del clip.
+   La grilla manda: nada del glow puede cruzar el borde inferior del clip. */
+@keyframes clipGlowSingleSong{
+  0%{opacity:0;box-shadow:inset 0 0 0 0 transparent}
+  15%{opacity:1;box-shadow:inset 0 0 12px 1px color-mix(in srgb, var(--acc) 24%, transparent), inset 0 0 0 1.5px color-mix(in srgb, var(--acc) 48%, transparent)}
+  85%{opacity:1;box-shadow:inset 0 0 12px 1px color-mix(in srgb, var(--acc) 24%, transparent), inset 0 0 0 1.5px color-mix(in srgb, var(--acc) 48%, transparent)}
+  100%{opacity:0;box-shadow:inset 0 0 0 0 transparent}
 }
 
 /* ═══════════════════════════════════════════════
@@ -8380,6 +8412,64 @@ body.mixer-dragging *{touch-action:none !important}
 }
 
 </style>
+
+<style id="os-styles">
+/* ===== OnlySongs — el MISMO sequencer de Loops + 4 cambios (gateado en <html>) ===== */
+/* 1+columna de partes (vertical, combinada) reemplaza la columna de instrumento */
+html.app-songs .track-row.song-row{height:78px;flex:0 0 78px;min-height:78px}
+html.app-songs .song-row .ttl{height:78px}                 /* canvas(52) + barra letras(26) */
+html.app-songs .song-row .ttl-inner{position:relative}
+html.app-songs .song-row .tc{display:block}
+/* barra de letras: debajo del canvas, DENTRO del mismo inner (alineada a beats, scroll sincronizado) */
+html.app-songs .song-row .song-lyrics{position:absolute;top:52px;left:0;width:100%;height:26px;box-sizing:border-box;background:var(--bg);border-top:1px solid var(--rule);overflow:hidden;touch-action:none;user-select:none;z-index:3}
+html.app-songs .song-row .lyr-word{position:absolute;top:calc(50% - 3px);transform:translateY(-50%);font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:500;line-height:1;padding:2px 0;color:var(--ink);white-space:nowrap;cursor:grab}
+html.app-songs .song-row .lyr-word::before{content:'';position:absolute;inset:0 -4px;border-radius:5px;background:transparent;z-index:-1}
+html.app-songs .song-row .lyr-word.sel{color:var(--bg)}
+html.app-songs .song-row .lyr-word.sel::before{background:var(--ink)}
+html.app-songs .song-row .lyr-word.bold{font-weight:700}
+html.app-songs .song-row .lyr-word.hl{color:var(--acc)}
+html.app-songs .song-row .lyr-word.hl.sel{color:var(--bg)}
+html.app-songs .song-row .lyr-edge{position:absolute;top:0;bottom:0;width:0;border-left:1.5px solid var(--acc);opacity:0;pointer-events:none;z-index:2}
+html.app-songs .song-row .lyr-edge.on{opacity:.85}
+/* sidebar: PARTE (grande/bold, izq) + TÉCNICA (chica, der), ambas verticales */
+html.app-songs .song-row .tlbl-song{width:var(--lbl-w,102px);flex:0 0 var(--lbl-w,102px);display:flex;flex-direction:row;align-items:stretch;justify-content:center;gap:2px;padding:0 3px;border-right:1.5px solid var(--rule2);background:var(--bg2);position:sticky;left:0;z-index:6;overflow:hidden}
+html.app-songs .song-row .sl-col{display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6px 0}
+html.app-songs .song-row .sl-bars{flex:0 0 13px}
+html.app-songs .song-row .sl-name{flex:0 0 34px}
+html.app-songs .song-row .sl-tech,html.app-songs .song-row .sl-sub{flex:0 0 10px}
+html.app-songs .song-row .sl-sub{margin-left:-2px}
+html.app-songs .song-row .song-bars-lab{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--mono);font-weight:500;font-size:10px;letter-spacing:.03em;color:var(--ink2);white-space:nowrap;line-height:1}
+html.app-songs .song-row .song-part-lab{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--sans);font-weight:700;font-size:23px;letter-spacing:.02em;text-transform:uppercase;color:var(--ink);white-space:nowrap;line-height:1}
+html.app-songs .song-row .song-part-lab sup{font-size:.5em;vertical-align:super}
+html.app-songs .song-row .song-tech-lab,html.app-songs .song-row .song-sub-lab{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--sans);font-weight:400;font-size:9.4px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2);white-space:nowrap;line-height:1}
+.wordbar-lyr{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-8px);display:flex;align-items:center;gap:2px;background:var(--ink);border-radius:11px;padding:5px 6px;box-shadow:0 6px 22px rgba(0,0,0,.22);opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;z-index:200}
+.wordbar-lyr.on{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+.wordbar-lyr button{display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--bg);cursor:pointer;font-family:var(--sans);font-size:13px;border-radius:7px;padding:7px 12px;min-width:42px}
+.wordbar-lyr button:hover{background:rgba(255,255,255,.13)}
+.wordbar-lyr button.act{background:rgba(255,255,255,.16)}
+.wordbar-lyr svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.7}
+.wordbar-lyr .bicon{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:17px;line-height:1}
+.wordbar-lyr .dot{width:14px;height:14px;border-radius:50%;background:var(--acc);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35)}
+.wordbar-lyr .sep{width:.5px;height:18px;background:rgba(255,255,255,.18);margin:0 3px}
+html.app-songs .part-chorus .song-part-lab{color:#a4472f}
+html.app-songs .part-intro .song-part-lab,html.app-songs .part-outro .song-part-lab{color:var(--ink3)}
+/* divisor fuerte SOLO entre partes; dentro de la parte sin división (celda combinada) */
+html.app-songs .song-row{border-top:none;border-bottom:none;position:relative}
+html.app-songs .song-row::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1.5px;background:var(--rule2);z-index:7;pointer-events:none}
+html.app-songs .song-row.part-first{border-top:1.5px solid var(--rule2)}
+/* botonera de instrumento (Piano/Bajo/Cuerdas/Batería) */
+#os-instbar{display:none}
+html.app-songs #ruler-row{display:flex}
+html.app-songs #os-instbar{display:flex;align-items:center;gap:16px;padding:7px 16px;background:var(--bg2);border-bottom:.5px solid var(--rule);font-family:var(--sans);font-size:13px;flex-shrink:0}
+html.app-songs #os-instbar .os-ib-cur{font-family:var(--serif);font-size:19px;color:var(--ink)}
+html.app-songs #os-instbar .os-ib-pg{font-family:var(--mono);font-size:11px;color:var(--ink2)}
+html.app-songs #os-instbar .os-ib-tab{color:var(--ink3);cursor:pointer}
+html.app-songs #os-instbar .os-ib-tab.on{color:var(--acc);font-weight:600}
+html.app-songs #os-instbar .os-ib-bpl{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink3)}
+html.app-songs #os-instbar .os-ib-m{font-family:var(--mono);font-size:12px;color:var(--ink3);cursor:pointer;padding:0 2px}
+html.app-songs #os-instbar .os-ib-m.on{color:var(--acc);font-weight:600}
+html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:none}
+</style>
 </head>
 <body>
 <!-- v15.0-DEMO — APPLE B15: loading splash mientras Tone.js carga.
@@ -9165,7 +9255,7 @@ body.mixer-dragging *{touch-action:none !important}
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.340</span>
+      <span class="title" id="dkv-title">Vista kit · v27.411</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -9606,6 +9696,70 @@ body.mixer-dragging *{touch-action:none !important}
        4. Swipe-down sobre s-handle / s-head — PANEL_TWINS
        5. ESC — handler global heredado
      -->
+<!-- ============================================================
+     PART-SHEET (OnlySongs) — v27.390
+     Mismo contenedor .sheet que el inst-sheet (misma apertura V/H).
+     Wheels = markup .is-mw real (copiado). Lógica self-contained
+     (ps-*) para NO tocar los wheels de instrumentos.
+     ============================================================ -->
+<style>
+#part-sheet .s-head{position:relative}
+#part-sheet .ps-borders{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;z-index:2}
+#part-sheet .ps-borders-lab{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink2)}
+#part-sheet .ps-borders-tgl{border:1px solid var(--rule2);background:var(--card);color:var(--ink);font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.06em;padding:4px 13px;border-radius:999px;cursor:pointer;min-width:42px}
+#part-sheet .ps-borders-tgl.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+html.song-noborders .song-row .song-lyrics{border-top:none}
+#part-sheet .ps-colrow{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+#part-sheet .ps-cslider{flex:1;position:relative;height:24px;border-radius:12px;border:1px solid var(--rule2);cursor:pointer;background:linear-gradient(90deg,hsl(0 45% 70%),hsl(45 45% 70%),hsl(90 40% 68%),hsl(140 38% 66%),hsl(190 42% 66%),hsl(230 42% 70%),hsl(280 40% 72%),hsl(320 44% 72%),hsl(360 45% 70%))}
+#part-sheet .ps-cthumb{position:absolute;top:50%;width:21px;height:21px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transform:translate(-50%,-50%);pointer-events:none}
+#part-sheet .ps-dn{flex:0 0 auto;width:42px;height:28px;border-radius:9px;border:1px solid var(--rule2);background:var(--card);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--ink)}
+#part-sheet .is-mw{margin-bottom:9px}
+#part-sheet .is-mw.is-colored .is-mw-item{height:100%;margin:0;border-radius:0;font-family:var(--serif);font-style:italic;font-weight:600;color:var(--ink)}
+#part-sheet .is-mw[data-mw="pletter"] .is-mw-item{font-size:22px}
+#part-sheet .ps-tech-wrap{display:flex;flex-direction:column;gap:9px}
+#part-sheet .ps-tech-wrap .is-mw{flex:1;margin-bottom:0}
+body.landscape-mode #part-sheet .ps-tech-wrap{flex-direction:row}
+</style>
+<div id="part-sheet" class="sheet"
+  style="top: calc(var(--nav-h) + var(--tr-h) + var(--ruler-h) + var(--track-h) + 10px);
+         height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - var(--bot-h) - 10px - env(safe-area-inset-bottom, 0px));
+         max-height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - var(--bot-h) - 10px - env(safe-area-inset-bottom, 0px));">
+  <div class="s-handle"></div>
+  <div class="s-head">
+    <div class="s-title" id="ps-title">Parte</div>
+    <div class="ps-borders"><span class="ps-borders-lab">Bordes</span><button class="ps-borders-tgl on" id="ps-borders-tgl" type="button">SÍ</button></div>
+    <button class="shbtn" onclick="closeSheet('part-sheet')" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="s-body" style="padding:6px 12px 8px">
+    <div class="ps-colrow">
+      <div class="ps-cslider" id="ps-cslider"><div class="ps-cthumb" id="ps-cthumb"></div></div>
+      <button class="ps-dn" id="ps-dn" type="button" aria-label="Día/Noche">☀</button>
+    </div>
+    <div class="is-mw is-colored" data-mw="pword">
+      <button class="is-mw-arr" data-psdir="-1" type="button">‹</button>
+      <div class="is-mw-frame"><div class="is-mw-track"><div class="is-mw-sel"></div><div class="is-mw-strip" id="ps-mw-word"></div></div></div>
+      <button class="is-mw-arr" data-psdir="+1" type="button">›</button>
+    </div>
+    <div class="is-mw is-colored" data-mw="pletter">
+      <button class="is-mw-arr" data-psdir="-1" type="button">‹</button>
+      <div class="is-mw-frame"><div class="is-mw-track"><div class="is-mw-sel"></div><div class="is-mw-strip" id="ps-mw-letter"></div></div></div>
+      <button class="is-mw-arr" data-psdir="+1" type="button">›</button>
+    </div>
+    <div class="ps-tech-wrap" id="ps-tech-wrap">
+      <div class="is-mw" data-mw="ptech">
+        <button class="is-mw-arr" data-psdir="-1" type="button">‹</button>
+        <div class="is-mw-frame"><div class="is-mw-track"><div class="is-mw-sel"></div><div class="is-mw-strip" id="ps-mw-tech"></div></div></div>
+        <button class="is-mw-arr" data-psdir="+1" type="button">›</button>
+      </div>
+      <div class="is-mw" data-mw="psub">
+        <button class="is-mw-arr" data-psdir="-1" type="button">‹</button>
+        <div class="is-mw-frame"><div class="is-mw-track"><div class="is-mw-sel"></div><div class="is-mw-strip" id="ps-mw-sub"></div></div></div>
+        <button class="is-mw-arr" data-psdir="+1" type="button">›</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="inst-sheet" class="sheet"
   style="top: calc(var(--nav-h) + var(--tr-h) + var(--ruler-h) + var(--track-h) + 10px);
          height: calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - var(--bot-h) - 10px - env(safe-area-inset-bottom, 0px));
@@ -9953,9 +10107,17 @@ const INTERVALS={
  * @param {string} sufKey - clave de sufijo ('major','m7','maj7♭5',...)
  * @returns {{root:string, suf:string}} display formateado
  */
-function chordDisplay(noteR, sufKey){
+function chordDisplay(noteR, sufKey, clipSb){
   const ni=NOTES.indexOf(noteR);
-  const ki=G.keyIdx;
+  // v27.358 — Grado relativo al KEY del loop al que pertenece el clip (Modulador
+  // de Tonalidad). Si clipSb es número y hay loops modulados, el grado se calcula
+  // contra la tonalidad de ESE loop (no la global). Sin clipSb o sin modulación →
+  // comportamiento idéntico al previo (key global G.keyIdx / G.keyMode).
+  let ki = G.keyIdx;
+  let _keyModeOv = null;
+  if (typeof clipSb === 'number' && typeof window._loopKeyForSb === 'function') {
+    try { const _lk = window._loopKeyForSb(clipSb); if (_lk) { ki = _lk.keyIdx; _keyModeOv = _lk.keyMode; } } catch(_){}
+  }
   const getS=(map)=>map[sufKey]!==undefined?map[sufKey]:(SUF_D[sufKey]!==undefined?SUF_D[sufKey]:sufKey);
   // v15.0.9 — helper para calcular el grado romano dinámicamente desde la tonalidad
   // v27.86 — Convención unificada con el wheel de tónica: la mayúscula/minúscula
@@ -9979,7 +10141,7 @@ function chordDisplay(noteR, sufKey){
   //     (ej: grado "ii" + sufijo "m7" = "ii7", la m ya está en la minúscula)
   const _calcRoman = ()=>{
     const iv=((ni-ki)+12)%12;
-    const _keyMode = (G.keyMode === 'minor') ? 'minor' : 'major';
+    const _keyMode = _keyModeOv ? (_keyModeOv === 'minor' ? 'minor' : 'major') : ((G.keyMode === 'minor') ? 'minor' : 'major');
     const _intTbl = (_keyMode === 'minor')
       ? (typeof INTERVAL_MINOR !== 'undefined' ? INTERVAL_MINOR : null)
       : (typeof INTERVAL_MAJOR !== 'undefined' ? INTERVAL_MAJOR : null);
@@ -35780,6 +35942,19 @@ window._hasPromotedTrack = () => _promotedTrackTi != null;
 
 function _promoteTrackToTop(ti) {
   if (ti == null) return;
+  // v27.361 — En vista HORIZONTAL no se promueve el track. Los editores de
+  // acordes e instrumentos abren desde la DERECHA y el track queda visible
+  // igual mientras se edita, así que promover al 1er lugar molesta. La
+  // promoción solo aplica en VERTICAL, donde el sheet tapa más superficie.
+  if (document.body.classList.contains('landscape-mode')) return;
+  // v27.406 — En SONG (OnlySongs) NO se promueve ningún track. Todas las
+  // líneas son ventanas del MISMO track (windowed) y deben quedar TODAS
+  // editables por igual con cualquier menú abierto. Promover seteaba
+  // body.has-promoted-track → las filas no-promovidas (líneas 2,3,4...)
+  // quedaban pointer-events:none (solo el .ttl re-habilitado para preview,
+  // por eso "sonaba pero no se editaba"), y reordenar rompería el cancionero.
+  // El editor de acordes usa G.editRef directo, no necesita promoción.
+  if (window.APP_MODE === 'songs') return;
   // Idempotente: si ya está promovido este mismo track, no hacer nada
   if (_promotedTrackTi === ti) {
     document.body.classList.add('has-promoted-track');
@@ -35964,6 +36139,7 @@ function buildTracks(){
     }
   } catch(_) {}
   el.innerHTML='';
+  if(window.APP_MODE==='songs'&&typeof window._buildSongRows==='function'){ window._buildSongRows(el); return; }
   G.tracks.forEach((t,ti)=>{
     const col=T_COLS[ti%T_COLS.length];
     // v16.5.9-clean — Render condicional del icon del track:
@@ -36093,7 +36269,10 @@ function renderEmptyTracks(){
  */
 function renderAll(){
   if (typeof _syncBarsToContent === 'function') _syncBarsToContent();
-  renderRuler();G.tracks.forEach((_,i)=>renderTrack(i));if(typeof updateNowPlaying==='function')updateNowPlaying();
+  renderRuler();
+  if(window.APP_MODE==='songs'&&window._songWins){window._songWins.forEach((w,i)=>renderTrack(i,w));}
+  else{G.tracks.forEach((_,i)=>renderTrack(i));}
+  if(typeof updateNowPlaying==='function')updateNowPlaying();
   // v27.36 — Sincronizar también los ttl-inner de los tracks vacíos para que
   // sean scrolleables horizontalmente. Permite swipe en cualquier zona del
   // sequencer (incluido T5, T6, T7 vacíos) sin necesidad de barra visible.
@@ -36262,7 +36441,7 @@ function renderRuler(){
   }
 }
 
-function getH(ti){const e=document.getElementById(`ttl-${ti}`);return e?e.offsetHeight:72;}
+function getH(ti){ if(window.APP_MODE==='songs') return 52; const e=document.getElementById(`ttl-${ti}`);return e?e.offsetHeight:72;}
 
 /**
  * Repinta el canvas de un track individual: clips, etiquetas, beats.
@@ -36270,27 +36449,41 @@ function getH(ti){const e=document.getElementById(`ttl-${ti}`);return e?e.offset
  * @param {number} ti - índice del track en G.tracks (0-based)
  * @returns {void}
  */
-function renderTrack(ti){
+function renderTrack(ti, _win){
+  // v27.369 — SONG: cualquier llamada directa renderTrack(ti) resuelve su VENTANA
+  // de línea automáticamente. Esto evita que edits/play/modulador redibujen la
+  // fila con toda la línea de tiempo (raíz del "se extiende infinito").
+  // SONG: renderTrack(ti) DESNUDA ⇒ ti = índice de TRACK (instrumento). Re-render
+  // de TODAS las filas que muestran ese instrumento (cada una con su ventana).
+  // Editor/inst/delete/play llaman renderTrack(trackIdx) sin ventana → sus cambios
+  // se reflejan en todas las líneas. Las llamadas con ventana explícita (renderAll,
+  // filas, gestos) saltean este bloque y dibujan la fila puntual.
+  if(!_win && window.APP_MODE==='songs' && window._songWins){
+    window._songWins.forEach(function(w,r){ if(w && w.instIdx===ti) renderTrack(r,w); });
+    return;
+  }
   // v27.8 — Sincronización defensiva: compases = contenido del sequencer.
-  // Esto se ejecuta también desde edits que no pasan por renderAll
-  // (drag de clips, resize de handles, etc).
   if (typeof _syncBarsToContent === 'function') _syncBarsToContent();
+  // v27.368 — SONG: ti = índice de FILA (línea); el track real es _win.instIdx.
+  const _rti = _win ? _win.instIdx : ti;
   // v23.23 — Normalizar inst legacy ANTES de leer (fail-safe directo, no depende de hooks).
   try {
-    const _t = G.tracks[ti];
+    const _t = G.tracks[_rti];
     if (_t && _t.inst && typeof _LEGACY_INST_MAP !== 'undefined' && _LEGACY_INST_MAP[_t.inst]) {
       _t.inst = _LEGACY_INST_MAP[_t.inst];
       if (_t.sound && _LEGACY_INST_MAP[_t.sound]) _t.sound = _LEGACY_INST_MAP[_t.sound];
     }
   } catch(_){}
-  const t=G.tracks[ti];
+  const t=G.tracks[_rti];
   if(!t) return; // track may have been removed; ignore stale render calls
   const tl=document.getElementById(`ttl-${ti}`);
   const c=document.getElementById(`tc-${ti}`);
   if(!tl||!c)return;
   const dpr=window.devicePixelRatio||1;
   const H=getH(ti);
-  const W=Math.max(tl.offsetWidth,TW());
+  const _baseBeat = _win ? _win.base*G.bpb : 0;
+  const _winBeats = _win ? _win.bars*G.bpb : TB();
+  const W = _win ? _winBeats*BW : Math.max(tl.offsetWidth,TW());
   c.width=W*dpr;c.height=H*dpr;
   c.style.width=W+'px';c.style.height=H+'px';
   // v27.33 — Setear width del wrapper .ttl-inner (en flow normal) para que el
@@ -36301,15 +36494,15 @@ function renderTrack(ti){
   ctx.scale(dpr,dpr);
   ctx.clearRect(0,0,W,H);
 
-  // Beat grid — SAME for ALL tracks
-  for(let b=0;b<=TB();b++){
+  // Beat grid — SAME for ALL tracks (ventana en SONG)
+  for(let b=0;b<=_winBeats;b++){
     const x=b*BW,isBar=b%G.bpb===0;
     ctx.strokeStyle=isBar?inkRGBA(.10):inkRGBA(.03);
     ctx.lineWidth=isBar?.8:.4;
     ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();
   }
 
-  if(t.drum){renderDrum(ctx,W,H,t,ti);return;}
+  if(t.drum){renderDrum(ctx,W,H,t,ti,_win);return;}
 
   const col=T_COLS[ti%T_COLS.length];
   const p=3;
@@ -36329,11 +36522,18 @@ function renderTrack(ti){
     // solo el primer clip del track. Fix R9: arregla render + apertura del chord-sheet.
     if (cl.s === undefined || cl.s === null) cl.s = '';
     if(cl._flying) return; // clip volando: no se dibuja en canvas, se muestra como ghost HTML
-    const x=cl.sb*BW,w=cl.lb*BW;
+    if(_win && _win.songEnd!=null && cl.sb >= _win.songEnd*G.bpb) return; // recorte al largo de canción
+    const x=(cl.sb-_baseBeat)*BW,w=cl.lb*BW;
     if(w<=0||x+w<0||x>W)return;
-    const isPlay=G.activeClip&&G.activeClip.ti===ti&&G.activeClip.ci===ci;
-    const isEdit=G.editRef&&G.editRef.ti===ti&&G.editRef.ci===ci;
-    const isSel =G.selectedClip&&G.selectedClip.ti===ti&&G.selectedClip.ci===ci;
+    // v27.409 — CAUSA RAÍZ del "solo edita la 1ra línea": en SONG renderTrack
+    // se invoca por VENTANA con ti=índice de FILA (0,1,2,3...), pero el estado
+    // (selectedClip/editRef/activeClip) guarda el TRACK real. Comparar contra
+    // ti (fila) solo matcheaba en la fila 0 → en las líneas 2,3,4 el clip nunca
+    // se veía seleccionado/editado (sin X, sin handles). Se compara contra _rti
+    // (track real). En LOOP _rti===ti, así que no cambia nada ahí.
+    const isPlay=G.activeClip&&G.activeClip.ti===_rti&&G.activeClip.ci===ci;
+    const isEdit=G.editRef&&G.editRef.ti===_rti&&G.editRef.ci===ci;
+    const isSel =G.selectedClip&&G.selectedClip.ti===_rti&&G.selectedClip.ci===ci;
 
     // Layer 1 (fondo del clip) — SIEMPRE limpio. isPlay NO modifica este layer.
     // El clip-glow es un layer HTML APARTE que flota por encima del canvas.
@@ -36345,25 +36545,28 @@ function renderTrack(ti){
     // el tinte de color del clip encima con el mismo alpha. Resultado visual
     // idéntico al actual, pero el clip ya no deja pasar lo que tenga debajo.
     const _bgHex = (function(){
+      try { if(window.APP_MODE==='songs' && _win && _win._partColor) return _win._partColor; } catch(_){}
       try {
         const v = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
         if (v) return v;
       } catch(_){}
       return '#fcf9f0';
     })();
-    ctx.fillStyle = _bgHex;
-    ctx.beginPath();rr(ctx,x+p,p,w-p*2,H-p*2,6);ctx.fill();
-    const bgAlpha = isSel?.14 : isEdit?.10 : .05;
-    ctx.fillStyle = hexA(col, bgAlpha);
-    ctx.beginPath();rr(ctx,x+p,p,w-p*2,H-p*2,6);ctx.fill();
-    const strokeAlpha = isSel?.95 : isEdit?.80 : .52;
-    ctx.strokeStyle = hexA(col, strokeAlpha);
-    ctx.lineWidth = isSel ? 2.5 : (isEdit ? 2 : 1.5);
-    ctx.beginPath();rr(ctx,x+p,p,w-p*2,H-p*2,6);ctx.stroke();
+    if(!(window.APP_MODE==='songs' && window._songBorders===false)){
+      ctx.fillStyle = _bgHex;
+      ctx.beginPath();rr(ctx,x+p,p,w-p*2,H-p*2,6);ctx.fill();
+      const bgAlpha = isSel?.14 : isEdit?.10 : .05;
+      ctx.fillStyle = hexA(col, bgAlpha);
+      ctx.beginPath();rr(ctx,x+p,p,w-p*2,H-p*2,6);ctx.fill();
+      const strokeAlpha = isSel?.95 : isEdit?.80 : .52;
+      ctx.strokeStyle = hexA(col, strokeAlpha);
+      ctx.lineWidth = isSel ? 2.5 : (isEdit ? 2 : 1.5);
+      ctx.beginPath();rr(ctx,x+p,p,w-p*2,H-p*2,6);ctx.stroke();
+    }
     ctx.restore();
 
     {
-      const disp=chordDisplay(cl.r,cl.s);
+      const disp=chordDisplay(cl.r,cl.s,cl.sb);
       const rootStr=disp.root,sufStr=disp.suf;
 
       // Clip text to the inner rectangle of this clip so nothing spills into the neighbor.
@@ -36407,7 +36610,7 @@ function renderTrack(ti){
       // en H/2 (mitad vertical exacta del clip). En Cormorant Garamond con
       // textBaseline='alphabetic', el centro óptico de la cap height está
       // ~0.35*fontSize por encima del baseline → baseline = H/2 + 0.35*rootFs.
-      const rootBaselineY = H/2 + rootFs*0.35;
+      const rootBaselineY = H/2 + rootFs*0.35 + (window.APP_MODE==='songs' ? 6 : 0);
 
       const isComboNotation = (G.notation==='AmI' || G.notation==='IAm');
       const dynGrade = disp.grade ? (disp.grade + (disp.gradeSuf||'')) : null;
@@ -36470,13 +36673,13 @@ function renderTrack(ti){
       // Como el root principal ahora va en --ink (negro), el contraste se
       // logra al revés: root negro sólido, grade-top en accent azul.
       if(secondaryFull && w > 50){
-        const secFs = Math.max(11, _oldRootFs*.5);
+        const secFs = Math.max(11, _oldRootFs*.5) * (window.APP_MODE==='songs' ? 0.8 : 1); // v27.401 — SONG: grado 20% más chico
         ctx.font = `600 ${secFs}px ${_clipFont}`;
         ctx.fillStyle = clipTextRGBA(.78);
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
         // baseline = 7px (espacio top) + cap height aprox (0.75 * secFs)
-        const secY = 7 + secFs*0.75;
+        const secY = 7 + secFs*0.75 - (window.APP_MODE==='songs' ? 2 : 0); // v27.404 — SONG: grado 2px más arriba
         const secX = x + p + 9;
         ctx.fillText(secondaryFull, secX, secY);
       }
@@ -36485,7 +36688,9 @@ function renderTrack(ti){
       // v20.2.1 UEX: usa _clipLabelParts(clip, track) que filtra __PRESET__
       // y agrega SONIDO si el inst tiene variantes (ej. contrabajo).
       // Formato: "Sound/TECNICA/subtecnica" alineado izquierda.
-      if(w > 60){
+      // v27.382 — SONG: NO se dibuja la técnica en el clip (irá a la barra
+      // lateral para definir la técnica de toda la línea). Loop intacto.
+      if(w > 60 && window.APP_MODE!=='songs'){
         const _parts = (typeof _clipLabelParts === 'function')
                        ? _clipLabelParts(cl, t)
                        : [];
@@ -36640,9 +36845,27 @@ function renderTrack(ti){
 
     }
   });
+  // v27.368 — SONG: línea de letra debajo de la técnica (mismo clip, +alto de fila)
+  if (_win) {
+    const _bb=_baseBeat;
+    t.clips.forEach(function(cl){
+      if(!cl||!cl.lyric)return;
+      var lx=(cl.sb-_bb)*BW, lw=cl.lb*BW;
+      if(lx+lw<0||lx>W)return;
+      ctx.save();ctx.beginPath();rr(ctx,lx+3,3,lw-6,H-6,8);ctx.clip();
+      ctx.font='600 12px DM Sans,sans-serif';ctx.fillStyle=inkRGBA(.82);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      ctx.fillText(cl.lyric, lx+10, H-9);ctx.restore();
+    });
+  }
 }
 
-function renderDrum(ctx,W,H,t,ti){
+function renderDrum(ctx,W,H,t,ti,_win){
+  // v27.371 — SONG: batería con la MISMA ventana que el resto (offset + recorte).
+  const _dBase = _win ? _win.base*G.bpb : 0;
+  const _dEnd  = (_win && _win.songEnd!=null) ? _win.songEnd*G.bpb : Infinity;
+  // v27.409 — track real de la ventana (en SONG ti=fila). Igual que renderTrack.
+  const _rti = _win ? _win.instIdx : ti;
   // v20.7.0 — Drum es un track más. Iterar por CLIPS (como acordes), no por
   // compases. Cada clip dibuja: background + stroke (3 tiers isSel/isEdit/default),
   // patrón loop interno por cada compás cubierto, handles laterales si seleccionado,
@@ -36659,11 +36882,12 @@ function renderDrum(ctx,W,H,t,ti){
   clips.forEach((cl, ci) => {
     if (!cl) return;
     if (cl._flying) return;
-    const x = (cl.sb||0) * BW;
+    if ((cl.sb||0) >= _dEnd) return; // recorte al largo de canción (no más reglas propias)
+    const x = ((cl.sb||0) - _dBase) * BW;
     const w = (cl.lb||0) * BW;
     if (w <= 0 || x + w < 0 || x > W) return;
-    const isSel  = G.selectedClip && G.selectedClip.ti === ti && G.selectedClip.ci === ci;
-    const isEdit = G.editRef && G.editRef.ti === ti && G.editRef.ci === ci;
+    const isSel  = G.selectedClip && G.selectedClip.ti === _rti && G.selectedClip.ci === ci;
+    const isEdit = G.editRef && G.editRef.ti === _rti && G.editRef.ci === ci;
     const muted  = !!cl.drumMuted;
     // Layer 1 — fondo + borde (mismos 3 tiers que clips de acordes L16815-16822).
     ctx.save();
@@ -36841,15 +37065,143 @@ function _calcAvailableClipSpace(track, tapBeat){
 
 function clipGestureStart(e, ti){
   const t = G.tracks[ti];
-  // v27.193 — ELIMINADO el branch especial `if(t.drum){...}` que creaba clip
-  // drum INMEDIATAMENTE en pointerdown (asimétrico vs. otros tracks que
-  // esperan al pointerup). Esa asimetría generaba clips fantasma cuando el
-  // shift+click caía pegado al borde de un clip drum, y autorrelleno al
-  // hacer marquee. Drum ahora usa el mismo flow que piano/bajo/cuerdas:
-  // crea clip recién en pointerup zone='empty' (clipGestureEnd más abajo).
-  // El default tech 'PATCH_1 / 8vos hat' viene de _defaultTechForInst('drums')
-  // y la herencia del clip izquierdo se hace en clipGestureEnd igual.
-  // R0 OK · R6.2 OK (drum-sheet patterns, drumHit y audio intactos).
+  // v27.345 — DRAG MULTI INLINE (ULTRA DEFENSIVO con logging).
+  // Versiones anteriores no entraban al guard por mismatch sb (string vs
+  // number en el Set, decimales, etc.). Esta versión:
+  //  · Compara sb numéricamente (no string match en Set)
+  //  · Logs en consola para diagnóstico
+  //  · Si CUALQUIER clip seleccionado del Set está bajo el pointer,
+  //    arranca drag multi (no exige match exacto de key string)
+  // R6.2: zona libre (interacción UI).
+  if (!e.shiftKey && G.mlSel && G.mlSel.size >= 1 && t && Array.isArray(t.clips)) {
+    const tlCheck = document.getElementById('ttl-' + ti);
+    if (tlCheck) {
+      const rectC = tlCheck.getBoundingClientRect();
+      const x0C = e.clientX - rectC.left + (tlCheck.scrollLeft || 0);
+      const beat0C = x0C / BW;
+      // Buscar el clip del Set que está bajo el pointer (comparación numérica)
+      let hitSelClip = null;
+      for (const k of G.mlSel) {
+        const [_ti, _sbStr] = k.split(':');
+        if (parseInt(_ti, 10) !== ti) continue;
+        const _sb = parseFloat(_sbStr);
+        // Buscar el clip en el track con ese sb (tolerancia 0.001 para floats)
+        const cc = t.clips.find(c => c && Math.abs((c.sb||0) - _sb) < 0.001);
+        if (!cc) continue;
+        const lb = cc.lb || 4;
+        if (beat0C >= (cc.sb||0) && beat0C < (cc.sb||0) + lb) {
+          hitSelClip = cc;
+          break;
+        }
+      }
+      if (hitSelClip) {
+        // Verificar si NO es un handle de resize
+        const leftPx = (hitSelClip.sb || 0) * BW;
+        const rightPx = ((hitSelClip.sb || 0) + (hitSelClip.lb || 4)) * BW;
+        const clipW = rightPx - leftPx;
+        const HANDLE_PX_LOCAL = 30;
+        const handleW = Math.min(HANDLE_PX_LOCAL, clipW * 0.35);
+        const onHandle = (x0C - leftPx <= handleW) || (rightPx - x0C <= handleW);
+        if (!onHandle) {
+          // INICIAR DRAG MULTI inline
+          e.preventDefault();
+          e.stopPropagation();
+          try { tlCheck.setPointerCapture(e.pointerId); } catch(_) {}
+
+          // Snapshot de los clips seleccionados (resolviendo cada key del Set)
+          const baseClips = [];
+          for (const k of G.mlSel) {
+            const [_ti, _sbStr] = k.split(':');
+            const _tiN = parseInt(_ti, 10);
+            const _sbN = parseFloat(_sbStr);
+            const _t = G.tracks[_tiN];
+            if (!_t || !Array.isArray(_t.clips)) continue;
+            const _idx = _t.clips.findIndex(c => c && Math.abs((c.sb||0) - _sbN) < 0.001);
+            if (_idx < 0) continue;
+            const _cc = _t.clips[_idx];
+            baseClips.push({ ti:_tiN, ci:_idx, originalSb:_cc.sb||0, lb:_cc.lb||4, clipRef:_cc });
+          }
+          const mdrag = {
+            startX: e.clientX,
+            baseClips: baseClips,
+            lastDBeat: 0,
+            hasStarted: false,
+            pointerId: e.pointerId,
+            tracksToRender: new Set(baseClips.map(b => b.ti)),
+            tl: tlCheck,
+          };
+          const maxBeats = (G.bars || 4) * (G.bpb || 4);
+
+          const onMoveMulti = (ev) => {
+            if (ev.pointerId !== mdrag.pointerId) return;
+            const dx = ev.clientX - mdrag.startX;
+            if (!mdrag.hasStarted && Math.abs(dx) < 4) return;
+            mdrag.hasStarted = true;
+            ev.preventDefault();
+            let dBeat = Math.round((dx / BW) * 2) / 2;
+            let minD = -Infinity, maxD = Infinity;
+            for (const b of mdrag.baseClips) {
+              const lo = -b.originalSb;
+              const hi = maxBeats - b.lb - b.originalSb;
+              if (lo > minD) minD = lo;
+              if (hi < maxD) maxD = hi;
+            }
+            dBeat = Math.max(minD, Math.min(maxD, dBeat));
+            if (dBeat === mdrag.lastDBeat) return;
+            const selOriginal = new Set();
+            for (const b of mdrag.baseClips) selOriginal.add(b.ti + ':' + b.originalSb);
+            let collision = false;
+            for (const b of mdrag.baseClips) {
+              if (collision) break;
+              const tt = G.tracks[b.ti];
+              if (!tt) continue;
+              const newSb = b.originalSb + dBeat;
+              const newEnd = newSb + b.lb;
+              for (const other of tt.clips) {
+                if (!other) continue;
+                const oKey = b.ti + ':' + (other.sb || 0);
+                if (selOriginal.has(oKey)) continue;
+                const oSb = other.sb || 0;
+                const oEnd = oSb + (other.lb || 4);
+                if (newSb < oEnd && newEnd > oSb) { collision = true; break; }
+              }
+            }
+            if (collision) return;
+            mdrag.lastDBeat = dBeat;
+            for (const b of mdrag.baseClips) {
+              if (b.clipRef) b.clipRef.sb = b.originalSb + dBeat;
+            }
+            G.mlSel.clear();
+            for (const b of mdrag.baseClips) {
+              G.mlSel.add(b.ti + ':' + (b.originalSb + dBeat));
+            }
+            mdrag.tracksToRender.forEach(tii => {
+              if (typeof renderTrack === 'function') {
+                try { renderTrack(tii); } catch(_) {}
+              }
+            });
+          };
+
+          const onUpMulti = (ev) => {
+            if (ev.pointerId !== mdrag.pointerId) return;
+            tlCheck.removeEventListener('pointermove', onMoveMulti);
+            tlCheck.removeEventListener('pointerup', onUpMulti);
+            tlCheck.removeEventListener('pointercancel', onUpMulti);
+            if (mdrag.hasStarted && mdrag.lastDBeat !== 0) {
+              try { if (typeof undoPush === 'function') undoPush('Mover selección (' + mdrag.baseClips.length + ' clips)'); } catch(_) {}
+            }
+          };
+
+          tlCheck.addEventListener('pointermove', onMoveMulti);
+          tlCheck.addEventListener('pointerup', onUpMulti);
+          tlCheck.addEventListener('pointercancel', onUpMulti);
+          return; // NO continuar con el motor del drag single
+        } else {
+        }
+      } else {
+      }
+    }
+  }
   const tl = document.getElementById(`ttl-${ti}`);
   const rect = tl.getBoundingClientRect();
   const x0 = e.clientX - rect.left + tl.scrollLeft;
@@ -37066,6 +37418,8 @@ function clipGestureMove(e, st){
       // Move: new sb, same lb. Clamp to [0, TB()-lb] AND respect neighbors
       // v14.2: zona Excel funcional → clip puede ir hasta TB() (no TB_LOOP).
       // growLoopIfNeeded() expandirá G.bars al final si el clip excede el loop.
+      // v27.348 — Horacio: RESTAURADO (v27.347 lo había eliminado por error;
+      // el efecto visual no deseado venía del sistema FLY, no de este drag).
       let newSb = Math.round((st.startSb + dBeat)/snap)*snap;
       newSb = Math.max(0, Math.min(newSb, TB() - st.startLb));
       // Check neighbors — find max left / min right bounds
@@ -37931,7 +38285,7 @@ function togglePlay(){
     if (csHeaderPlayIc) { csHeaderPlayIc.className = 'ts-play-ic play-icon'; csHeaderPlayIc.innerHTML = ''; }
     if (csHeaderPlayBtn) { csHeaderPlayBtn.classList.remove('playing'); }
     stopPB();G.activeClip=null;
-    G.tracks.forEach((_,i)=>renderTrack(i));
+    if(window.APP_MODE==='songs'&&window._songWins){window._songWins.forEach((w,i)=>renderTrack(i,w));}else{G.tracks.forEach((_,i)=>renderTrack(i));}
     document.getElementById('ph').style.display='none';
     // v27.106 — Cleanup multi-track: limpiar animation de todos los .clip-glow
     // v27.163 — Los .clip-glow ahora viven dentro de los .ttl-inner (no en
@@ -38468,6 +38822,50 @@ function updateClipGlow(){
     return el;
   };
 
+  // v27.410 — SONG: el glow es el indicador de posición (no hay playhead).
+  // Debe caer en la VENTANA (línea) que contiene el clip activo del instrumento
+  // de la página actual, con offset LOCAL (sb - baseDeVentana). El código LOOP
+  // de abajo solo procesa ti===0 con sb ABSOLUTO → en SONG el glow se iría a la
+  // derecha de la línea 1, invisible. Acá lo resolvemos windowed y salimos.
+  if(window.APP_MODE==='songs' && window._songWins){
+    const _inst = (G.song && G.song.instIdx) || 0;
+    const _trk = G.tracks[_inst];
+    const _aClip = (_trk && _trk.clips) ? _trk.clips.find(c => c && pos >= c.sb && pos < (c.sb + c.lb)) : null;
+    // ¿En qué fila/ventana cae el clip activo?
+    let _aRow = -1, _winBeat = 0;
+    if(_aClip){
+      for(let r=0; r<window._songWins.length; r++){
+        const w = window._songWins[r];
+        if(!w || w.instIdx !== _inst) continue;
+        const wb = w.base*G.bpb, we = wb + w.bars*G.bpb;
+        if(_aClip.sb >= wb && _aClip.sb < we){ _aRow = r; _winBeat = wb; break; }
+      }
+    }
+    // Apagar glow de toda fila que no sea la activa
+    document.querySelectorAll('.clip-glow').forEach(el => {
+      const m = el.id && el.id.match(/^clip-glow-(\d+)$/);
+      if(!m || parseInt(m[1],10) !== _aRow) el.style.animation = '';
+    });
+    if(_aRow < 0 || !_aClip || (_trk && _trk.muted)){
+      Object.keys(_glowLastClipKeys).forEach(k => delete _glowLastClipKeys[k]);
+      return;
+    }
+    const _gel = getOrCreateGlow(_aRow);
+    if(!_gel) return;
+    _gel.style.left = ((_aClip.sb - _winBeat) * BW) + 'px';
+    _gel.style.width = (_aClip.lb * BW) + 'px';
+    _gel.style.height = '52px';   // SONG: solo la celda del clip, no baja a la lírica
+    const _ck = _aRow + ':' + _aClip.sb;
+    if(_ck !== _glowLastClipKeys[_aRow]){
+      const _dur = _aClip.lb * (60000 / bpm);
+      _gel.style.animation = 'none'; void _gel.offsetWidth;
+      _gel.style.animation = `clipGlowSingleSong ${_dur}ms ease-in-out`;
+      Object.keys(_glowLastClipKeys).forEach(k => { if(k !== String(_aRow)) delete _glowLastClipKeys[k]; });
+      _glowLastClipKeys[_aRow] = _ck;
+    }
+    return;
+  }
+
   // Iterar TODOS los tracks (cada uno tiene su propio glow)
   // v27.107 — Incluye también el track de batería. Antes excluido por
   // track.drum=true; ahora el glow respeta cualquier track que tenga clips,
@@ -38512,7 +38910,7 @@ function updateClipGlow(){
     // scroll math. Cero offset posible.
     el.style.left = (activeClip.sb * BW) + 'px';
     el.style.width = (activeClip.lb * BW) + 'px';
-    el.style.height = '100%';
+    el.style.height = (window.APP_MODE==='songs') ? '52px' : '100%';   // SONG: solo la celda del clip, no baja a la lírica
     // top:0 ya viene del CSS — el inner abarca todo el alto del track.
 
     // Detectar cambio de clip en ESTE track. Si cambió, reiniciar animation
@@ -38522,7 +38920,8 @@ function updateClipGlow(){
       const clipDurationMs = activeClip.lb * (60000 / bpm);
       el.style.animation = 'none';
       void el.offsetWidth;
-      el.style.animation = `clipGlowSingle ${clipDurationMs}ms ease-in-out`;
+      var _glowKf = (window.APP_MODE==='songs') ? 'clipGlowSingleSong' : 'clipGlowSingle';
+      el.style.animation = `${_glowKf} ${clipDurationMs}ms ease-in-out`;
       _glowLastClipKeys[ti] = clipKey;
     }
   });
@@ -38576,7 +38975,7 @@ let _npLastNow = null;
 
 function _npFormatChord(cl){
   if(!cl) return { root:'', suf:'', grade:null, gradeSuf:'', gradeOnTop:false };
-  const d = chordDisplay(cl.r, cl.s);
+  const d = chordDisplay(cl.r, cl.s, cl.sb);
   return {
     root: d.root,
     suf: d.suf,
@@ -39413,7 +39812,7 @@ function openChordSheet(clip,ti,ci){
 }
 
 function updateHero(clip){
-  const disp=chordDisplay(clip.r,clip.s);
+  const disp=chordDisplay(clip.r,clip.s,clip.sb);
   const elGradeTop=document.getElementById('cs-grade-top');
   const elRoot=document.getElementById('cs-root');
   const elSuf=document.getElementById('cs-suf');
@@ -40987,7 +41386,7 @@ function openSheet(id){
   // Antes de abrir el sheet pedido, cerrar todos los demás sheets + el
   // hdr-config-menu si está abierto. Evita el bug del "Mixer asomando bajo
   // el config" que reveló v15.0.17. R6.3#2 — salidas múltiples preservadas.
-  var __ALL_SHEETS = ['chord-sheet','prog-sheet','key-sheet','track-sheet','add-sheet','inst-sheet']; // v20.10.6 — agregado style-presets-sheet
+  var __ALL_SHEETS = ['chord-sheet','prog-sheet','key-sheet','track-sheet','add-sheet','inst-sheet','part-sheet']; // v20.10.6 — agregado style-presets-sheet // v27.390 part-sheet
   __ALL_SHEETS.forEach(function(otherId){
     if(otherId !== id){
       var el = document.getElementById(otherId);
@@ -41022,7 +41421,7 @@ function openSheet(id){
   // será true, PROMOTE_KEEP_INTERACTIVE (que ya tiene 'transport','bot') aplicará,
   // y el transporte quedará interactivo. Cuando se cierra el editor, _restoreTrackOrder()
   // despromociona el track. Así el transporte funciona mientras editas acordes/instrumentos.
-  if ((id === 'chord-sheet' || id === 'inst-sheet') && G.editRef && G.editRef.ti !== undefined) {
+  if (window.APP_MODE !== 'songs' && (id === 'chord-sheet' || id === 'inst-sheet') && G.editRef && G.editRef.ti !== undefined) {
     try {
       if (typeof window._promoteTrackToTop === 'function') {
         window._promoteTrackToTop(G.editRef.ti);
@@ -41036,6 +41435,7 @@ function openSheet(id){
       const ALWAYS_INTERACTIVE = new Set([
         'chord-sheet','prog-sheet','key-sheet','track-sheet','add-sheet', // v20.7.0 — drum-sheet eliminado
         'inst-sheet', // v15.0.4-DEMO — 4to cuatrillizo (R7.8 — evita bug v13.127 de inert heredado)
+        'part-sheet', // v27.390 — menú de partes OnlySongs
         'backdrop','hwp-overlay','cew-overlay','toast','now-playing',
         'hdr-config-menu','lnf-editor'
       ]);
@@ -41071,6 +41471,10 @@ function openSheet(id){
         if(child.id && ALWAYS_INTERACTIVE.has(child.id)) return;
         // v20.5.8 — excepción adicional cuando hay track promovido
         if(_promoteActive && child.id && PROMOTE_KEEP_INTERACTIVE.has(child.id)) return;
+        // v27.397 — part-sheet (OnlySongs): igual que el chord-sheet, dejar el
+        // sequencer + transport + header interactivos para poder trabajar sobre
+        // los clips sin cerrar el menú de partes.
+        if(id==='part-sheet' && child.id && PROMOTE_KEEP_INTERACTIVE.has(child.id)) return;
         child.setAttribute('inert', '');
         child.setAttribute('data-ol-inert-by-sheet', ''); // marca para limpiar
       });
@@ -42255,6 +42659,19 @@ function hwpOpen(type) {
       // Sincroniza con G.keyMode actual (default 'minor' si Am).
       HWP.modeItems = MODE_ITEMS;
       HWP.modeCurrentIdx = (G.keyMode === 'minor') ? 1 : 0;
+      // v27.360 — Con loops modulados, abrir la rueda en la tonalidad del LOOP
+      // ACTIVO (no la base) para que el arrastre se mida contra su tonalidad real.
+      try {
+        if (G.loops && G.loops.length > 1) {
+          const _ali = (typeof G.activeLoopIdx === 'number') ? G.activeLoopIdx : 0;
+          const _lp = G.loops[_ali];
+          if (_lp && _lp.root) {
+            const _ki = NOTES.indexOf(_lp.root);
+            if (_ki >= 0) currentIdx = _ki;
+            HWP.modeCurrentIdx = (_lp.mode === 'minor') ? 1 : 0;
+          }
+        }
+      } catch(_){}
       HWP.modePendingIdx = HWP.modeCurrentIdx;
       HWP.modeLastIdx = HWP.modeCurrentIdx;
       HWP._modeTrackW = null;
@@ -42609,8 +43026,17 @@ function hwpModeUpdateActive(idx) {
     if (HWP.type === 'key' && idx !== HWP.modeCurrentIdx) {
       HWP.modeCurrentIdx = idx;
       const newMode = MODE_ITEMS[idx].v; // 'major' | 'minor'
-      // No-op si ya está en ese modo
-      if (G.keyMode !== newMode) {
+      // v27.360 — Con loops modulados, el modo aplica SOLO al loop activo.
+      if (G.loops && G.loops.length > 1 && typeof window._modulateActiveLoop === 'function') {
+        const _ali = (typeof G.activeLoopIdx === 'number') ? G.activeLoopIdx : 0;
+        const _lp = G.loops[_ali];
+        const _curRoot = _lp ? _lp.root : G.key;
+        if (!_lp || _lp.mode !== newMode) {
+          try { if (typeof undoPush === 'function') undoPush('Modo loop'); } catch(_){}
+          window._modulateActiveLoop(_curRoot, newMode);
+          try { _refreshHeaderKeyDisplay(); } catch(_){}
+        }
+      } else if (G.keyMode !== newMode) {
         try { if (typeof undoPush === 'function') undoPush('Modo tonalidad'); } catch(_){}
         G.keyMode = newMode;
         // Refrescar display del header con sufijo 'm' / sin sufijo
@@ -42696,6 +43122,18 @@ function hwpApply(idx) {
       // TRANSPOSITION: move all clips by semitone difference
       const oldIdx = G.keyIdx;
       const newIdx = idx;
+      // v27.360 — Con loops modulados, la rueda modula SOLO el loop activo,
+      // relativo a SU PROPIA tonalidad (vía _modulateActiveLoop). Sin modulación
+      // → comportamiento clásico (transpose global de toda la progresión).
+      if (G.loops && G.loops.length > 1 && typeof window._modulateActiveLoop === 'function') {
+        const newRoot = NOTES[newIdx];
+        const newMode = (G.keyMode === 'minor') ? 'minor' : 'major';
+        try { if (typeof undoPush === 'function') undoPush('Tonalidad loop'); } catch(_){}
+        const _ok = window._modulateActiveLoop(newRoot, newMode);
+        try { _refreshHeaderKeyDisplay(); } catch(_){}
+        if (_ok) { const _ml = (newMode === 'minor') ? 'm' : ''; toast(`♩ ${NOTE_D[newIdx]}${_ml}`); }
+        break;
+      }
       const semitones = newIdx - oldIdx; // can be negative
       if(semitones === 0) break; // no-op: no undo, no mutation
       // v15.0-DEMO: undoPush ANTES de mutar (igual que applyKeySheet legacy)
@@ -48442,7 +48880,7 @@ function cewUpdateRowVals(clip){
   const ri = NOTES.indexOf(clip.r);
   _set('cew-root-val', NOTE_D[ri<0?9:ri]);
   
-  const disp = chordDisplay(clip.r, clip.s);
+  const disp = chordDisplay(clip.r, clip.s, clip.sb);
   const famName = FAMS.find(f=>f.sufs.includes(clip.s))?.n||'Mayor';
   _set('cew-fam-disp', famName);
   _set('cew-suf-disp', disp.root+disp.suf);
@@ -49160,11 +49598,21 @@ const FLY = {
   }
 };
 
+// v27.348 — Horacio: DESHABILITAR sistema FLY (long-press → ghost flotante
+// + sombreado de otros tracks + toast "Arrastrá a cualquier track" + cursor
+// de alineamiento). Este efecto visual aparecía al sostener 500ms el click
+// sobre un clip e interfería con el drag normal del cuerpo del clip.
+// Horacio: "lo que te propuse eliminar era solo la función que lo resalta,
+// como se ve en la foto, le cambia el color, coloca cursores de alineamiento
+// y sombra". FLY.init() ya no se invoca → ningún listener del sistema FLY se
+// registra. El objeto FLY queda en memoria como código muerto pero no afecta.
 // Inicializar después del DOM
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => FLY.init());
-} else {
-  FLY.init();
+if (false /* FLY deshabilitado v27.348 */) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => FLY.init());
+  } else {
+    FLY.init();
+  }
 }
 
 /* ═══ v15.0-DEMO — Deseleccionar al tocar zona vacía del #seq ═══
@@ -49266,8 +49714,8 @@ if ("serviceWorker" in navigator) {
   // Al renderizar tracks, sincronizar la clase .muted
   const _origRenderTrack = window.renderTrack;
   if (typeof _origRenderTrack === 'function') {
-    window.renderTrack = function(ti){
-      const r = _origRenderTrack(ti);
+    window.renderTrack = function(ti, _win){
+      const r = _origRenderTrack(ti, _win);
       const btn = document.getElementById('tvol-'+ti);
       if (btn && G && G.tracks && G.tracks[ti]) {
         btn.classList.toggle('muted', !!G.tracks[ti].muted);
@@ -50272,7 +50720,7 @@ function _paintClipForThumb(ctx, cl, t, ti, W, H){
   ctx.restore();
 
   // ─── Layer 2: textos (root, suf, secondary, técnica, legacy grade) ──
-  const disp = chordDisplay(cl.r, cl.s);
+  const disp = chordDisplay(cl.r, cl.s, cl.sb);
   const rootStr = disp.root, sufStr = disp.suf;
 
   ctx.save();
@@ -51705,7 +52153,12 @@ function bpmNudge(dir){
       
       var key = document.getElementById('key-txt');
       var hkey = document.getElementById('hdr-key-txt');
-      if (key && hkey) hkey.textContent = key.textContent;
+      // v27.357 — No pisar el KEY del header cuando el Modulador es la autoridad:
+      // con >1 loop modulado sonando, el watcher event-driven (FASE 6, ~L58949)
+      // escribe el KEY del loop activo. Si sync() copiara key-txt (loop base)
+      // encima, produciría parpadeo y vuelta al loop 1. Por eso lo salteamos.
+      var _modOwnsKey = (typeof G !== 'undefined' && G.playing && G.loops && G.loops.length > 1);
+      if (key && hkey && !_modOwnsKey) hkey.textContent = key.textContent;
       
       var bars = document.getElementById('bars-v');
       var hbars = document.getElementById('hdr-bars-mirror');
@@ -51814,6 +52267,16 @@ function bpmNudge(dir){
       panelEl: () => document.getElementById('inst-sheet'),
       isOpen: () => document.getElementById('inst-sheet')?.classList.contains('on'),
       close: () => closeSheet('inst-sheet'),
+      dragSelectors: ['.s-handle', '.s-head'],
+      hasWrapper: false,
+      wrapperEl: null,
+    },
+    {
+      // v27.392 — part-sheet (menú de partes OnlySongs) con la misma genética.
+      id: 'part-sheet',
+      panelEl: () => document.getElementById('part-sheet'),
+      isOpen: () => document.getElementById('part-sheet')?.classList.contains('on'),
+      close: () => closeSheet('part-sheet'),
       dragSelectors: ['.s-handle', '.s-head'],
       hasWrapper: false,
       wrapperEl: null,
@@ -51987,7 +52450,7 @@ function bpmNudge(dir){
       // chord: agregar 'track-sheet' a la condición. Solución correcta, en
       // reemplazo del intento fallido de v27.113 con ::after (que tapaba el
       // contenido desbordado por overflow:visible).
-      if(panel.id === 'inst-sheet' || panel.id === 'chord-sheet' || panel.id === 'track-sheet'){
+      if(panel.id === 'inst-sheet' || panel.id === 'chord-sheet' || panel.id === 'track-sheet' || panel.id === 'part-sheet'){
         // Capturar altura/maxHeight original al primer cambio (antes de tocar)
         if(!panel._origHeight){
           panel._origHeight = panel.style.height;
@@ -52094,6 +52557,17 @@ function bpmNudge(dir){
       }
       // Después del fix de target, verificar de nuevo si está dentro del panel
       if(panel.contains(_tgt)) return;
+      // v27.398 — part-sheet (OnlySongs): NO hay track promovido, así que la
+      // lógica del chord-sheet (.track-row.promoted) no aplica. Adaptación
+      // mínima: el menú de partes queda abierto SOLO si el tap es dentro del
+      // sequencer (clip .ttl o fila .song-row/.track-row). Cualquier tap en
+      // Header, ruler (track numbered) o Footer lo cierra. No se aplican las
+      // excepciones de header/footer del chord-sheet (se manejan acá y return).
+      if(twin.id === 'part-sheet'){
+        if(_tgt.closest && (_tgt.closest('.ttl') || _tgt.closest('.song-row') || _tgt.closest('.track-row'))) return;
+        setTimeout(() => { if(twin.isOpen()) twin.close(); }, 0);
+        return;
+      }
       // v27.290 + v27.292 — Horacio: el chord-sheet NUNCA debe cerrarse al
       // tocar play / pause / rewind. La v27.290 (excepciones por ID) no
       // funcionaba PORQUE el footer (#transport, #bot) recibía `inert` al
@@ -55768,7 +56242,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.340',
+    version: 'v27.411',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -57500,6 +57974,11 @@ window._applyPagedScroll = _applyPagedScroll;
       }
       _lastIsLandscape = isLandscape;
       document.body.classList.toggle('landscape-mode', isLandscape);
+      // v27.361 — Si entramos a HORIZONTAL con un track promovido (editor abierto
+      // en vertical y luego rotación), despromover: en horizontal no se usa.
+      if (isLandscape) {
+        try { if (typeof window._restoreTrackOrder === 'function') window._restoreTrackOrder(); } catch(_){}
+      }
     } catch(e) {
       console.warn('[landscape-mode] update error:', e);
     }
@@ -57662,6 +58141,18 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     const idMatch = tl.id && tl.id.match(/^ttl-(\d+)$/);
     if (!idMatch) return null;
     const ti = parseInt(idMatch[1], 10);
+    // SONG: ti = índice de FILA; mapear a track real + beat absoluto (windowed).
+    if (window.APP_MODE === 'songs' && window._songWins) {
+      const _w = window._songWins[ti]; if (!_w) return null;
+      const _rTi = _w.instIdx, _bb = _w.base * _bpb();
+      const _tt = G.tracks && G.tracks[_rTi];
+      if (!_tt || !Array.isArray(_tt.clips)) return null;
+      const _rc = tl.getBoundingClientRect();
+      const _lx = clientX - _rc.left + (tl.scrollLeft || 0);
+      const _ab = _bb + _lx / _bw();
+      const _cl = _tt.clips.find(c => c && _ab >= (c.sb||0) && _ab < (c.sb||0) + (c.lb||_bpb()));
+      return _cl ? { ti: _rTi, sb: _cl.sb || 0 } : null;
+    }
     const t = G.tracks && G.tracks[ti];
     if (!t || !Array.isArray(t.clips)) return null;
     const rect = tl.getBoundingClientRect();
@@ -57678,6 +58169,39 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
   }
 
   function _renderOverlays(onlyTi) {
+    // SONG: las claves mlSel son realTi:absSb. Las overlays se posicionan por
+    // FILA (no por track) con offset de ventana. Redibujo completo.
+    if (window.APP_MODE === 'songs' && window._songWins) {
+      document.querySelectorAll('.mlsel-ov').forEach(el => el.remove());
+      var _bpb2 = (G && G.bpb) || 4;
+      var _toRm = [];
+      for (var _k of G.mlSel) {
+        var _p = _k.split(':').map(Number), _rTi = _p[0], _sb = _p[1];
+        var _tk = G.tracks && G.tracks[_rTi];
+        if (!_tk || !Array.isArray(_tk.clips)) { _toRm.push(_k); continue; }
+        var _cl = _tk.clips.find(c => c && (c.sb || 0) === _sb);
+        if (!_cl) { _toRm.push(_k); continue; }
+        var _lb = _cl.lb || _bpb2;
+        window._songWins.forEach(function(w, r){
+          if (!w || w.instIdx !== _rTi) return;
+          var _bb = w.base * _bpb2, _we = _bb + w.bars * _bpb2;
+          if (_sb < _bb || _sb >= _we) return;            // no cae en esta línea
+          if (w.songEnd != null && _sb >= w.songEnd * _bpb2) return;
+          var _tl = document.getElementById('ttl-' + r);
+          if (!_tl) return;
+          var _inner = _tl.querySelector('.ttl-inner');
+          if (!_inner) return;
+          var _ov = document.createElement('div');
+          _ov.className = 'mlsel-ov';
+          _ov.dataset.mlselKey = _k;
+          _ov.style.left = ((_sb - _bb) * BW) + 'px';
+          _ov.style.width = (_lb * BW - 2) + 'px';
+          _inner.appendChild(_ov);
+        });
+      }
+      _toRm.forEach(k => G.mlSel.delete(k));
+      return;
+    }
     // Si onlyTi está dado, solo limpiar/redibujar overlays de ese track.
     // Si no, todos.
     if (typeof onlyTi === 'number') {
@@ -57767,6 +58291,14 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
 
   window.MLSEL_clear = function() { G.mlSel.clear(); _renderOverlays(); _updateActionBar(); console.log('[v27.194] clear'); };
   window.MLSEL_get = function() { return Array.from(G.mlSel); };
+  // v27.377 — Exponer para el gestor SONG (otro IIFE): selección/portapapeles compartidos.
+  window._doCopy = _doCopy;
+  window._doPaste = _doPaste;
+  window._doDelete = _doDelete;
+  window._doCancel = _doCancel;
+  window._renderOverlays = _renderOverlays;
+  window._updateActionBar = _updateActionBar;
+  window._injectActionBar = _injectActionBar;
 
   // ═══════════════════════════════════════════════════════════════════════
   // v27.194 — ACTION BAR (Copiar / Cortar / ✕) + CLIPBOARD + PASTE
@@ -57916,6 +58448,22 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     const idMatch = tl.id.match(/^ttl-(\d+)$/);
     if (!idMatch) return null;
     const ti = parseInt(idMatch[1], 10);
+    // SONG: mapear fila → track real + beat absoluto, validar dentro de la línea.
+    if (window.APP_MODE === 'songs' && window._songWins) {
+      const _w = window._songWins[ti]; if (!_w) return null;
+      const _rTi = _w.instIdx, _bb = _w.base * _bpb();
+      const _tt = G.tracks && G.tracks[_rTi];
+      if (!_tt || !Array.isArray(_tt.clips)) return null;
+      const _rc = tl.getBoundingClientRect();
+      const _lx = e.clientX - _rc.left + (tl.scrollLeft || 0);
+      const _ab = _bb + _lx / _bw();
+      const _we = _bb + _w.bars * _bpb();
+      if (_ab < _bb || _ab >= _we) return null;
+      if (_w.songEnd != null && _ab >= _w.songEnd * _bpb()) return null;
+      const _hit = _tt.clips.find(c => c && _ab >= (c.sb||0) && _ab < (c.sb||0) + (c.lb||_bpb()));
+      if (_hit) return null;
+      return { ti: _rTi, sb: Math.round(_ab * 2) / 2 };
+    }
     const t = G.tracks && G.tracks[ti];
     if (!t || !Array.isArray(t.clips)) return null;
     const rect = tl.getBoundingClientRect();
@@ -58051,6 +58599,31 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     // Empezar desde snapshot inicial (aditivo a selección previa)
     G.mlSel = new Set(initialSet);
     if (!G.tracks) return;
+    // SONG: iterar por FILAS (cada una con su ventana) y proyectar el clip a pantalla.
+    if (window.APP_MODE === 'songs' && window._songWins) {
+      const _bw2 = _bw(), _bpb2 = _bpb();
+      window._songWins.forEach(function(_w, _rowTi){
+        if (!_w) return;
+        const _tl = document.getElementById('ttl-' + _rowTi); if (!_tl) return;
+        const _tr = _tl.getBoundingClientRect();
+        if (_tr.bottom < y1 || _tr.top > y2) return;
+        const _rTi = _w.instIdx, _bb = _w.base * _bpb2;
+        const _tt = G.tracks && G.tracks[_rTi]; if (!_tt || !Array.isArray(_tt.clips)) return;
+        const _we = _bb + _w.bars * _bpb2;
+        const _se = (_w.songEnd != null) ? _w.songEnd * _bpb2 : Infinity;
+        const _sl = _tl.scrollLeft || 0;
+        _tt.clips.forEach(function(cl){
+          if (!cl) return;
+          const _sb = cl.sb || 0, _lb = cl.lb || _bpb2;
+          if (_sb < _bb || _sb >= _we || _sb >= _se) return;
+          const _cl0 = _tr.left + ((_sb - _bb) * _bw2) - _sl;
+          const _cr0 = _cl0 + _lb * _bw2;
+          if (_cr0 < x1 || _cl0 > x2) return;
+          G.mlSel.add(_rTi + ':' + _sb);
+        });
+      });
+      return;
+    }
     G.tracks.forEach((t, ti) => {
       if (!t || !Array.isArray(t.clips)) return;
       const tl = document.getElementById('ttl-' + ti);
@@ -58117,7 +58690,194 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     // v27.190 — Si HAY selección y click sin shift → DESELECCIONAR.
     //   · Si click sobre clip: deselecciono + dejo pasar al motor (hace preview).
     //   · Si click zona vacía: deselecciono + bloqueo motor (no crear clip).
+    // v27.349 — Horacio: cuando hay multi-select Y el click cae sobre un
+    // clip del Set, INICIAR drag multi DESDE AQUÍ (handler en CAPTURA).
+    // En v27.346 solo hacíamos return esperando que el guard inline en
+    // clipGestureStart arrancara el drag, pero el motor de drag body se
+    // ejecutaba antes y se quedaba con el pointerCapture. Solución: hacer
+    // todo el setup del drag multi en este handler de captura, que corre
+    // ANTES de clipGestureStart (bubbling) y antes del motor.
     if (G.mlSel.size > 0) {
+      // Si el click cae sobre un clip que está en mlSel → arrancar drag multi
+      if (clipUnder) {
+        const underKey = clipUnder.ti + ':' + clipUnder.sb;
+        if (G.mlSel.has(underKey)) {
+          // Verificar que NO sea click en handle de resize del clip clickeado
+          const tlCheck = document.getElementById('ttl-' + clipUnder.ti);
+          if (tlCheck) {
+            const rectC = tlCheck.getBoundingClientRect();
+            const x0C = e.clientX - rectC.left + (tlCheck.scrollLeft || 0);
+            const _bwLoc = (typeof BW !== 'undefined') ? BW : 52;
+            const _bpbLoc = (G.bpb || 4);
+            const t0 = G.tracks[clipUnder.ti];
+            const cl0 = t0 && t0.clips.find(c => c && (c.sb||0) === clipUnder.sb);
+            if (cl0) {
+              const leftPx0 = (cl0.sb || 0) * _bwLoc;
+              const rightPx0 = ((cl0.sb || 0) + (cl0.lb || _bpbLoc)) * _bwLoc;
+              const clipW0 = rightPx0 - leftPx0;
+              const handleW0 = Math.min(30, clipW0 * 0.35);
+              const onHandle0 = (x0C - leftPx0 <= handleW0) || (rightPx0 - x0C <= handleW0);
+              if (!onHandle0) {
+                // INICIAR DRAG MULTI desde el handler de captura
+                e.preventDefault();
+                e.stopPropagation();
+                try { tlCheck.setPointerCapture(e.pointerId); } catch(_) {}
+
+                const baseClips = [];
+                for (const k of G.mlSel) {
+                  const [_ti, _sbStr] = k.split(':');
+                  const _tiN = parseInt(_ti, 10);
+                  const _sbN = parseFloat(_sbStr);
+                  const _t = G.tracks[_tiN];
+                  if (!_t || !Array.isArray(_t.clips)) continue;
+                  const _idx = _t.clips.findIndex(c => c && Math.abs((c.sb||0) - _sbN) < 0.001);
+                  if (_idx < 0) continue;
+                  const _cc = _t.clips[_idx];
+                  baseClips.push({ ti:_tiN, ci:_idx, originalSb:_cc.sb||0, lb:_cc.lb||_bpbLoc, clipRef:_cc });
+                }
+                const mdrag = {
+                  startX: e.clientX,
+                  startScrollLeft: tlCheck.scrollLeft || 0,
+                  baseClips: baseClips,
+                  lastDBeat: 0,
+                  hasStarted: false,
+                  pointerId: e.pointerId,
+                  tracksToRender: new Set(baseClips.map(b => b.ti)),
+                };
+                // v27.354 — usar TB() (MAX_BARS * bpb = 192 beats) en vez del
+                // loop actual. Permite mover clips MÁS ALLÁ del loop original;
+                // _syncBarsToContent() después extenderá G.bars dinámicamente.
+                const maxBeats = (typeof TB === 'function') ? TB() : ((G.bars || 4) * _bpbLoc);
+
+                const onMoveMulti = (ev) => {
+                  if (ev.pointerId !== mdrag.pointerId) return;
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  const scrollDelta = (tlCheck.scrollLeft || 0) - mdrag.startScrollLeft;
+                  const dx = (ev.clientX - mdrag.startX) + scrollDelta;
+                  if (!mdrag.hasStarted && Math.abs(dx) < 1) return;
+                  if (!mdrag.hasStarted) {
+                  }
+                  mdrag.hasStarted = true;
+                  let dBeat = Math.round((dx / _bwLoc) * 4) / 4;
+                  let minD = -Infinity, maxD = Infinity;
+                  for (const b of mdrag.baseClips) {
+                    const lo = -b.originalSb;
+                    const hi = maxBeats - b.lb - b.originalSb;
+                    if (lo > minD) minD = lo;
+                    if (hi < maxD) maxD = hi;
+                  }
+                  dBeat = Math.max(minD, Math.min(maxD, dBeat));
+                  if (dBeat === mdrag.lastDBeat) return;
+                  mdrag.lastDBeat = dBeat;
+                  for (const b of mdrag.baseClips) {
+                    if (b.clipRef) b.clipRef.sb = b.originalSb + dBeat;
+                  }
+                  G.mlSel.clear();
+                  for (const b of mdrag.baseClips) {
+                    G.mlSel.add(b.ti + ':' + (b.originalSb + dBeat));
+                  }
+                  // v27.354 — expandir G.bars si los clips se movieron más
+                  // allá del loop actual. _syncBarsToContent recalcula el
+                  // máximo en base a TODOS los clips y actualiza el ruler.
+                  if (typeof _syncBarsToContent === 'function') {
+                    try { _syncBarsToContent(); } catch(_) {}
+                  }
+                  mdrag.tracksToRender.forEach(tii => {
+                    if (typeof renderTrack === 'function') {
+                      try { renderTrack(tii); } catch(_) {}
+                    }
+                  });
+                  if (typeof _renderOverlays === 'function') {
+                    try { _renderOverlays(); } catch(_) {}
+                  }
+                };
+
+                const onUpMulti = (ev) => {
+                  if (ev.pointerId !== mdrag.pointerId) return;
+                  document.removeEventListener('pointermove', onMoveMulti, true);
+                  document.removeEventListener('pointerup', onUpMulti, true);
+                  document.removeEventListener('pointercancel', onUpMulti, true);
+                  tlCheck.removeEventListener('pointermove', onMoveMulti);
+                  tlCheck.removeEventListener('pointerup', onUpMulti);
+                  if (mdrag.hasStarted && mdrag.lastDBeat !== 0) {
+                    // v27.355 — Horacio: validar colisión SOLO al soltar
+                    // (durante el drag se permite pasar por arriba). Si la
+                    // posición final tiene colisión con clips NO seleccionados,
+                    // revertir todo al estado original. Misma lógica que
+                    // copy/cut/paste: solo se aterriza en espacio libre.
+                    let collision = false;
+                    let collisionInfo = null;
+                    for (const b of mdrag.baseClips) {
+                      if (collision) break;
+                      const tt = G.tracks[b.ti];
+                      if (!tt || !Array.isArray(tt.clips)) continue;
+                      const myNewSb = b.originalSb + mdrag.lastDBeat;
+                      const myNewEnd = myNewSb + b.lb;
+                      for (const other of tt.clips) {
+                        if (!other) continue;
+                        // Skipear los clips que SON nuestros (parte del drag).
+                        // Identificamos por referencia directa: si other === b.clipRef
+                        // o si está en algún baseClip.clipRef → es nuestro.
+                        const isOurs = mdrag.baseClips.some(bc => bc.clipRef === other);
+                        if (isOurs) continue;
+                        const oSb = other.sb || 0;
+                        const oEnd = oSb + (other.lb || _bpbLoc);
+                        if (myNewSb < oEnd && myNewEnd > oSb) {
+                          collision = true;
+                          collisionInfo = { ti: b.ti, newSb: myNewSb, otherSb: oSb };
+                          break;
+                        }
+                      }
+                    }
+                    if (collision) {
+                      // Revertir: restaurar originalSb en todos los clips
+                      for (const b of mdrag.baseClips) {
+                        if (b.clipRef) b.clipRef.sb = b.originalSb;
+                      }
+                      G.mlSel.clear();
+                      for (const b of mdrag.baseClips) {
+                        G.mlSel.add(b.ti + ':' + b.originalSb);
+                      }
+                      mdrag.tracksToRender.forEach(tii => {
+                        if (typeof renderTrack === 'function') {
+                          try { renderTrack(tii); } catch(_) {}
+                        }
+                      });
+                      if (typeof _renderOverlays === 'function') {
+                        try { _renderOverlays(); } catch(_) {}
+                      }
+                      if (typeof _syncBarsToContent === 'function') {
+                        try { _syncBarsToContent(); } catch(_) {}
+                      }
+                      if (typeof toast === 'function') {
+                        try { toast('No se puede aterrizar — espacio ocupado'); } catch(_) {}
+                      }
+                    } else {
+                      try { if (typeof undoPush === 'function') undoPush('Mover selección (' + mdrag.baseClips.length + ' clips)'); } catch(_) {}
+                    }
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                  }
+                };
+
+                // v27.352 — registrar listeners en MÚLTIPLES targets:
+                // document captura (por si pointermove llega allí) Y tlCheck
+                // directo (por si setPointerCapture redirige al element)
+                document.addEventListener('pointermove', onMoveMulti, true);
+                document.addEventListener('pointerup', onUpMulti, true);
+                document.addEventListener('pointercancel', onUpMulti, true);
+                tlCheck.addEventListener('pointermove', onMoveMulti);
+                tlCheck.addEventListener('pointerup', onUpMulti);
+                tlCheck.addEventListener('pointercancel', onUpMulti);
+                return;
+              }
+            }
+          }
+          // Si llegamos acá (handle o sin tlCheck), NO tocar selección
+          return;
+        }
+      }
       G.mlSel.clear();
       G.mlClipboard = null; // cancelar clipboard al deseleccionar
       const prevSel = G.selectedClip;
@@ -58276,7 +59036,25 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
       const baseMode = (typeof G.keyMode === 'string' && G.keyMode === 'minor') ? 'minor' : 'major';
       G.loops = [{ root: baseRoot, mode: baseMode }];
     }
-    if (typeof G.baseLoopBars !== 'number' || G.baseLoopBars <= 0) {
+    // v27.359 — baseLoopBars = compases REALES del loop base. Mientras NO hay
+    // modulación (1 solo loop), sigue a G.bars: el usuario fija el largo del loop
+    // base (2/3/4/6...) y la 1ra modulación se pega JUSTO a continuación (base de
+    // 3 → modulación en compás 4, no en el 5). Con modulación activa (>1 loop)
+    // queda CONGELADO porque G.bars ya representa el total de todos los loops.
+    if (!G.loops || G.loops.length <= 1) {
+      if (typeof G.bars === 'number' && G.bars > 0) {
+        G.baseLoopBars = G.bars;
+      } else if (typeof G.baseLoopBars !== 'number' || G.baseLoopBars <= 0) {
+        G.baseLoopBars = 4;
+      }
+      // v27.360 — Sin modulación, loops[0] sigue a G.key/keyMode para que al
+      // crear la 1ra modulación el loop base refleje la tonalidad real vigente
+      // (evita crear el loop nuevo a partir de una raíz desactualizada).
+      if (G.loops && G.loops[0]) {
+        if (G.key) G.loops[0].root = G.key;
+        G.loops[0].mode = (G.keyMode === 'minor') ? 'minor' : 'major';
+      }
+    } else if (typeof G.baseLoopBars !== 'number' || G.baseLoopBars <= 0) {
       G.baseLoopBars = G.bars || 4;
     }
     if (typeof G.activeLoopIdx !== 'number') G.activeLoopIdx = 0;
@@ -58298,9 +59076,28 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     return Math.min(Math.floor((playPos || 0) / baseBeats), G.loops.length - 1);
   }
 
+  // v27.358 — Devuelve {keyIdx, keyMode} del loop al que pertenece un clip
+  // según su start-beat (sb). Si no hay modulación (<=1 loop) devuelve null →
+  // el grado se computa contra la tonalidad global (comportamiento clásico).
+  function _loopKeyForSb(sb) {
+    _ensureLoopsModel();
+    if (!G.loops || G.loops.length <= 1) return null;
+    const baseBeats = (G.baseLoopBars || G.bars || 4) * (G.bpb || 4);
+    if (baseBeats <= 0) return null;
+    let li = Math.floor((sb || 0) / baseBeats);
+    if (li < 0) li = 0;
+    if (li >= G.loops.length) li = G.loops.length - 1;
+    const loop = G.loops[li];
+    if (!loop || !loop.root) return null;
+    const ki = _NOTE_IX[loop.root];
+    if (ki === undefined) return null;
+    return { keyIdx: ki, keyMode: (loop.mode === 'minor' ? 'minor' : 'major') };
+  }
+
   window._getLoopAtPlayPos = _getLoopAtPlayPos;
   window._transposeRoot = _transposeRoot;
   window._ensureLoopsModel = _ensureLoopsModel;
+  window._loopKeyForSb = _loopKeyForSb;
 
   // ════════════════════════════════════════════════════════════════════
   // FASE 2 — RENDER DE LA BOTONERA (en #hwp-mod-body)
@@ -58391,6 +59188,32 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
   }
   window._applyTranspositionToLoop = _applyTranspositionToLoop;
 
+  // v27.360 — Modula SOLO el loop activo, relativo a SU PROPIA tonalidad.
+  // Reemplaza el frágil "transpose global + revertir delta" del wrap, que
+  // calculaba el delta desde la tonalidad BASE y se rompía con 3+ loops
+  // (el loop 3 terminaba graduado como el loop 2). Acá el delta es
+  // newRoot - loop.root del loop activo → siempre correcto, sin importar
+  // cuántos loops haya. G.key/keyIdx/keyMode reflejan SIEMPRE el loop base.
+  function _modulateActiveLoop(newRoot, newMode) {
+    _ensureLoopsModel();
+    const ali = (typeof G.activeLoopIdx === 'number' && G.activeLoopIdx >= 0 && G.activeLoopIdx < G.loops.length) ? G.activeLoopIdx : 0;
+    const loop = G.loops[ali];
+    if (!loop) return false;
+    const _mode = (newMode === 'minor') ? 'minor' : 'major';
+    const _root = newRoot || loop.root;
+    if (loop.root === _root && loop.mode === _mode) return false; // no-op
+    _applyTranspositionToLoop(ali, _root, _mode);
+    // G.key/keyIdx/keyMode = loop base (loop 0) para el resto de la UI.
+    const base0 = (G.loops[0] && G.loops[0].root) ? G.loops[0].root : _root;
+    const base0Mode = (G.loops[0] && G.loops[0].mode === 'minor') ? 'minor' : 'major';
+    G.key = base0;
+    if (typeof NOTES !== 'undefined') { const bi = NOTES.indexOf(base0); if (bi >= 0) G.keyIdx = bi; }
+    G.keyMode = base0Mode;
+    _renderModLoopsTable();
+    return true;
+  }
+  window._modulateActiveLoop = _modulateActiveLoop;
+
   // ════════════════════════════════════════════════════════════════════
   // FASE 4 — ELIMINAR LOOP
   // ════════════════════════════════════════════════════════════════════
@@ -58446,10 +59269,29 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
   };
 
   function _syncHwpToActiveLoop() {
-    // Cuando el usuario selecciona un loop, el wheel del hwp debería
-    // posicionarse en la tónica/modo de ese loop para reflejar/editar.
-    // El hwp tiene un mecanismo interno; lo dejamos como no-op por ahora.
-    // El usuario opera el wheel y aplicamos cambios al loop activo vía hook.
+    // v27.360 — Cuando el usuario selecciona un loop con la rueda KEY abierta,
+    // reposicionamos la rueda (raíz + modo) a la tonalidad de ESE loop, para que
+    // el siguiente arrastre se mida contra su tonalidad real (no la base).
+    try {
+      if (typeof HWP === 'undefined' || HWP.type !== 'key') return;
+      _ensureLoopsModel();
+      if (!G.loops || G.loops.length <= 1) return;
+      const ali = (typeof G.activeLoopIdx === 'number') ? G.activeLoopIdx : 0;
+      const loop = G.loops[ali];
+      if (!loop || !loop.root) return;
+      const ki = (typeof NOTES !== 'undefined') ? NOTES.indexOf(loop.root) : -1;
+      if (ki >= 0 && typeof hwpIdxToOffset === 'function' && typeof hwpSetOffset === 'function') {
+        HWP.currentIdx = ki; HWP.pendingIdx = ki; HWP.lastIdx = ki;
+        hwpSetOffset(hwpIdxToOffset(ki), true);
+        if (typeof hwpUpdateActive === 'function') hwpUpdateActive(ki);
+      }
+      const mi = (loop.mode === 'minor') ? 1 : 0;
+      if (typeof hwpModeIdxToOffset === 'function' && typeof hwpModeSetOffset === 'function') {
+        HWP.modeCurrentIdx = mi; HWP.modePendingIdx = mi; HWP.modeLastIdx = mi;
+        hwpModeSetOffset(hwpModeIdxToOffset(mi), true);
+        if (typeof hwpModeUpdateActive === 'function') hwpModeUpdateActive(mi);
+      }
+    } catch(_){}
   }
   window._syncHwpToActiveLoop = _syncHwpToActiveLoop;
 
@@ -58496,77 +59338,14 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
   const _origRefresh = window._refreshHeaderKeyDisplay;
   window._refreshHeaderKeyDisplay = function() {
     _ensureLoopsModel();
-    // Detectar cambio externo (hwpApply / applyKeySheet / preset)
-    const curRoot = G.key;
-    const curMode = (G.keyMode === 'minor') ? 'minor' : 'major';
-    if (_lastSyncedRoot === null) {
-      _lastSyncedRoot = curRoot;
-      _lastSyncedMode = curMode;
-    }
-    // Si hay más de un loop Y el activo NO es 0 Y cambió la tonalidad:
-    // aplicar SOLO al loop activo y RESTAURAR G.key al del loop base.
-    if (G.loops.length > 1 && G.activeLoopIdx > 0 &&
-        (curRoot !== _lastSyncedRoot || curMode !== _lastSyncedMode)) {
-      // El cambio era para el loop activo, no global. Aplicar y revertir global.
-      const targetLi = G.activeLoopIdx;
-      const baseRoot = G.loops[0].root;
-      const baseMode = G.loops[0].mode;
-      // El motor original ya transpuso TODOS los clips con transposeAllClips.
-      // Necesitamos REVERTIR la transposición de los loops != activeLoopIdx.
-      // Es complejo. Por ahora documentamos el problema y aplicamos solo display.
-      // FIX SIMPLIFICADO: si hay loops modulados y se cambia la tonalidad
-      // desde el wheel, asumimos que el usuario quiere cambiar el loop activo.
-      // El motor original ya transpuso TODO con el delta. Calculamos el
-      // delta y revertimos en los demás loops (excepto activeLoopIdx).
-      const oldIx = _NOTE_IX[_lastSyncedRoot];
-      const newIx = _NOTE_IX[curRoot];
-      if (oldIx !== undefined && newIx !== undefined) {
-        const delta = newIx - oldIx;
-        if (delta !== 0) {
-          const baseBars = G.baseLoopBars || G.bars || 4;
-          const baseBeats = baseBars * (G.bpb || 4);
-          G.tracks.forEach(track => {
-            if (track.drum) return;
-            if (!Array.isArray(track.clips)) return;
-            track.clips.forEach(c => {
-              if (!c || !c.r) return;
-              const sb = c.sb || 0;
-              const li = Math.floor(sb / baseBeats);
-              if (li !== targetLi) {
-                // Revertir transposición en loops no-target
-                c.r = _transposeRoot(c.r, -delta);
-              }
-            });
-          });
-        }
-      }
-      // Actualizar G.loops[activeLoopIdx]
-      G.loops[targetLi].root = curRoot;
-      G.loops[targetLi].mode = curMode;
-      // Restaurar G.key al del loop base
-      G.key = baseRoot;
-      if (typeof NOTES !== 'undefined') {
-        const ix = NOTES.indexOf(baseRoot);
-        if (ix >= 0) G.keyIdx = ix;
-      }
-      G.keyMode = baseMode;
-      _lastSyncedRoot = baseRoot;
-      _lastSyncedMode = baseMode;
-      _renderModLoopsTable();
-      try { if (typeof renderAll === 'function') renderAll(); } catch(_){}
-    } else if (G.loops.length >= 1 && G.activeLoopIdx === 0 &&
-               (curRoot !== _lastSyncedRoot || curMode !== _lastSyncedMode)) {
-      // Cambio al loop base: sincronizar G.loops[0]
-      G.loops[0].root = curRoot;
-      G.loops[0].mode = curMode;
-      _lastSyncedRoot = curRoot;
-      _lastSyncedMode = curMode;
-      _renderModLoopsTable();
-    } else {
-      _lastSyncedRoot = curRoot;
-      _lastSyncedMode = curMode;
-    }
-    // Llamar original
+    // v27.360 — Wrap PASIVO. La modulación por-loop la maneja ahora
+    // _modulateActiveLoop (rueda KEY/MODO → solo el loop activo, relativo a su
+    // propia tonalidad). Antes acá vivía un "transpose global + revertir delta"
+    // que tomaba como referencia la tonalidad BASE y se rompía con 3+ loops.
+    // Eliminado. Acá solo refrescamos el display y mantenemos el estado en sync.
+    _lastSyncedRoot = G.key;
+    _lastSyncedMode = (G.keyMode === 'minor') ? 'minor' : 'major';
+    // Llamar original (actualiza #key-txt y #hdr-key-txt con sufijo de modo)
     if (typeof _origRefresh === 'function') {
       try { return _origRefresh.apply(this, arguments); } catch(_){}
     }
@@ -58636,6 +59415,679 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     }
   }, 80);
 
+})();
+</script>
+
+<script>
+/* ===== OnlySongs v27.368 — UN piso más sobre el MISMO edificio =====
+   SONG = el sequencer REAL de Loops, con SOLO 4 cambios:
+   (1) clip +alto con línea de letra  (2) columna izquierda = partes (vertical, combinada)
+   (3) la canción se wrappea en líneas por partes  (4) botonera de instrumento.
+   Todo lo demás (menús, gestos, play, cursor, sonido, header/footer) es el mismo
+   código real corriendo. El modelo es UN solo arreglo: G.tracks + G.song. */
+(function(){
+  var ORIG={}, SONG_BPL=8, loaded=false;
+
+  // Canción demo con clips REALES (r = nombre de nota, s = sufijo) + letra.
+  var DEMO=[
+    {r:'C',s:''},{r:'G',s:''},{r:'A',s:'m'},{r:'F',s:''},
+    {r:'C',s:'',l:'Cuando'},{r:'G',s:'',l:'el d\u00eda'},{r:'A',s:'m',l:'vuelve'},{r:'F',s:'',l:'a empezar'},{r:'C',s:'',l:'siento'},{r:'G',s:'',l:'que algo'},{r:'F',s:'',l:'va a'},{r:'C',s:'',l:'cambiar'},
+    {r:'F',s:'',l:'Vamos'},{r:'C',s:'',l:'lejos'},{r:'G',s:'',l:'sin mirar'},{r:'A',s:'m',l:'atr\u00e1s'},{r:'F',s:'',l:'el camino'},{r:'C',s:'',l:'nos dir\u00e1'},{r:'G',s:'7',l:'d\u00f3nde'},{r:'C',s:'',l:'ir'},{r:'F',s:'',l:'y al'},{r:'C',s:'',l:'volver'},{r:'G',s:'',l:'otro'},{r:'C',s:'',l:'lugar'},
+    {r:'F',s:'',l:'Y aunque'},{r:'C',s:'',l:'el camino'},{r:'A',s:'m',l:'sea'},{r:'F',s:'',l:'largo'}
+  ];
+  var DEMO_PARTS=[{name:'Intro',type:'intro',bars:4},{name:'Verso 1',type:'verse',bars:8},{name:'Estribillo',type:'chorus',bars:12},{name:'Verso 2',type:'verse',bars:4}];
+
+  function _loadDemoSong(){
+    var bpb=(G&&G.bpb)||4;
+    G.song={ parts:DEMO_PARTS.slice(), lineBars:SONG_BPL, instIdx:0 };
+    if(G.tracks && G.tracks[0]){
+      G.tracks[0].clips=DEMO.map(function(b,i){ return {r:b.r,s:b.s,sb:i*bpb,lb:bpb,tech:'',v:'',lyric:b.l||''}; });
+    }
+    try{ G.bars=DEMO.length; }catch(_){}
+  }
+
+  // Líneas (ventanas) del ARREGLO REAL del instrumento actual.
+  // Sin partes definidas → wrap por módulo (lineBars: 4/8/12/16, default 8).
+  // Con partes → cada parte arranca en línea nueva (parte más larga define el ancho).
+  function _maxBarOf(inst){
+    var tk=(G.tracks||[])[inst]; var bpb=(G&&G.bpb)||4; if(!tk||!tk.clips) return 0;
+    var mx=0; tk.clips.forEach(function(cl){ if(cl&&cl.sb!=null){ var end=Math.ceil((cl.sb+(cl.lb||bpb))/bpb); if(end>mx)mx=end; } });
+    return mx;
+  }
+  // Largo ÚNICO de la canción para TODAS las páginas: lo definen los acordes
+  // (tracks NO-batería). La batería NO impone su propio largo (raíz del bug
+  // "6 compases de más"): se recorta al largo de la canción como cualquier otro.
+  function _songLen(){
+    var mx=0, any=false;
+    (G.tracks||[]).forEach(function(tk,i){ if(!tk||tk.drum) return; any=true; var e=_maxBarOf(i); if(e>mx)mx=e; });
+    if(!any||mx===0){ (G.tracks||[]).forEach(function(tk,i){ if(!tk)return; var e=_maxBarOf(i); if(e>mx)mx=e; }); }
+    return Math.max(mx,1);
+  }
+  function _songRows(){
+    var sp=G.song; if(!sp) return [];
+    var lineBars=sp.lineBars||8, inst=sp.instIdx||0, rows=[], bar=0;
+    var songEnd=_songLen();   // ÚNICO para todas las páginas (batería incluida)
+    if(sp.parts && sp.parts.length){
+      var maxP=sp.parts.reduce(function(m,p){return Math.max(m,p.bars);},1);
+      var lineW=Math.min(lineBars,maxP);
+      sp.parts.forEach(function(p){
+        var rem=p.bars, first=true;
+        while(rem>0){ var fill=Math.min(lineW,rem); rows.push({base:bar,bars:lineW,fillBars:fill,instIdx:inst,partName:p.name,partType:p.type,partFirst:first,songEnd:songEnd}); bar+=fill; rem-=fill; first=false; }
+      });
+    }else{
+      while(bar<songEnd){ var fill=Math.min(lineBars,songEnd-bar); rows.push({base:bar,bars:lineBars,fillBars:fill,instIdx:inst,partName:(bar+1)+'\u2013'+(bar+fill),partType:'line',partFirst:true,songEnd:songEnd}); bar+=fill; }
+    }
+    return rows;
+  }
+
+  function _songLineTech(r){
+    // técnica de la línea (placeholder: 1ª técnica de los clips de esa línea).
+    // (Después será un control real para definir la técnica de toda la línea.)
+    try{
+      var t=G.tracks[r.instIdx]; if(!t||!t.clips) return '';
+      var bb=r.base*G.bpb, we=bb+r.bars*G.bpb;
+      var c=t.clips.find(function(cl){return cl && cl.sb>=bb && cl.sb<we && cl.tech;});
+      return c ? String(c.tech).toUpperCase() : '';
+    }catch(_){ return ''; }
+  }
+  function _buildSongRows(el){
+    var rows=_songRows(); window._songWins=rows;
+    rows.forEach(function(r,ti){
+      var row=document.createElement('div');
+      row.className='track-row song-row part-'+r.partType+(r.partFirst?' part-first':'');
+      row.id='tr-'+ti;
+      var tech=_songLineTech(r);
+      row.innerHTML='<div class="tlbl tlbl-song">'+
+          (r.partFirst?('<div class="sl-col sl-bars"><span class="song-bars-lab">'+((r.base+1)+'\u2013'+(r.base+r.fillBars))+'</span></div><div class="sl-col sl-name"><span class="song-part-lab">'+(r.partType==='line'?'':r.partName)+'</span></div><div class="sl-col sl-tech"><span class="song-tech-lab">'+tech+'</span></div><div class="sl-col sl-sub"><span class="song-sub-lab"></span></div>'):'')+
+        '</div>'+
+        '<div class="ttl" id="ttl-'+ti+'" data-ti="'+ti+'"><div class="ttl-inner" id="tinner-'+ti+'">'+
+          '<canvas class="tc" id="tc-'+ti+'"></canvas>'+
+          '<div class="song-lyrics" id="lyr-'+ti+'"></div>'+
+        '</div></div>';
+      el.appendChild(row);
+      _bindSongRowGestures(row, ti);   // gestos del CLIP (windowed)
+      _bindLyricGestures(row, ti);     // gestos de la LÍRICA (empujador del mockup)
+    });
+    _renderSongLyrics();
+    _fitPartLabs();
+  }
+  function _fitPartLab(el){
+    if(!el)return; var col=el.closest('.sl-col')||el.parentNode; if(!col)return;
+    var maxH=col.clientHeight-12, maxW=(col.clientWidth||34)-2; if(maxH<10)return;     // 6px arriba + 6px abajo
+    var fs=60; el.style.fontSize=fs+'px';
+    while(fs>8 && (el.offsetHeight>maxH || el.offsetWidth>maxW)){ fs-=1; el.style.fontSize=fs+'px'; }
+  }
+  function _fitPartLabs(){ requestAnimationFrame(function(){ [].slice.call(document.querySelectorAll('html.app-songs .song-part-lab')).forEach(_fitPartLab); }); }
+  window._fitPartLab=_fitPartLab; window._fitPartLabs=_fitPartLabs;
+
+  // ════════ LÍRICA por línea — motor del mockup portado (within-line) ════════
+  var LYR={};            // base(bar) → [{t,gap,bold,hl,_el,_w,_x}]
+  var LSEL=null;         // {base, idx}
+  var LMINGAP=5, LPAD=7, _lyrSeeded=false;
+  function _lyrSpace(){ try{var c=document.createElement('canvas').getContext('2d');c.font='500 19px "Cormorant Garamond",serif';return Math.max(3,Math.round(c.measureText('a a').width-c.measureText('aa').width));}catch(_){return 5;} }
+  function _lyrGet(base){ return LYR[base]||(LYR[base]=[]); }
+  function _lyrSeed(){
+    if(_lyrSeeded) return; _lyrSeeded=true;
+    var demo="Hoy vuelvo a la vieja casa azul donde aprendí a cantar";
+    LYR[0]=demo.split(/\s+/).map(function(t){return {t:t,gap:LMINGAP,bold:false,hl:false};});
+  }
+  function _renderSongLyrics(){
+    LMINGAP=_lyrSpace(); _lyrSeed();
+    (window._songWins||[]).forEach(function(r,ti){
+      var host=document.getElementById('lyr-'+ti); if(!host) return;
+      [].slice.call(host.querySelectorAll('.lyr-word,.lyr-edge')).forEach(function(e){e.remove();});
+      var edge=document.createElement('div'); edge.className='lyr-edge'; host.appendChild(edge);
+      var arr=LYR[r.base]||[];
+      arr.forEach(function(wd){ var el=document.createElement('div');
+        el.className='lyr-word'+(wd.bold?' bold':'')+(wd.hl?' hl':'');
+        el.textContent=wd.t; host.appendChild(el); wd._el=el; wd._w=el.offsetWidth; });
+      _lyrLayout(r.base, ti);
+    });
+    _lyrBarUpdate();
+  }
+  function _lyrLayout(base, ti){
+    var arr=LYR[base]||[]; var host=document.getElementById('lyr-'+ti); if(!host) return;
+    var x=LPAD;
+    arr.forEach(function(wd,i){ var start=x+(i===0?0:wd.gap); wd._x=start; x=start+(wd._w||0); });
+    arr.forEach(function(wd,i){ if(!wd._el) return;
+      wd._el.style.left=wd._x+'px';
+      wd._el.classList.toggle('sel', !!(LSEL&&LSEL.base===base&&LSEL.idx===i)); });
+    var edge=host.querySelector('.lyr-edge');
+    if(edge){ if(LSEL&&LSEL.base===base&&arr[LSEL.idx]){ edge.style.left=arr[LSEL.idx]._x+'px'; edge.classList.add('on'); } else edge.classList.remove('on'); }
+  }
+  function _lyrMoveLeft(arr,i,amount){ var rem=amount,k=i; while(rem>0&&k>=0){ var mg=(k===0?0:LMINGAP); var red=arr[k].gap-mg; if(red>0){var take=Math.min(red,rem);arr[k].gap-=take;rem-=take;} if(rem<=0)break; k--; } }
+  function _bindLyricGestures(row, ti){
+    var host=row.querySelector('.song-lyrics'); if(!host) return;
+    var drag=null;
+    host.addEventListener('pointerdown', function(e){
+      e.stopPropagation();                                  // la lírica es su propia zona (no toca el clip)
+      var win=(window._songWins||[])[ti]; if(!win) return;
+      var wEl=e.target.closest('.lyr-word');
+      if(!wEl){ if(LSEL){ LSEL=null; _renderSongLyrics(); } return; }
+      var idx=[].slice.call(host.querySelectorAll('.lyr-word')).indexOf(wEl);
+      LSEL={base:win.base, idx:idx}; _lyrLayout(win.base, ti); _lyrBarUpdate();
+      drag={base:win.base, idx:idx, lastX:e.clientX};
+      try{host.setPointerCapture(e.pointerId);}catch(_){}
+      e.preventDefault();
+    });
+    host.addEventListener('pointermove', function(e){
+      if(!drag) return;
+      var win=(window._songWins||[])[ti]; if(!win) return;
+      var arr=LYR[drag.base]||[]; if(!arr[drag.idx]) return;
+      var dx=e.clientX-drag.lastX; drag.lastX=e.clientX; if(dx===0) return;
+      if(dx>0){
+        var lineW=win.bars*G.bpb*BW, occ=LPAD;
+        arr.forEach(function(wd,j){ occ+=(j===0?0:wd.gap)+(wd._w||0); });
+        dx=Math.min(dx, Math.max(0, lineW-LPAD-occ+LPAD)); // tope: cola no pasa el ancho de la línea
+        arr[drag.idx].gap+=dx;
+      } else { _lyrMoveLeft(arr, drag.idx, -dx); }
+      _lyrLayout(drag.base, ti); e.preventDefault();
+    });
+    host.addEventListener('pointerup', function(){ drag=null; });
+    host.addEventListener('pointercancel', function(){ drag=null; });
+  }
+  // barra negra de palabra (eliminar/negrita/color/cerrar)
+  function _lyrBar(){
+    var b=document.getElementById('lyr-wordbar'); if(b) return b;
+    b=document.createElement('div'); b.id='lyr-wordbar'; b.className='wordbar-lyr';
+    b.innerHTML='<button data-a="del" title="Eliminar"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>'+
+      '<span class="sep"></span>'+
+      '<button data-a="bold" title="Negrita"><span class="bicon">B</span></button>'+
+      '<button data-a="color" title="Resaltar"><span class="dot"></span></button>'+
+      '<span class="sep"></span>'+
+      '<button data-a="close" title="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+    document.body.appendChild(b);
+    b.addEventListener('click', function(e){
+      var btn=e.target.closest('button'); if(!btn||!LSEL) return;
+      var arr=LYR[LSEL.base]||[]; var wd=arr[LSEL.idx];
+      var a=btn.dataset.a;
+      if(a==='del'){ if(wd){ arr.splice(LSEL.idx,1); } LSEL=null; }
+      else if(a==='bold'){ if(wd) wd.bold=!wd.bold; }
+      else if(a==='color'){ if(wd) wd.hl=!wd.hl; }
+      else if(a==='close'){ LSEL=null; }
+      _renderSongLyrics();
+    });
+    return b;
+  }
+  function _lyrBarUpdate(){
+    var b=_lyrBar(); var on=!!LSEL && !!(LYR[LSEL.base]&&LYR[LSEL.base][LSEL.idx]);
+    b.classList.toggle('on', on);
+    if(on){ var wd=LYR[LSEL.base][LSEL.idx];
+      b.querySelector('[data-a="bold"]').classList.toggle('act', !!wd.bold);
+      b.querySelector('[data-a="color"]').classList.toggle('act', !!wd.hl); }
+  }
+  // deselect al tocar fuera de la lírica
+  document.addEventListener('pointerdown', function(e){
+    if(window.APP_MODE!=='songs') return;
+    if(!e.target.closest('.song-lyrics') && !e.target.closest('.wordbar-lyr')){ if(LSEL){ LSEL=null; _renderSongLyrics(); } }
+  });
+  window._renderSongLyrics=_renderSongLyrics;
+  // ── GESTOS SONG (windowed) — reusa las MISMAS funciones reales del LOOP,
+  //    traduciendo fila+x-local → track real + beat absoluto. Loop intacto.
+  function _songClipTap(rowTi, clientX, clientY){
+    var win = (window._songWins||[])[rowTi]; if(!win) return;
+    var realTi = win.instIdx, base = win.base*G.bpb;
+    var track = (G.tracks||[])[realTi]; if(!track||!Array.isArray(track.clips)) return;
+    var tl = document.getElementById('ttl-'+rowTi); if(!tl) return;
+    var rect = tl.getBoundingClientRect();
+    var x = clientX - rect.left + (tl.scrollLeft||0);
+    var y = clientY - rect.top;
+    var absBeat = base + x/BW;
+    // recorte: fuera del largo de la línea/canción → ignorar
+    if(win.songEnd!=null && absBeat >= win.songEnd*G.bpb) return;
+    var ci = track.clips.findIndex(function(cl){ return cl && absBeat>=cl.sb && absBeat<cl.sb+cl.lb; });
+    // ── MULTI-SELECCIÓN / PORTAPAPELES (mismo modelo que LOOP: claves realTi:sb) ──
+    if(G.mlClipboard && ci < 0){
+      var _psb = Math.round(absBeat*2)/2;             // snap ½beat (igual que _resolvePasteTarget)
+      if(typeof _doPaste==='function') _doPaste(realTi, _psb);
+      return;
+    }
+    if(G.mlSel && G.mlSel.size > 0){
+      if(ci >= 0){
+        var _selKey = realTi + ':' + (track.clips[ci].sb||0);
+        if(G.mlSel.has(_selKey)) G.mlSel.delete(_selKey); else G.mlSel.add(_selKey);
+        if(typeof _renderOverlays==='function') _renderOverlays();
+        if(typeof _updateActionBar==='function') _updateActionBar();
+        return;
+      }
+      return; // tap en vacío sin portapapeles → mantener selección (salir con ✕)
+    }
+    if(ci >= 0){
+      var cl = track.clips[ci];
+      // X borrar (hit-test en coords locales de la fila) — idéntico al LOOP
+      var rightPxL=(cl.sb+cl.lb-base)*BW, clipW=cl.lb*BW;
+      var selNow = G.selectedClip&&G.selectedClip.ti===realTi&&G.selectedClip.ci===ci;
+      if(selNow||clipW>40){
+        var xDx=rightPxL-x-13, xDy=y-12;
+        if(xDx*xDx+xDy*xDy<=169){
+          undoPush('Acorde eliminado');
+          track.clips.splice(ci,1);
+          if(G.selectedClip&&G.selectedClip.ti===realTi&&G.selectedClip.ci===ci)G.selectedClip=null;
+          if(G.editRef&&G.editRef.ti===realTi&&G.editRef.ci===ci){G.editRef=null;closeSheet('chord-sheet');}
+          if(G.activeClip&&G.activeClip.ti===realTi&&G.activeClip.ci===ci)G.activeClip=null;
+          ['selectedClip','editRef','activeClip'].forEach(function(k){var r=G[k];if(r&&r.ti===realTi&&r.ci>ci){r.ci--;if(k==='editRef')r.clip=track.clips[r.ci];}});
+          renderTrack(realTi);
+          if(typeof toast==='function')toast('Acorde eliminado');
+          return;
+        }
+      }
+      // ── MISMA máquina de tap que el LOOP (clipGestureStart): ──
+      //   · tap simple → PREVIEW SIEMPRE + seleccionar (NO abre editor)
+      //   · doble tap (<350ms, mismo clip) → abre/actualiza editor
+      //   · si el editor YA está abierto → un tap simple carga ese clip
+      // Usa el MISMO estado window._clipTapState que el LOOP (coherencia total).
+      var prevSel = G.selectedClip;
+      if(typeof setSelectedClip==='function')setSelectedClip({ti:realTi,ci:ci});
+      G.activeTi=realTi;
+      // PREVIEW SIEMPRE — drum-aware igual que el LOOP
+      try{
+        var ps=currentSound;currentSound=track.inst||'nylon';
+        var po=currentOctShift;currentOctShift=(typeof cl.oct==='number')?cl.oct:(track.octShift||0);
+        var pt=currentTrackIdx;currentTrackIdx=realTi;
+        var _effDrum = !!track.drum && track.inst==='drums';
+        if(_effDrum){
+          if(!G.playing){
+            var _v=(typeof _resolveDrumVariant==='function')?_resolveDrumVariant(cl,track):null;
+            if(_v&&typeof _v.play==='function'){var _ctx=(typeof getCtx==='function')?getCtx():null;var _nw=_ctx?_ctx.currentTime:0;_v.play(null,null,60/(G.bpm||120),_nw);}
+          }
+        } else { playChord(cl.r,cl.s,cl.tech,G.bpm); }
+        currentSound=ps;currentOctShift=po;currentTrackIdx=pt;
+      }catch(_){}
+      // DOBLE CLICK (estado compartido con el LOOP)
+      if(!window._clipTapState) window._clipTapState={lastTi:-1,lastCi:-1,lastTime:0};
+      var _CLIP_DBLTAP_MS=350, _nowMs=Date.now(), _ts=window._clipTapState;
+      var _isDouble = _ts.lastTi===realTi && _ts.lastCi===ci && (_nowMs-_ts.lastTime)<_CLIP_DBLTAP_MS;
+      var _csOpen = document.getElementById('chord-sheet') && document.getElementById('chord-sheet').classList.contains('on');
+      if(_csOpen && !_isDouble){
+        G.editRef={ti:realTi,ci:ci,clip:cl};
+        if(typeof openChordSheet==='function')openChordSheet(cl,realTi,ci);
+        _ts.lastTi=-1;_ts.lastCi=-1;_ts.lastTime=0;
+        if(prevSel && prevSel.ti!==realTi){try{renderTrack(prevSel.ti);}catch(_){}}
+        renderTrack(realTi);
+        return;
+      }
+      if(_isDouble){
+        _ts.lastTi=-1;_ts.lastCi=-1;_ts.lastTime=0;
+        G.editRef={ti:realTi,ci:ci,clip:cl};
+        if(typeof openChordSheet==='function')openChordSheet(cl,realTi,ci);
+      } else {
+        _ts.lastTi=realTi;_ts.lastCi=ci;_ts.lastTime=_nowMs;
+      }
+      if(prevSel && prevSel.ti!==realTi){try{renderTrack(prevSel.ti);}catch(_){}}
+      renderTrack(realTi);
+      return;
+    }
+    // VACÍO → crear clip (misma fórmula de vecindad del LOOP)
+    var _slot = (typeof _calcAvailableClipSpace==='function')?_calcAvailableClipSpace(track,absBeat):null;
+    if(!_slot) return;
+    var sb=_slot.sb, lb=_slot.lb;
+    undoPush('Acorde agregado');
+    var _dt = (typeof _defaultTechForInst==='function')?_defaultTechForInst(track.inst||'nylon'):{tech:'',v:1};
+    var _neighbor = (typeof _findChordFromNeighborTrack==='function')?_findChordFromNeighborTrack(realTi,sb):null;
+    var _leftClip = (typeof _findTechFromLeftClip==='function')?_findTechFromLeftClip(realTi,sb):null;
+    var _isMinor=(G.keyMode==='minor');
+    var _ncR=_neighbor?_neighbor.r:G.key;
+    var _ncS=_neighbor?_neighbor.s:(_isMinor?'minor':'major');
+    var _ncGrade=_neighbor?(_neighbor.grade||''):(_isMinor?'i':'I');
+    var _ncTech=_dt.tech,_ncV=_dt.v;
+    if(_leftClip&&_leftClip.tech){_ncTech=_leftClip.tech;_ncV=_leftClip.v||_ncV;}
+    var nc=(typeof _createClipWithDefaults==='function')?_createClipWithDefaults(track,{r:_ncR,s:_ncS,sb:sb,lb:lb,tech:_ncTech,v:_ncV,grade:_ncGrade}):{r:_ncR,s:_ncS,sb:sb,lb:lb,tech:_ncTech,v:_ncV,grade:_ncGrade};
+    if(_leftClip&&_leftClip.tech){nc.tech=_leftClip.tech;if(_leftClip.v)nc.v=_leftClip.v;}
+    track.clips.push(nc);
+    var nci=track.clips.length-1;
+    if(typeof setSelectedClip==='function')setSelectedClip({ti:realTi,ci:nci});
+    G.activeTi=realTi;
+    try{var ps2=currentSound;currentSound=track.inst||'nylon';var po2=currentOctShift;currentOctShift=track.octShift||0;var pt2=currentTrackIdx;currentTrackIdx=realTi;playChord(nc.r,nc.s,nc.tech,G.bpm);currentSound=ps2;currentOctShift=po2;currentTrackIdx=pt2;}catch(_){}
+    renderTrack(realTi);
+    if(typeof updateNowPlaying==='function')updateNowPlaying();
+  }
+  window._songClipTap=_songClipTap;
+  // Hit + zona (left/body/right/empty) en coords locales de la fila, windowed.
+  function _songHitZone(rowTi, clientX){
+    var win=(window._songWins||[])[rowTi]; if(!win) return null;
+    var realTi=win.instIdx, base=win.base*G.bpb;
+    var track=(G.tracks||[])[realTi]; if(!track||!Array.isArray(track.clips)) return null;
+    var tl=document.getElementById('ttl-'+rowTi); if(!tl) return null;
+    var rect=tl.getBoundingClientRect();
+    var x=clientX-rect.left+(tl.scrollLeft||0);
+    var absBeat=base+x/BW;
+    var ci=track.clips.findIndex(function(cl){return cl&&absBeat>=cl.sb&&absBeat<cl.sb+cl.lb;});
+    if(ci<0) return {realTi:realTi,track:track,base:base,ci:-1,zone:'empty'};
+    var cl=track.clips[ci];
+    var Lpx=(cl.sb-base)*BW, Rpx=(cl.sb+cl.lb-base)*BW, w=Rpx-Lpx;
+    var hw=Math.min(30, w*0.35);
+    var zone=(x-Lpx<=hw)?'left':((Rpx-x<=hw)?'right':'body');
+    return {realTi:realTi,track:track,base:base,ci:ci,zone:zone,cl:cl};
+  }
+  function _songToggleSel(rTi, sb){
+    var key = rTi + ':' + (sb||0);
+    if(G.mlSel.has(key)) G.mlSel.delete(key); else G.mlSel.add(key);
+    if(typeof _renderOverlays==='function') _renderOverlays();
+    if(typeof _updateActionBar==='function') _updateActionBar();
+  }
+  function _bindSongRowGestures(rowEl, rowTi){
+    var tl = rowEl.querySelector('.ttl'); if(!tl) return;
+    try{ tl.style.touchAction='none'; }catch(_){}  // evita que el browser cancele el long-press
+    var st=null;
+    function _clearLP(){ if(st && st.lpTimer){ clearTimeout(st.lpTimer); st.lpTimer=null; } }
+    tl.addEventListener('pointerdown',function(e){
+      var hz=_songHitZone(rowTi,e.clientX);
+      st={x:e.clientX,y:e.clientY,t:Date.now(),moved:false,dragging:false,hz:hz,lpTimer:null,longFired:false,selDone:false};
+      if(hz&&hz.ci>=0){ st.startSb=hz.cl.sb; st.startLb=hz.cl.lb;
+        // Long-press SOLO sobre el CUERPO del clip (nunca sobre los bordes/handles,
+        // para que agarrar un borde y demorar no entre a selección y mate el resize).
+        // v27.408 — Horacio: en DESKTOP (mouse) el long-press NO debe correr. Era
+        // un gesto táctil (iPad) para multi-selección, pero con mouse se disparaba
+        // al sostener >450ms antes de mover 8px → entraba en selección y SECUESTRABA
+        // el arrastre y la edición (clip no se movía, doble-tap quedaba bloqueado por
+        // mlSel). En desktop la multi-selección es Shift+Click / marquee. El
+        // long-press queda exclusivo de touch/pen.
+        if(hz.zone==='body' && e.pointerType!=='mouse'){
+          st.lpTimer=setTimeout(function(){
+            if(!st||st.moved) return;
+            st.longFired=true;
+            _songToggleSel(hz.realTi, hz.cl.sb);
+            try{ if(navigator.vibrate) navigator.vibrate(15); }catch(_){}
+          },450);
+        }
+      }
+    });
+    tl.addEventListener('pointermove',function(e){
+      if(!st || st.selDone) return;
+      var dx=e.clientX-st.x, dy=e.clientY-st.y;
+      if(!st.moved && (Math.abs(dx)>8||Math.abs(dy)>8)){ st.moved=true; _clearLP(); }
+      if(!st.moved) return;
+      if(st.longFired) return;                     // ya entró a selección, no arrastrar
+      if(G.mlSel && G.mlSel.size>0) return;        // en modo selección no se arrastra
+      var hz=st.hz; if(!hz||hz.ci<0) return; // drag en vacío: marquee futuro
+      if(!st.dragging){ st.dragging=true; try{tl.setPointerCapture(e.pointerId);}catch(_){} }
+      e.preventDefault();
+      var track=hz.track, cl=track.clips[hz.ci]; if(!cl) return;
+      // Deltas window-independent: misma matemática EXACTA del LOOP (snap ½beat,
+      // colisiones con vecinos, TB()). Solo el hit/zona fue windowed.
+      var dBeat=dx/BW;
+      var snap=G.bpb/G.snap; if(snap>0.5)snap=0.5;
+      var others=track.clips.filter(function(_,i){return i!==hz.ci;});
+      if(hz.zone==='body'){
+        var nsb=Math.round((st.startSb+dBeat)/snap)*snap;
+        nsb=Math.max(0,Math.min(nsb,TB()-st.startLb));
+        var lb0=0, rb0=TB();
+        others.forEach(function(o){var oe=o.sb+o.lb; if(oe<=st.startSb)lb0=Math.max(lb0,oe); if(o.sb>=st.startSb+st.startLb)rb0=Math.min(rb0,o.sb);});
+        nsb=Math.max(lb0,Math.min(nsb,rb0-st.startLb));
+        if(nsb!==cl.sb){ if(!st._snap){undoPush('Acorde movido');st._snap=true;} cl.sb=nsb; st.changed=true; renderTrack(hz.realTi); }
+      } else if(hz.zone==='right'){
+        var nlb=Math.round((st.startLb+dBeat)/snap)*snap; nlb=Math.max(snap,nlb);
+        var rb1=TB(); others.forEach(function(o){if(o.sb>=st.startSb+st.startLb)rb1=Math.min(rb1,o.sb);});
+        nlb=Math.min(nlb,rb1-cl.sb);
+        if(nlb!==cl.lb){ if(!st._snap){undoPush('Acorde redimensionado');st._snap=true;} cl.lb=nlb; st.changed=true; renderTrack(hz.realTi); }
+      } else if(hz.zone==='left'){
+        var fe=st.startSb+st.startLb;
+        var nsb2=Math.round((st.startSb+dBeat)/snap)*snap; nsb2=Math.max(0,Math.min(nsb2,fe-snap));
+        var lb2=0; others.forEach(function(o){var oe=o.sb+o.lb; if(oe<=st.startSb)lb2=Math.max(lb2,oe);});
+        nsb2=Math.max(lb2,nsb2);
+        if(nsb2!==cl.sb){ if(!st._snap){undoPush('Acorde redimensionado');st._snap=true;} cl.sb=nsb2; cl.lb=fe-nsb2; st.changed=true; renderTrack(hz.realTi); }
+      }
+    });
+    tl.addEventListener('pointerup',function(e){
+      _clearLP();
+      if(st && !st.moved && !st.longFired && !st.selDone && (Date.now()-st.t)<700){ e.preventDefault(); _songClipTap(rowTi,e.clientX,e.clientY); }
+      st=null;
+    });
+    tl.addEventListener('pointercancel',function(){ _clearLP(); st=null; });
+  }
+
+  window._buildSongRows=_buildSongRows;
+
+  function _ensureInstBar(){
+    var seq=document.getElementById('seq'), tracks=document.getElementById('tracks');
+    if(!seq||!tracks) return;
+    var rr=document.getElementById('ruler-row');
+    var bar=document.getElementById('os-instbar');
+    if(!bar){ bar=document.createElement('div'); bar.id='os-instbar'; }
+    // os-instbar va ARRIBA del ruler-row (3ra línea del header); la regla numerada queda debajo.
+    if(rr && rr.parentNode===seq){ if(bar.nextSibling!==rr) seq.insertBefore(bar, rr); }
+    else if(bar.parentNode!==seq){ seq.insertBefore(bar, tracks); }
+    bar.style.display='';
+    _renderInstBar();
+  }
+  function _renderInstBar(){
+    var bar=document.getElementById('os-instbar'); if(!bar||!G.song) return;
+    var labels=['Piano','Bajo','Cuerdas','Bater\u00eda'];
+    var cur=labels[G.song.instIdx]||('Inst '+(G.song.instIdx+1));
+    var pages=(G.tracks||[]).length||4;
+    var html='<span class="os-ib-cur">'+cur+'</span><span class="os-ib-pg">p\u00e1gina '+((G.song.instIdx||0)+1)+' / '+pages+'</span>';
+    (G.tracks||[]).forEach(function(tk,i){ html+='<span class="os-ib-tab'+(i===G.song.instIdx?' on':'')+'" data-i="'+i+'">'+(labels[i]||('Inst '+(i+1)))+'</span>'; });
+    html+='<span class="os-ib-bpl">compases/l\u00ednea:</span>';
+    [4,8,12,16].forEach(function(m){ html+='<span class="os-ib-m'+((G.song.lineBars||8)===m?' on':'')+'" data-m="'+m+'">'+m+'</span>'; });
+    bar.innerHTML=html;
+    bar.querySelectorAll('.os-ib-tab').forEach(function(elx){ elx.addEventListener('click',function(){ G.song.instIdx=+elx.dataset.i; try{buildTracks();renderAll();}catch(_){ } _renderInstBar(); }); });
+    bar.querySelectorAll('.os-ib-m').forEach(function(elx){ elx.addEventListener('click',function(){ G.song.lineBars=+elx.dataset.m; try{buildTracks();renderAll();}catch(_){ } _renderInstBar(); }); });
+  }
+
+  function captureOrig(){
+    if(ORIG.done) return;
+    ORIG.title=document.title;
+    var lp=document.querySelector('#hdr-logo .hdr-loops'); ORIG.lp=lp?lp.textContent:null;
+    var l2=document.getElementById('logo'); ORIG.l2=l2?l2.innerHTML:null;
+    var dkv=document.getElementById('dkv-title'); ORIG.dkv=dkv?dkv.textContent:null;
+    ORIG.done=true;
+  }
+  function applyBranding(mode){
+    captureOrig();
+    var lp=document.querySelector('#hdr-logo .hdr-loops'), l2=document.getElementById('logo'), dkv=document.getElementById('dkv-title');
+    if(mode==='songs'){
+      try{ document.title=(ORIG.title||'').replace('OnlyLoops','OnlySongs'); }catch(_){}
+      if(lp) lp.textContent='Songs';
+      if(l2) l2.innerHTML='Only<em>Songs</em>';
+      if(dkv&&ORIG.dkv) dkv.textContent=ORIG.dkv.replace('Vista kit','OnlySongs');
+    }else{
+      if(ORIG.title) document.title=ORIG.title;
+      if(lp&&ORIG.lp!=null) lp.textContent=ORIG.lp;
+      if(l2&&ORIG.l2!=null) l2.innerHTML=ORIG.l2;
+      if(dkv&&ORIG.dkv!=null) dkv.textContent=ORIG.dkv;
+    }
+  }
+
+  function setAppMode(mode){
+    window.APP_MODE=mode;
+    if(mode==='songs'){
+      document.documentElement.classList.add('app-songs');
+      if(!G.song) G.song={lineBars:8, instIdx:0, parts:null};
+      try{
+        var t0=(G.tracks||[])[0];
+        var emptyAll=(G.tracks||[]).every(function(tk){ return !tk.clips||tk.clips.length===0; });
+        if(emptyAll && !loaded){ _loadDemoSong(); loaded=true; }
+      }catch(e){ console.warn('[OnlySongs] load',e); }
+      applyBranding('songs');
+      try{ buildTracks(); renderAll(); }catch(e){ console.warn('[OnlySongs] render',e); }
+      _ensureInstBar();
+    }else{
+      document.documentElement.classList.remove('app-songs');
+      window._songWins=null;
+      applyBranding('loops');
+      var ib=document.getElementById('os-instbar'); if(ib) ib.style.display='none';
+      try{ buildTracks(); renderAll(); }catch(_){}
+    }
+  }
+  window.setAppMode=setAppMode;
+
+  // Watchdog: la app hace body.className=PALETTES; el estado vive en <html>, lo re-aplica.
+  setInterval(function(){
+    try{
+      if(window.APP_MODE!=='songs') return;
+      var de=document.documentElement;
+      if(!de.classList.contains('app-songs')) de.classList.add('app-songs');
+      var lp=document.querySelector('#hdr-logo .hdr-loops'); if(lp&&lp.textContent!=='Songs') lp.textContent='Songs';
+      if(!document.getElementById('os-instbar')) _ensureInstBar();
+    }catch(_){}
+  },600);
+
+  function markSegs(sw,pos){
+    try{ if(typeof _updateLoopSongSegs==='function'){ _updateLoopSongSegs(sw,pos); return; } }catch(_){}
+    var segs=sw.querySelectorAll('.hdr-seg'), order=['loop','song','save'];
+    for(var i=0;i<segs.length;i++) segs[i].classList.toggle('active',order[i]===pos);
+  }
+  function wireHeaderSwitch(){
+    var orig=window.hdrSetLoopSong;
+    if(typeof orig==='function' && !orig.__osWrapped){
+      var wrapped=function(pos){
+        if(pos==='save'){ try{ return orig.call(this,pos); }catch(_){ return; } }
+        var sw0=document.getElementById('hdr-loopsong'); if(sw0){ sw0.dataset.pos=pos; markSegs(sw0,pos); }
+        setAppMode(pos==='song'?'songs':'loops');
+      };
+      wrapped.__osWrapped=true; window.hdrSetLoopSong=wrapped;
+    }
+    var sw=document.getElementById('hdr-loopsong');
+    if(sw && !sw.__osWired){
+      var segs=sw.querySelectorAll('.hdr-seg');
+      for(var i=0;i<segs.length;i++){ (function(seg){
+        seg.addEventListener('click',function(){
+          var txt=(seg.textContent||'').trim().toUpperCase();
+          if(txt==='SONG'){ sw.dataset.pos='song'; markSegs(sw,'song'); setAppMode('songs'); }
+          else if(txt==='LOOP'){ sw.dataset.pos='loop'; markSegs(sw,'loop'); setAppMode('loops'); }
+        });
+      })(segs[i]); }
+      sw.__osWired=true;
+    }
+  }
+  function boot(){
+    captureOrig(); wireHeaderSwitch();
+    var initial=(window.OL_APP_MODE==='songs')?'songs'
+      :((function(){ try{ return new URLSearchParams(location.search).get('app'); }catch(_){ return null; } })()==='songs'?'songs':'loops');
+    if(initial==='songs') setAppMode('songs');
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(boot,150); });
+  else setTimeout(boot,150);
+})();
+</script>
+<script>
+/* v27.390 — PART-SHEET (OnlySongs). Self-contained (ps-*), no toca los
+   wheels de instrumentos. Reusa el contenedor .sheet (apertura V/H) y el
+   markup .is-mw. Etapa 1: abrir + wheels + slider + día/noche + aplicar
+   nombre y color (sidebar/gaps/lírica) a la fila. Clip canvas + técnica
+   a clips + preview dinámico = etapa 2. */
+(function(){
+  var ITEM_W=64, BASE=-ITEM_W/2;
+  var SECTIONS=[{dh:0,s:9,ld:91,ln:26},{dh:28,s:15,ld:88,ln:30},{dh:-8,s:34,ld:83,ln:38},{dh:165,s:20,ld:87,ln:32},{dh:-42,s:12,ld:89,ln:28}];
+  var WORDS=[{l:'INTRO',r:0},{l:'VERSO',r:1},{l:'ESTRIBO',r:2},{l:'PUENTE',r:3},{l:'OUTRO',r:4}];
+  var LETTERS=[];[['A',1],['B',2],['C',3]].forEach(function(p){for(var i=1;i<=3;i++)LETTERS.push({l:p[0],n:i,r:p[1]});});
+  var TECH=['Arpegio','Planchado','Rasgueo','Bajo alterno','Fingerpick'];
+  var SUB=['Redondas','Negras','Corcheas','Tresillo','Shuffle'];
+  var ST={hue:34,night:false,sel:{word:1,letter:-1,tech:0,sub:1},kind:'word',row:null};
+  var WHEELS={word:{strip:'ps-mw-word',items:WORDS,colored:true},letter:{strip:'ps-mw-letter',items:LETTERS,colored:true},tech:{strip:'ps-mw-tech',items:TECH,colored:false},sub:{strip:'ps-mw-sub',items:SUB,colored:false}};
+
+  function clr(r){var s=SECTIONS[r];var h=(ST.hue+s.dh+360)%360;var l=ST.night?s.ln:s.ld;var sat=ST.night?Math.min(s.s+6,60):s.s;return 'hsl('+h+' '+sat+'% '+l+'%)';}
+  function curRole(){return ST.kind==='word'?WORDS[ST.sel.word].r:LETTERS[ST.sel.letter].r;}
+  function curName(){if(ST.kind==='word')return WORDS[ST.sel.word].l;var x=LETTERS[ST.sel.letter];return x.l+'<sup>'+x.n+'</sup>';}
+  function itemHTML(it){if(typeof it==='string')return it;if(it.n)return it.l+'<sup>'+it.n+'</sup>';return it.l;}
+  function build(key){
+    var w=WHEELS[key],strip=document.getElementById(w.strip);if(!strip)return;
+    strip.innerHTML='';
+    w.items.forEach(function(it,i){var el=document.createElement('div');el.className='is-mw-item'+(i===ST.sel[key]?' active':'');el.innerHTML=itemHTML(it);if(w.colored){el.style.background=clr(it.r);el.style.color=ST.night?'hsl(40 30% 90%)':'var(--ink)';}strip.appendChild(el);});
+    place(key,false);
+  }
+  function place(key,anim){var w=WHEELS[key],strip=document.getElementById(w.strip);if(!strip)return;var i=Math.max(0,ST.sel[key]);strip.classList.toggle('dragging',anim===false);strip.style.transform='translateX('+(BASE-i*ITEM_W)+'px)';var k=strip.children;for(var j=0;j<k.length;j++)k[j].classList.toggle('active',j===ST.sel[key]);}
+  function setSel(key,i){var w=WHEELS[key];i=Math.max(0,Math.min(w.items.length-1,i));ST.sel[key]=i;if(key==='word'){ST.kind='word';ST.sel.letter=-1;build('letter');}if(key==='letter'){ST.kind='letter';}place(key,true);apply();}
+  function recolor(){['word','letter'].forEach(function(key){var w=WHEELS[key],strip=document.getElementById(w.strip);if(!strip)return;var k=strip.children;for(var j=0;j<k.length;j++){k[j].style.background=clr(w.items[j].r);k[j].style.color=ST.night?'hsl(40 30% 90%)':'var(--ink)';}});}
+  function _partIdxs(){
+    var wins=window._songWins||[]; var ti=parseInt(((ST.row&&ST.row.id)||'tr-0').slice(3),10); if(isNaN(ti))ti=0;
+    var part=wins[ti]?wins[ti].partName:null; var idxs=[];
+    wins.forEach(function(w,j){ if(w && part!=null && w.partName===part) idxs.push(j); });
+    if(!idxs.length) idxs=[ti];
+    return {idxs:idxs, ti:ti, inst:(wins[ti]&&wins[ti].instIdx!=null)?wins[ti].instIdx:0};
+  }
+  function _readState(){
+    var pi=_partIdxs(); var fr=document.getElementById('tr-'+pi.idxs[0]); if(!fr)return;
+    var nm=((fr.querySelector('.song-part-lab')||{}).textContent||'').trim().toUpperCase();
+    var wi=WORDS.map(function(w){return w.l;}).indexOf(nm);
+    if(wi>=0){ ST.kind='word'; ST.sel.word=wi; ST.sel.letter=-1; }
+    else { var li=LETTERS.map(function(x){return x.l+x.n;}).indexOf(nm); if(li>=0){ ST.kind='letter'; ST.sel.letter=li; } }
+    var tt=((fr.querySelector('.song-tech-lab')||{}).textContent||'').trim().toUpperCase();
+    var tIdx=TECH.map(function(s){return s.toUpperCase();}).indexOf(tt); if(tIdx>=0)ST.sel.tech=tIdx;
+    var ss=((fr.querySelector('.song-sub-lab')||{}).textContent||'').trim().toUpperCase();
+    var sIdx=SUB.map(function(s){return s.toUpperCase();}).indexOf(ss); if(sIdx>=0)ST.sel.sub=sIdx;
+  }
+  function apply(){
+    if(!ST.row)return;
+    var c=clr(curRole()), wins=window._songWins||[], pi=_partIdxs();
+    pi.idxs.forEach(function(j){
+      if(wins[j]) wins[j]._partColor=c;
+      var rowEl=document.getElementById('tr-'+j); if(!rowEl)return;
+      var side=rowEl.querySelector('.tlbl-song'); if(side)side.style.background=c;
+      var ttl=rowEl.querySelector('.ttl'); if(ttl)ttl.style.background=c;
+      var lyr=rowEl.querySelector('.song-lyrics'); if(lyr)lyr.style.background=c;
+      rowEl.style.background=c;
+    });
+    var fr=document.getElementById('tr-'+pi.idxs[0])||ST.row;
+    var lbl=fr.querySelector('.song-part-lab'); if(lbl){ lbl.innerHTML=curName(); if(window._fitPartLab)window._fitPartLab(lbl); }
+    var tl=fr.querySelector('.song-tech-lab'); if(tl)tl.textContent=WHEELS.tech.items[ST.sel.tech]||'';
+    var sl=fr.querySelector('.song-sub-lab'); if(sl)sl.textContent=WHEELS.sub.items[ST.sel.sub]||'';
+    try{ if(typeof renderTrack==='function') renderTrack(pi.inst); }catch(_){}
+  }
+
+  function keyFromStrip(strip){for(var k in WHEELS)if(WHEELS[k].strip===strip.id)return k;return null;}
+  function psOpen(){var ps=document.getElementById('part-sheet');return ps&&ps.classList.contains('on');}
+  var drag=null;
+  document.addEventListener('pointerdown',function(e){
+    if(!psOpen())return;
+    var arr=e.target.closest('#part-sheet .is-mw-arr[data-psdir]');
+    if(arr){var strip=arr.closest('.is-mw').querySelector('.is-mw-strip');var key=keyFromStrip(strip);if(key)setSel(key,Math.max(0,ST.sel[key])+(+arr.dataset.psdir));return;}
+    var track=e.target.closest('#part-sheet .is-mw-track');if(!track)return;
+    var strip=track.querySelector('.is-mw-strip');var key=keyFromStrip(strip);if(!key)return;
+    drag={key:key,x:e.clientX,base:BASE-Math.max(0,ST.sel[key])*ITEM_W};strip.classList.add('dragging');
+  });
+  document.addEventListener('pointermove',function(e){if(!drag)return;var strip=document.getElementById(WHEELS[drag.key].strip);if(strip)strip.style.transform='translateX('+(drag.base+(e.clientX-drag.x))+'px)';});
+  document.addEventListener('pointerup',function(e){if(!drag)return;var dx=e.clientX-drag.x;setSel(drag.key,Math.max(0,ST.sel[drag.key])+Math.round(-dx/ITEM_W));drag=null;});
+
+  var sliding=false;
+  function setHue(x){var cs=document.getElementById('ps-cslider');if(!cs)return;var r=cs.getBoundingClientRect();var p=(x-r.left)/r.width;p=Math.max(0,Math.min(1,p));ST.hue=Math.round(p*360);var t=document.getElementById('ps-cthumb');if(t){t.style.left=(p*100)+'%';t.style.background='hsl('+ST.hue+' 50% 60%)';}recolor();apply();}
+  document.addEventListener('pointerdown',function(e){if(e.target.closest('#ps-cslider')){sliding=true;setHue(e.clientX);}});
+  document.addEventListener('pointermove',function(e){if(sliding)setHue(e.clientX);});
+  document.addEventListener('pointerup',function(){sliding=false;});
+  document.addEventListener('click',function(e){
+    if(e.target.closest('#ps-dn')){ST.night=!ST.night;var b=document.getElementById('ps-dn');if(b)b.textContent=ST.night?'🌙':'☀';recolor();apply();return;}
+    if(e.target.closest('#ps-borders-tgl')){
+      window._songBorders = (window._songBorders===false); /* false->true, true/undef->false */
+      document.documentElement.classList.toggle('song-noborders', window._songBorders===false);
+      var bt=document.getElementById('ps-borders-tgl');
+      if(bt){ bt.textContent = (window._songBorders===false)?'NO':'SÍ'; bt.classList.toggle('on', window._songBorders!==false); }
+      var wins=window._songWins||[]; var inst=(wins[0]&&wins[0].instIdx!=null)?wins[0].instIdx:0;
+      try{ if(typeof renderTrack==='function') renderTrack(inst); }catch(_){}
+      return;
+    }
+  });
+
+  var ORIG_TOP='calc(var(--nav-h) + var(--tr-h) + var(--ruler-h) + var(--track-h) + 10px)';
+  var ORIG_H='calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - var(--bot-h) - 10px - env(safe-area-inset-bottom, 0px))';
+  function openFor(row){
+    ST.row=row;
+    var ps=document.getElementById('part-sheet');
+    if(ps){
+      var land=document.body.classList.contains('landscape-mode');
+      if(!land){
+        // v27.405 — Horacio: el part-sheet NO debe tapar el sequencer. Antes se
+        // estiraba desde el borde inferior de la 1ra línea hasta el footer y
+        // cubría las líneas 2,3,... (solo la 1ra quedaba editable → "click mudo"
+        // en las demás). Ahora es un BOTTOM-SHEET anclado al pie con altura
+        // acotada: TODO el sequencer queda libre y scrolleable arriba, así que
+        // CUALQUIER línea se edita con el menú abierto. El handle (PANEL_TWINS)
+        // crece hacia arriba (bottom fijo + height ↑) y baja para liberar más.
+        ps.style.top='auto';
+        ps.style.bottom='calc(var(--bot-h) + env(safe-area-inset-bottom, 0px))';
+        ps.style.height='min(56vh, 460px)';
+        ps.style.maxHeight='calc(100% - var(--nav-h) - var(--tr-h) - var(--ruler-h) - var(--track-h) - var(--bot-h) - 10px - env(safe-area-inset-bottom, 0px))';
+      } else {
+        ps.style.top=ORIG_TOP; ps.style.bottom='auto'; ps.style.height=ORIG_H; ps.style.maxHeight=ORIG_H;
+      }
+      ps._origHeight=null; ps._origMaxHeight=null; /* PANEL_TWINS recaptura la nueva altura */
+    }
+    if(typeof openSheet==='function')openSheet('part-sheet');
+    try{ _readState(); }catch(_){}
+    build('word');build('letter');build('tech');build('sub');
+    var t=document.getElementById('ps-cthumb');if(t){t.style.left=(ST.hue/360*100)+'%';t.style.background='hsl('+ST.hue+' 50% 60%)';}
+  }
+  document.addEventListener('click',function(e){if(window.APP_MODE!=='songs')return;var lbl=e.target.closest('.tlbl-song');if(!lbl)return;var row=lbl.closest('.song-row');if(!row)return;openFor(row);});
+  window.openPartSheet=openFor;
 })();
 </script>
 </body>
