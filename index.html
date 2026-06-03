@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.411</title>
+<title>OnlyLoops · v27.412</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -9255,7 +9255,7 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.411</span>
+      <span class="title" id="dkv-title">Vista kit · v27.412</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -38790,6 +38790,7 @@ function updateClipGlow(){
   if(!G.playing){
     document.querySelectorAll('.clip-glow').forEach(el => { el.style.animation = ''; });
     Object.keys(_glowLastClipKeys).forEach(k => delete _glowLastClipKeys[k]);
+    if(window._songGlowKeys) window._songGlowKeys = {};
     return;
   }
 
@@ -38822,46 +38823,52 @@ function updateClipGlow(){
     return el;
   };
 
-  // v27.410 — SONG: el glow es el indicador de posición (no hay playhead).
-  // Debe caer en la VENTANA (línea) que contiene el clip activo del instrumento
-  // de la página actual, con offset LOCAL (sb - baseDeVentana). El código LOOP
-  // de abajo solo procesa ti===0 con sb ABSOLUTO → en SONG el glow se iría a la
-  // derecha de la línea 1, invisible. Acá lo resolvemos windowed y salimos.
+  // v27.412 — SONG: el glow es el indicador de posición (no hay playhead).
+  // Cae en la VENTANA (línea) que contiene el clip activo del instrumento de la
+  // página, con offset LOCAL. CRÍTICO: estado e IDs PROPIOS de SONG
+  // (clip-glow-song-*, window._songGlowKeys) para NO contaminar el glow de LOOP
+  // (clip-glow-{ti} + _glowLastClipKeys). En v27.410 compartían estado → al
+  // pasar por SONG se apagaba el glow de LOOP y quedaba la key pegada.
   if(window.APP_MODE==='songs' && window._songWins){
+    if(!window._songGlowKeys) window._songGlowKeys = {};
     const _inst = (G.song && G.song.instIdx) || 0;
     const _trk = G.tracks[_inst];
-    const _aClip = (_trk && _trk.clips) ? _trk.clips.find(c => c && pos >= c.sb && pos < (c.sb + c.lb)) : null;
-    // ¿En qué fila/ventana cae el clip activo?
+    const _aClip = (_trk && _trk.clips && !_trk.muted) ? _trk.clips.find(c => c && pos >= c.sb && pos < (c.sb + c.lb)) : null;
     let _aRow = -1, _winBeat = 0;
     if(_aClip){
       for(let r=0; r<window._songWins.length; r++){
         const w = window._songWins[r];
         if(!w || w.instIdx !== _inst) continue;
-        const wb = w.base*G.bpb, we = wb + w.bars*G.bpb;
-        if(_aClip.sb >= wb && _aClip.sb < we){ _aRow = r; _winBeat = wb; break; }
+        const wb = w.base*G.bpb;
+        if(_aClip.sb >= wb && _aClip.sb < wb + w.bars*G.bpb){ _aRow = r; _winBeat = wb; break; }
       }
     }
-    // Apagar glow de toda fila que no sea la activa
-    document.querySelectorAll('.clip-glow').forEach(el => {
-      const m = el.id && el.id.match(/^clip-glow-(\d+)$/);
+    // Apagar SOLO los glows de SONG que no sean la fila activa (jamás los de LOOP)
+    document.querySelectorAll('[id^="clip-glow-song-"]').forEach(el => {
+      const m = el.id.match(/^clip-glow-song-(\d+)$/);
       if(!m || parseInt(m[1],10) !== _aRow) el.style.animation = '';
     });
-    if(_aRow < 0 || !_aClip || (_trk && _trk.muted)){
-      Object.keys(_glowLastClipKeys).forEach(k => delete _glowLastClipKeys[k]);
-      return;
+    if(_aRow < 0){ window._songGlowKeys = {}; return; }
+    // Glow propio de SONG dentro del tinner de la fila activa
+    let _gel = document.getElementById('clip-glow-song-'+_aRow);
+    if(_gel && _gel.parentElement && _gel.parentElement.id !== 'tinner-'+_aRow){ _gel.remove(); _gel = null; }
+    if(!_gel){
+      const _inner = document.getElementById('tinner-'+_aRow);
+      if(!_inner) return;
+      _gel = document.createElement('div');
+      _gel.id = 'clip-glow-song-'+_aRow;
+      _gel.className = 'clip-glow';
+      _inner.appendChild(_gel);
     }
-    const _gel = getOrCreateGlow(_aRow);
-    if(!_gel) return;
     _gel.style.left = ((_aClip.sb - _winBeat) * BW) + 'px';
     _gel.style.width = (_aClip.lb * BW) + 'px';
     _gel.style.height = '52px';   // SONG: solo la celda del clip, no baja a la lírica
     const _ck = _aRow + ':' + _aClip.sb;
-    if(_ck !== _glowLastClipKeys[_aRow]){
+    if(_ck !== window._songGlowKeys[_aRow]){
       const _dur = _aClip.lb * (60000 / bpm);
       _gel.style.animation = 'none'; void _gel.offsetWidth;
       _gel.style.animation = `clipGlowSingleSong ${_dur}ms ease-in-out`;
-      Object.keys(_glowLastClipKeys).forEach(k => { if(k !== String(_aRow)) delete _glowLastClipKeys[k]; });
-      _glowLastClipKeys[_aRow] = _ck;
+      window._songGlowKeys = {}; window._songGlowKeys[_aRow] = _ck;
     }
     return;
   }
@@ -56242,7 +56249,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.411',
+    version: 'v27.412',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
