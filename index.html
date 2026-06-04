@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.412</title>
+<title>OnlyLoops · v27.437</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -1437,9 +1437,14 @@ body.landscape-mode #hdr-band1 .hdr-play {
 body.landscape-mode #hdr-band1 > #loop-btn-h      { order: 1; }
 body.landscape-mode #hdr-band1 > #hdr-live-btn    { order: 2; }
 body.landscape-mode #hdr-band1 > #zoom-btn-h      { order: 3; }
-body.landscape-mode #hdr-band1 > #new-loop-btn-h  { order: 4; }
-body.landscape-mode #hdr-band1 > #hdr-loopsong    { order: 5; }
-body.landscape-mode #hdr-band1 > .hdr-config      { order: 6; }
+/* v27.430 — AJUSTE VERTICAL (vcompact) entra entre el horizontal y NEW. Solo
+   visible en SONG (display gobernado en os-styles); en LOOP queda oculto, así
+   que el resto de los órdenes mantiene la misma secuencia visual de antes.
+   Orden SONG desde PLAY: LOOP·LIVE·ajuste H·ajuste V·NEW·LOOP/SONG/SAVE·Config. */
+body.landscape-mode #hdr-band1 > #vcompact-btn-h  { order: 4; }
+body.landscape-mode #hdr-band1 > #new-loop-btn-h  { order: 5; }
+body.landscape-mode #hdr-band1 > #hdr-loopsong    { order: 6; }
+body.landscape-mode #hdr-band1 > .hdr-config      { order: 7; }
 
 /* v27.262 — LIVE flota centrado entre el grupo izquierdo y el derecho:
    loop (fin del grupo izq) lleva margin-right:auto y zoom (inicio del grupo
@@ -2718,6 +2723,10 @@ body.has-promoted-track #rewind-btn {
    marca el GLOW (clip activo, línea por línea). Se oculta SOLO por clase: al
    volver a LOOP (clase fuera) reaparece sola, sin tocar JS. */
 html.app-songs #ph{ display:none !important; }
+/* v27.413 — Cursor de play propio de SONG: línea roja fina absoluta dentro del
+   tinner de la línea activa (52px de alto, la celda del clip). */
+#song-ph{ position:absolute; top:0; width:2px; height:52px; background:#C4423A; pointer-events:none; z-index:9; }
+#song-ph::after{ content:''; position:absolute; top:-3px; left:-5px; width:12px; height:10px; background:#C4423A; clip-path:polygon(50% 100%,0 0,100% 0); }
 
 /* ═══════════════════════════════════════════════
    CLIP GLOW — halo respirando alrededor del clip ACTIVO durante play.
@@ -8457,16 +8466,80 @@ html.app-songs .part-intro .song-part-lab,html.app-songs .part-outro .song-part-
 html.app-songs .song-row{border-top:none;border-bottom:none;position:relative}
 html.app-songs .song-row::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1.5px;background:var(--rule2);z-index:7;pointer-events:none}
 html.app-songs .song-row.part-first{border-top:1.5px solid var(--rule2)}
+/* ─── v27.421 — VISTA COMPRIMIDA (song-compact): cancionero apretado vertical.
+   Solo SONG. Reduce el alto del CLIP (canvas) manteniendo la lírica intacta.
+   Valores INICIALES (microajustables por auditoría visual):
+     · fila/ttl 78 → 56  (canvas 30 + lírica 26)
+     · lírica baja su top de 52 → 30
+   getH() devuelve 30 en compact (JS) para que el canvas se dibuje a esa altura;
+   el acorde se reduce 50% en renderTrack. La columna de partes reajusta sus
+   labels verticales sola (_fitVertical relee la altura de la celda). */
+html.song-compact .track-row.song-row,
+html.song-compact .song-row .ttl{height:45px;flex:0 0 45px;min-height:45px}
+html.song-compact .song-row .song-lyrics{top:22px;height:23px}
+/* ─── v27.427 — Barra lateral al 50% en compact: cancionero no necesita
+   técnica/subtécnica, solo el numerador de compases (1-4, 5-8…) y la parte.
+   Reducir --lbl-w corre TODO el sequencer (y su track-number bar) a la
+   izquierda, ganando ancho para acordes y letra. Valores iniciales. */
+html.song-compact{--lbl-w:51px}
+html.song-compact .song-row .sl-tech,
+html.song-compact .song-row .sl-sub{display:none}
+html.song-compact .song-row .tlbl-song{padding:0 1px;gap:2px}
+/* v27.428 — Ícono del mixer en compact: CROP horizontal (no resize). El SVG
+   de 6 faders (60px, flex-shrink:0) desbordaba el #ruler-pad angosto y pisaba
+   los números 1-2 del 1er compás. clip-path recorta la mitad derecha → quedan
+   solo los 3 faders de la izquierda, mismo tamaño y posición exactos. */
+html.song-compact #ruler-pad .ruler-pad-icon{clip-path:inset(0 50% 0 0)}
+/* ─── v27.421 — Botón VISTA COMPRIMIDA: existe solo en modo SONG.
+   El clon del header (#vcompact-btn-h) se muestra SOLO en SONG landscape
+   (con !important para ganarle a las reglas de header). En portrait SONG va
+   el del footer (#vcompact-btn); en landscape el footer se oculta y aparece
+   el del header. En LOOP no aparece ninguno. */
+#vcompact-btn{display:none}
+html.app-songs #vcompact-btn{display:flex}
+#vcompact-btn-h{display:none !important}
+html.app-songs body.landscape-mode #vcompact-btn-h{display:inline-flex !important}
+#vcompact-btn.on,#vcompact-btn-h.on{background:var(--acc);color:var(--card);border-color:var(--acc)}
+#vcompact-btn.on svg,#vcompact-btn-h.on svg{stroke:var(--card)}
+/* v27.430 — Horacio: en el HEADER de SONG (iPhone landscape) los botones de
+   AJUSTE HORIZONTAL (#zoom-btn-h) y AJUSTE VERTICAL (#vcompact-btn-h) deben
+   verse IGUAL que los del footer (.bb-ic): círculo con borde fino + fondo papel,
+   ícono --ink2, relleno --acc cuando están ON. Antes eran ícono pelado
+   transparente (distinto al footer). Scope estricto: SOLO app-songs + landscape
+   → en LOOP y en portrait no cambia nada. Ambos quedan gemelos (mismo tamaño). */
+html.app-songs body.landscape-mode #zoom-btn-h,
+html.app-songs body.landscape-mode #vcompact-btn-h{
+  width:28px!important;height:28px!important;
+  min-width:28px!important;max-width:28px!important;
+  min-height:28px!important;max-height:28px!important;
+  aspect-ratio:1/1!important;flex:0 0 auto!important;padding:0!important;
+  border-radius:50%!important;
+  border:1px solid var(--rule2)!important;
+  background:var(--bg2)!important;
+  transform:scale(1.25);align-self:center;
+}
+html.app-songs body.landscape-mode #zoom-btn-h svg,
+html.app-songs body.landscape-mode #vcompact-btn-h svg{stroke:var(--ink2)!important}
+html.app-songs body.landscape-mode #zoom-btn-h.on,
+html.app-songs body.landscape-mode #vcompact-btn-h.on{
+  background:var(--acc)!important;border-color:var(--acc)!important;
+}
+html.app-songs body.landscape-mode #zoom-btn-h.on svg,
+html.app-songs body.landscape-mode #vcompact-btn-h.on svg{stroke:var(--card)!important}
 /* botonera de instrumento (Piano/Bajo/Cuerdas/Batería) */
 #os-instbar{display:none}
 html.app-songs #ruler-row{display:flex}
-html.app-songs #os-instbar{display:flex;align-items:center;gap:16px;padding:7px 16px;background:var(--bg2);border-bottom:.5px solid var(--rule);font-family:var(--sans);font-size:13px;flex-shrink:0}
-html.app-songs #os-instbar .os-ib-cur{font-family:var(--serif);font-size:19px;color:var(--ink)}
-html.app-songs #os-instbar .os-ib-pg{font-family:var(--mono);font-size:11px;color:var(--ink2)}
-html.app-songs #os-instbar .os-ib-tab{color:var(--ink3);cursor:pointer}
-html.app-songs #os-instbar .os-ib-tab.on{color:var(--acc);font-weight:600}
-html.app-songs #os-instbar .os-ib-bpl{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink3)}
-html.app-songs #os-instbar .os-ib-m{font-family:var(--mono);font-size:12px;color:var(--ink3);cursor:pointer;padding:0 2px}
+html.app-songs #os-instbar{display:flex;align-items:center;gap:14px;padding:7px 16px;background:var(--bg2);border-bottom:.5px solid var(--rule);font-family:var(--sans);font-size:13px;flex-shrink:0}
+/* v27.429 — Wheel de instrumentos: ◀ TEXTO ▶. Triángulos plenos var(--acc),
+   texto en mayúscula. Reemplaza los tabs + "página X/Y". */
+html.app-songs #os-instbar .os-ib-wheel{display:flex;align-items:center;gap:10px}
+html.app-songs #os-instbar .os-ib-prev,
+html.app-songs #os-instbar .os-ib-next{display:flex;align-items:center;justify-content:center;cursor:pointer;padding:4px;border-radius:6px;-webkit-tap-highlight-color:transparent;user-select:none}
+html.app-songs #os-instbar .os-ib-prev:active,
+html.app-songs #os-instbar .os-ib-next:active{opacity:.5}
+html.app-songs #os-instbar .os-ib-cur{font-family:var(--serif);font-size:19px;color:var(--ink);text-transform:uppercase;letter-spacing:.02em;min-width:60px;text-align:center;white-space:nowrap}
+html.app-songs #os-instbar .os-ib-bars{margin-left:auto;display:flex;align-items:center;gap:4px}
+html.app-songs #os-instbar .os-ib-m{font-family:var(--mono);font-size:12px;color:var(--ink3);cursor:pointer;padding:0 3px}
 html.app-songs #os-instbar .os-ib-m.on{color:var(--acc);font-weight:600}
 html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:none}
 </style>
@@ -8528,9 +8601,21 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
        del footer + clon del header). -->
   <button class="hdr-ic hdr-landscape-only" id="zoom-btn-h" onclick="toggleZoomCompact()" data-zoom-btn aria-label="Comprimir horizontal (4 compases)">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="3" x2="12" y2="21"/>
-      <polyline points="7 8 11 12 7 16"/>
-      <polyline points="17 8 13 12 17 16"/>
+      <polygon points="3 6 3 18 9 12" fill="currentColor" stroke="none"/>
+      <polygon points="21 6 21 18 15 12" fill="currentColor" stroke="none"/>
+      <line x1="11" y1="5" x2="11" y2="19"/>
+      <line x1="13.5" y1="5" x2="13.5" y2="19"/>
+    </svg>
+  </button>
+  <!-- v27.421 — Clon header (landscape) del botón VISTA COMPRIMIDA. Solo SONG.
+       Sin .hdr-landscape-only (que se activa en CUALQUIER landscape vía
+       !important): la visibilidad la gobierna el CSS song-only de os-styles. -->
+  <button class="hdr-ic" id="vcompact-btn-h" onclick="toggleSongCompactV()" aria-label="Comprimir vertical (vista cancionero apretada)">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="6 3 18 3 12 9" fill="currentColor" stroke="none"/>
+      <polygon points="6 21 18 21 12 15" fill="currentColor" stroke="none"/>
+      <line x1="5" y1="11" x2="19" y2="11"/>
+      <line x1="5" y1="13.5" x2="19" y2="13.5"/>
     </svg>
   </button>
   <button class="hdr-ic hdr-landscape-only" id="new-loop-btn-h" onclick="newLoop()" aria-label="Nuevo loop (limpiar todos los clips)">
@@ -8926,9 +9011,21 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
          Icono: dos flechas convergiendo horizontalmente sobre línea central = "ajustar/comprimir horizontal". -->
     <button class="bb-ic" id="zoom-btn" onclick="toggleZoomCompact()" aria-label="Comprimir horizontal (4 compases)">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="3" x2="12" y2="21"/>
-        <polyline points="7 8 11 12 7 16"/>
-        <polyline points="17 8 13 12 17 16"/>
+        <polygon points="3 6 3 18 9 12" fill="currentColor" stroke="none"/>
+        <polygon points="21 6 21 18 15 12" fill="currentColor" stroke="none"/>
+        <line x1="11" y1="5" x2="11" y2="19"/>
+        <line x1="13.5" y1="5" x2="13.5" y2="19"/>
+      </svg>
+    </button>
+    <!-- v27.421 — Botón VISTA COMPRIMIDA (solo SONG). Mismo diseño que zoom-btn
+         pero rotado 90°: línea horizontal + dos flechas convergiendo vertical =
+         "comprimir alto". Genera la vista apretada del cancionero. -->
+    <button class="bb-ic" id="vcompact-btn" onclick="toggleSongCompactV()" aria-label="Comprimir vertical (vista cancionero apretada)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="6 3 18 3 12 9" fill="currentColor" stroke="none"/>
+        <polygon points="6 21 18 21 12 15" fill="currentColor" stroke="none"/>
+        <line x1="5" y1="11" x2="19" y2="11"/>
+        <line x1="5" y1="13.5" x2="19" y2="13.5"/>
       </svg>
     </button>
     <button class="bb-ic" id="undo-btn" onclick="undoLast()" aria-label="Deshacer">
@@ -9255,7 +9352,7 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.412</span>
+      <span class="title" id="dkv-title">Vista kit · v27.437</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -10178,15 +10275,21 @@ function chordDisplay(noteR, sufKey, clipSb){
     }
     case 'nash':{
       const iv=((ni-ki)+12)%12;
-      // v27.92 — Nashville agrega cifrado americano como grade auxiliar
-      // (chico arriba). El número grande abajo cubre el grado funcional;
-      // el cifrado arriba complementa con la nota real (G, Dm, etc.) que
-      // es la lengua universal del músico. Si la nota se altera o cambia
-      // tonalidad, el cifrado se recalcula dinámicamente.
-      return{root:NASH[iv],suf:getS(SUF_D),grade:noteR,gradeSuf:getS(SUF_D)};
+      // v27.419 — Nashville SOLO: sin 'grade' → el clip (y LIVE/chord-editor)
+      // muestran únicamente el número Nashville grande, sin el cifrado chico
+      // arriba. Mismo criterio que 'Am'/'I'/'Do'. El espacio superior queda en
+      // blanco. (Antes v27.92 traía el cifrado americano como grade auxiliar.)
+      return{root:NASH[iv],suf:getS(SUF_D)};
     }
     case 'Do': {
-      // v27.89 — grade dinámico también en solfeo
+      // v27.418 — Solfeo SOLO: sin 'grade' → el clip muestra solo el solfeo
+      // (mismo criterio que 'Am' e 'I'). El espacio superior queda en blanco.
+      return{root:SOLFEO[ni<0?9:ni],suf:getS(SUF_D)};
+    }
+    case 'DoI': {
+      // v27.418 — Solfeo + Grado: solfeo grande + grado romano chico arriba
+      // (lo que 'Do' mostraba antes de v27.418). El grado lo dibuja el bloque
+      // legacy _dynGrade (no es combo AmI/IAm, así que va arriba a la izquierda).
       const r=_calcRoman();
       return{root:SOLFEO[ni<0?9:ni],suf:getS(SUF_D),grade:r.root,gradeSuf:r.suf};
     }
@@ -10198,6 +10301,14 @@ function chordDisplay(noteR, sufKey, clipSb){
     case 'IAm':{
       const r=_calcRoman();
       return{root:noteR,suf:getS(SUF_D),grade:r.root,gradeSuf:r.suf,gradeOnTop:true};
+    }
+    // v27.417 — Cifrado SOLO: NO devuelve 'grade' → tal como 'I' (grado solo),
+    // ningún render dibuja nada arriba (ni el bloque legacy _dynGrade, ni el
+    // secondary, ni la LIVE bar, ni el chord-editor). El espacio superior del
+    // clip queda en blanco. Antes 'Am' caía en default (que SÍ trae grade) y
+    // por eso aparecía el grado chico arriba igual que el combinado AmI.
+    case 'Am':{
+      return{root:noteR,suf:getS(SUF_D)};
     }
     default: {
       // v27.89 — Cifrado americano (Am) por default: también incluye grade
@@ -36441,7 +36552,7 @@ function renderRuler(){
   }
 }
 
-function getH(ti){ if(window.APP_MODE==='songs') return 52; const e=document.getElementById(`ttl-${ti}`);return e?e.offsetHeight:72;}
+function getH(ti){ if(window.APP_MODE==='songs') return window._songCompactV ? 22 : 52; const e=document.getElementById(`ttl-${ti}`);return e?e.offsetHeight:72;}
 
 /**
  * Repinta el canvas de un track individual: clips, etiquetas, beats.
@@ -36602,7 +36713,20 @@ function renderTrack(ti, _win){
       // v27.41 — Root +20%: factor .18→.22, max 43→52, min 15→18.
       // _oldRootFs queda para mantener tamaño del secondary (bVI) y baseline
       // de la técnica (ARPEGGIO) sin cambio (Horacio: solo agranda el acorde).
-      const rootFs=Math.min(52,Math.max(18,_logicalW*.22));
+      // v27.421 — VISTA COMPRIMIDA SONG: el acorde del clip se reduce al 60%.
+      // _oldRootFs (técnica/secondary) NO se toca; en SONG la técnica no se
+      // dibuja y en compact la notación es simple (sin grado).
+      const _isSongCompact = (window.APP_MODE==='songs' && window._songCompactV);
+      const _acFactorCompact = _isSongCompact ? 0.6 : 1;
+      let rootFs=Math.min(52,Math.max(18,_logicalW*.22)) * _acFactorCompact;
+      // v27.424 — En compact el ancho del clip escala rootFs hasta ~20px; con
+      // canvas de 19px (getH) y baseline = 5 + 0.70*rootFs, los clips anchos
+      // hacían que la base del acorde se pasara del canvas y el fondo OPACO de
+      // la barra de lírica (z-index 3) le tapara la mitad inferior. Acotamos el
+      // acorde a 16px: baseline máx = 5 + 0.70*16 = 16.2 < 19 → siempre entra
+      // completo con respiro, sin invadir el contenedor de la letra. Uniforma
+      // además el tamaño del acorde en toda la canción (deseable en cancionero).
+      if(_isSongCompact) rootFs = Math.min(rootFs, 19);
       const _oldRootFs=Math.min(43,Math.max(15,_logicalW*.18));
       const _clipFont = (G && G.clipFont) ? G.clipFont : "'Cormorant Garamond',serif";
       const chordY=H/2-2;
@@ -36610,7 +36734,25 @@ function renderTrack(ti, _win){
       // en H/2 (mitad vertical exacta del clip). En Cormorant Garamond con
       // textBaseline='alphabetic', el centro óptico de la cap height está
       // ~0.35*fontSize por encima del baseline → baseline = H/2 + 0.35*rootFs.
-      const rootBaselineY = H/2 + rootFs*0.35 + (window.APP_MODE==='songs' ? 6 : 0);
+      // v27.420 — Notaciones SIMPLES (Am / I / La / Nashville → sin grado
+      // arriba) suben el acorde 6px exactos, aprovechando que el espacio
+      // superior está vacío. Combinadas (AmI/IAm/DoI/jazz) NO se tocan. Solo
+      // se mueve la baseline del root (el sufijo va relativo, así que sube con
+      // él) — NO cambia tamaño de tipografía ni alto del clip ni la técnica.
+      // 6px es valor de prueba pedido por el arquitecto; microajuste posterior.
+      const _simpleNotaUp = (['Am','I','Do','nash'].indexOf(G.notation) !== -1) ? 6 : 0;
+      // v27.423 — VISTA COMPRIMIDA SONG: el acorde se DESCENTRA hacia arriba —
+      // su parte superior (top de la cap) queda a 5px del borde superior del
+      // canvas, en vez de centrado en H/2. Con cap≈0.70*rootFs (modelo del
+      // código), baseline = 5 + 0.70*rootFs. Junto con getH=19 esto deja ~7px
+      // entre la base del acorde y la letra lírica. Valores de prueba pedidos
+      // por el arquitecto; microajuste posterior por auditoría visual.
+      let rootBaselineY;
+      if(window.APP_MODE==='songs' && window._songCompactV){
+        rootBaselineY = 5 + rootFs*0.70;
+      } else {
+        rootBaselineY = H/2 + rootFs*0.35 + (window.APP_MODE==='songs' ? 6 : 0) - _simpleNotaUp;
+      }
 
       const isComboNotation = (G.notation==='AmI' || G.notation==='IAm');
       const dynGrade = disp.grade ? (disp.grade + (disp.gradeSuf||'')) : null;
@@ -36823,7 +36965,8 @@ function renderTrack(ti, _win){
       // que la cruz esté en la misma posición exacta en TODOS los clips
       // (seleccionado o no), sin desfasajes visuales.
       // Mostrar siempre que el clip sea seleccionado o lo suficientemente ancho.
-      const showX = isSel || w > 40;
+      // v27.427 — En SONG vista compacta (cancionero) la X molesta y se omite.
+      const showX = (isSel || w > 40) && !(window.APP_MODE==='songs' && window._songCompactV);
       if(showX){
         const cx = x + w - p - 10;
         const cy = p + 9;
@@ -38730,6 +38873,31 @@ function startPB(){
 }
 function stopPB(){clearInterval(playTimer);}
 
+// v27.413 — Cursor de play para SONG: línea roja fina DENTRO del tinner de la
+// ventana (línea) que contiene la posición actual, con offset local. Salta de
+// línea al avanzar. Reusa el mismo principio del glow (absolute en el tinner),
+// evitando el lío de position:fixed del #ph en un layout envuelto.
+function _updateSongPlayhead(){
+  let sp = document.getElementById('song-ph');
+  if(!G.playing || !window._songWins){ if(sp) sp.style.display='none'; return; }
+  const pos = G.playPos;
+  const inst = (G.song && G.song.instIdx) || 0;
+  let row=-1, winBeat=0;
+  for(let r=0; r<window._songWins.length; r++){
+    const w=window._songWins[r];
+    if(!w || w.instIdx!==inst) continue;
+    const wb=w.base*G.bpb;
+    if(pos>=wb && pos<wb+w.bars*G.bpb){ row=r; winBeat=wb; break; }
+  }
+  if(row<0){ if(sp) sp.style.display='none'; return; }
+  const inner=document.getElementById('tinner-'+row);
+  if(!inner){ if(sp) sp.style.display='none'; return; }
+  if(sp && sp.parentElement!==inner){ sp.remove(); sp=null; }
+  if(!sp){ sp=document.createElement('div'); sp.id='song-ph'; inner.appendChild(sp); }
+  sp.style.display='';
+  sp.style.left = ((pos-winBeat)*BW) + 'px';
+}
+
 function updatePH(){
   const ph=document.getElementById('ph');
   const rulerScroll = document.getElementById('ruler-scroll');
@@ -38739,8 +38907,18 @@ function updatePH(){
   // se invoca desde resize / orientationchange / ResizeObserver. Garantiza
   // recalculo automático en cualquier viewport (browser, iPad, iPhone) y
   // ante CUALQUIER cambio dinámico (rotación, redimensión, sidebar toggle).
-  if(G.playing && typeof _applyPagedScroll === 'function'){
+  if(G.playing && window.APP_MODE!=='songs' && typeof _applyPagedScroll === 'function'){
     _applyPagedScroll();
+  }
+
+  // v27.413 — SONG: cursor propio (línea roja dentro de la ventana activa).
+  // El #ph fixed queda oculto por CSS (no sirve en layout envuelto). En LOOP
+  // este branch no corre y el #ph fixed se posiciona normal más abajo.
+  if(window.APP_MODE==='songs'){
+    _updateSongPlayhead();
+    updateClipGlow();
+    updateNowPlaying();
+    return;
   }
 
   // Calcular posición FIXED del playhead = coordenada viewport del beat actual dentro del ruler-scroll
@@ -39015,7 +39193,7 @@ function _npSetChord(el, cl){
     const topHtml = `<div class="np-grade-top">${root}${suf ? '<sup>'+suf+'</sup>' : ''}</div>`;
     const mainHtmlInv = `<span class="np-chord-main">${grade}${gradeSuf ? '<sup>'+gradeSuf+'</sup>' : ''}</span>`;
     el.innerHTML = topHtml + mainHtmlInv;
-  } else if((G.notation === 'jazz' || G.notation === 'Do') && grade){
+  } else if((G.notation === 'jazz' || G.notation === 'Do' || G.notation === 'DoI') && grade){
     // v27.93 — grado romano chico arriba (sin sufijo, mismo criterio que AmI)
     el.innerHTML = `<div class="np-grade-top">${grade}</div>` + mainHtml;
   } else if(G.notation === 'nash' && grade){
@@ -39857,6 +40035,7 @@ function updateHero(clip){
       break;
     case 'jazz':
     case 'Do':
+    case 'DoI':
       // Notación elegida grande abajo, GRADO romano chico arriba (sin sufijo)
       setRoot(disp.root, disp.suf);
       setGradeTop(disp.grade || null);
@@ -42431,17 +42610,24 @@ const SNAP_ITEMS = [
 // pero el wheel no los ofrece. Loops legacy con G.notation='Am' o 'I'
 // se migran automáticamente al abrir el wheel (case 'notation' del HWP).
 const NOTATION_ITEMS = [
-  // v15.0.9 — Notaciones combinadas según plano del arquitecto.
-  // AmI = Cifrado arriba (grande) + Grado abajo a la derecha (chico).
-  // IAm = Grado arriba (con línea separadora) + Cifrado abajo (grande).
-  // v15.0.14 — Label con jerarquía visual: primary grande, secondary ~50%
-  // (mismo principio que el render del clip). htmlLabel:true habilita innerHTML.
-  // v27.54 — Apilar en 2 líneas (chico arriba, grande abajo) en lugar de
-  // slash horizontal, para reflejar el render real del clip en el sequencer.
-  // Usa las clases .np-ex-combo definidas globalmente en el CSS de la notación.
+  // v27.416 — REINCORPORADAS las notaciones SOLAS (cifrado solo / grado solo)
+  // a pedido del arquitecto: en modo cancionero el músico quiere ver letra +
+  // acordes SIN el grado armónico arriba (demasiada info). Orden del wheel:
+  //   1) Am  — cifrado solo (arriba queda en blanco)
+  //   2) AmI — cifrado grande + grado chico arriba (combinado)
+  //   3) I   — grado/intervalo solo (arriba queda en blanco)
+  //   4) IAm — grado grande + cifrado chico arriba (combinado)
+  //   5..)  Solfeo / Jazz / Nashville — sin cambios.
+  // El render del clip (chordDisplay + canvas) YA soporta las 4: Am e I no
+  // dibujan nada arriba (secondaryFull=null) y NO redimensionan el clip; AmI/
+  // IAm apilan el secundario chico. Las labels SOLAS son una sola línea grande;
+  // las combinadas usan .np-ex-combo (chico arriba, grande abajo).
+  { v:'Am',  label:'Am⁷', desc:'Cifrado solo — acorde sin grado arriba' },
   { v:'AmI', htmlLabel:true, label:'<span class="np-ex-combo"><span class="np-ex-top">ii</span><span class="np-ex-bot">Am⁷</span></span>',  desc:'Cifrado + Grado — acorde grande con grado chico' },
+  { v:'I',   label:'ii⁷', desc:'Grado solo — sin cifrado arriba' },
   { v:'IAm', htmlLabel:true, label:'<span class="np-ex-combo"><span class="np-ex-top">Am⁷</span><span class="np-ex-bot">ii</span></span>',  desc:'Grado + Cifrado — grado grande, cifrado chico' },
-  { v:'Do',   label:'La',  desc:'Solfeo — Do Re Mi Fa Sol La Si' },
+  { v:'Do',   label:'La',  desc:'Solfeo solo — Do Re Mi… sin grado arriba' },
+  { v:'DoI', htmlLabel:true, label:'<span class="np-ex-combo"><span class="np-ex-top">ii</span><span class="np-ex-bot">La</span></span>',  desc:'Solfeo + Grado — solfeo grande con grado chico' },
   { v:'jazz', htmlLabel:true, label:'<span class="np-ex-combo"><span class="np-ex-top">Jazz</span><span class="np-ex-bot">A−</span></span>',  desc:'Notación Jazz / Real Book — ∆7, −7, ø7, °7' },
   { v:'nash', htmlLabel:true, label:'<span class="np-ex-combo"><span class="np-ex-top">Nash</span><span class="np-ex-bot" style="font-size:1.45em;line-height:.7">1</span></span>',   desc:'Nashville Number System — 1, 2, 4, 5' },
 ];
@@ -42707,15 +42893,9 @@ function hwpOpen(type) {
       title = 'Snap';
       break;
     case 'notation':
-      // v27.87 — Migración legacy al abrir el wheel: las opciones 'Am' (cifrado
-      // solo) e 'I' (grado solo) ya no aparecen en NOTATION_ITEMS. Si un loop
-      // guardado tiene esos valores en G.notation, los reescribimos al
-      // equivalente combinado: Am→AmI (mantiene acorde grande), I→IAm
-      // (mantiene grado grande). chordDisplay sigue procesando 'Am' e 'I'
-      // internamente sin problema; esto es solo para que el wheel pueda
-      // resaltar la opción correcta.
-      if (G.notation === 'Am')      G.notation = 'AmI';
-      else if (G.notation === 'I')  G.notation = 'IAm';
+      // v27.416 — Migración legacy ELIMINADA: 'Am' (cifrado solo) e 'I' (grado
+      // solo) vuelven a estar en NOTATION_ITEMS, así que ya NO se reescriben a
+      // su combinado. findIndex los resalta directo.
       items = NOTATION_ITEMS;
       currentIdx = NOTATION_ITEMS.findIndex(i=>i.v===G.notation);
       if(currentIdx<0) currentIdx=0;
@@ -50743,7 +50923,10 @@ function _paintClipForThumb(ctx, cl, t, ti, W, H){
   const _clipFont = (typeof G !== 'undefined' && G.clipFont)
                     ? G.clipFont : "'Cormorant Garamond',serif";
   const chordY = H/2 - 2;
-  const rootBaselineY = H/2 + rootFs*0.35;
+  // v27.420 — Mismo criterio que renderTrack: notaciones simples suben 6px
+  // el acorde (sin grado arriba). Mantiene el thumb 1:1 con el sequencer.
+  const _simpleNotaUp = (['Am','I','Do','nash'].indexOf(G.notation) !== -1) ? 6 : 0;
+  const rootBaselineY = H/2 + rootFs*0.35 - _simpleNotaUp;
 
   const isComboNotation = (G.notation === 'AmI' || G.notation === 'IAm');
   const dynGrade = disp.grade ? (disp.grade + (disp.gradeSuf||'')) : null;
@@ -56249,7 +56432,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.412',
+    version: 'v27.437',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -57588,6 +57771,40 @@ function toggleZoomCompact(){
   if (rs) rs.scrollLeft = 0;
 }
 window.toggleZoomCompact = toggleZoomCompact;
+
+// ════════════════════════════════════════════════════════════════════
+// v27.421 — VISTA COMPRIMIDA DE SONG (cancionero apretado vertical).
+// Botón específico de SONG (footer #vcompact-btn / header #vcompact-btn-h).
+// Toggle. Al ACTIVAR genera la vista apretada:
+//   1) Notación combinada → simple (AmI→Am, IAm→I, DoI→Do). Si ya es simple,
+//      no cambia nada. (jazz no tiene equivalente simple → se deja igual.)
+//   2) Modo SIN bordes (reusa window._songBorders=false + clase song-noborders).
+//   3) Acorde del clip −50% (lo aplica renderTrack vía _songCompactV).
+//   4) Lírica INTACTA (lo más importante del cancionero).
+// La clase 'song-compact' reduce el alto de la fila (clip) y sube la lírica;
+// getH() devuelve 30 para que el canvas se dibuje a esa altura. La columna de
+// partes reajusta sus labels verticales sola. Valores INICIALES — microajuste
+// posterior de padding/interlineado por auditoría visual en mobile.
+// ════════════════════════════════════════════════════════════════════
+function toggleSongCompactV(){
+  if(window.APP_MODE!=='songs') return;          // función exclusiva de SONG, no LOOP
+  window._songCompactV = !window._songCompactV;
+  document.documentElement.classList.toggle('song-compact', !!window._songCompactV);
+  if(window._songCompactV){
+    // 1) notación combinada → su simple (no toca jazz ni las ya-simples)
+    var _map={AmI:'Am', IAm:'I', DoI:'Do'};
+    if(_map[G.notation]) G.notation = _map[G.notation];
+    // 2) sin bordes
+    window._songBorders = false;
+    document.documentElement.classList.add('song-noborders');
+  }
+  // estado .on en ambos botones (footer + clon header)
+  document.querySelectorAll('#vcompact-btn, #vcompact-btn-h').forEach(function(b){ if(b) b.classList.toggle('on', !!window._songCompactV); });
+  // re-build (getH cambia el alto del canvas del clip) + re-render
+  try{ if(typeof buildTracks==='function') buildTracks(); }catch(_){}
+  try{ if(typeof renderAll==='function') renderAll(); }catch(_){}
+}
+window.toggleSongCompactV = toggleSongCompactV;
 
 // ════════════════════════════════════════════════════════════════════
 // v27.10 — AUTO-SCROLL PAGINADO REACTIVO A VIEWPORT.
@@ -59437,18 +59654,47 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
 
   // Canción demo con clips REALES (r = nombre de nota, s = sufijo) + letra.
   var DEMO=[
-    {r:'C',s:''},{r:'G',s:''},{r:'A',s:'m'},{r:'F',s:''},
-    {r:'C',s:'',l:'Cuando'},{r:'G',s:'',l:'el d\u00eda'},{r:'A',s:'m',l:'vuelve'},{r:'F',s:'',l:'a empezar'},{r:'C',s:'',l:'siento'},{r:'G',s:'',l:'que algo'},{r:'F',s:'',l:'va a'},{r:'C',s:'',l:'cambiar'},
-    {r:'F',s:'',l:'Vamos'},{r:'C',s:'',l:'lejos'},{r:'G',s:'',l:'sin mirar'},{r:'A',s:'m',l:'atr\u00e1s'},{r:'F',s:'',l:'el camino'},{r:'C',s:'',l:'nos dir\u00e1'},{r:'G',s:'7',l:'d\u00f3nde'},{r:'C',s:'',l:'ir'},{r:'F',s:'',l:'y al'},{r:'C',s:'',l:'volver'},{r:'G',s:'',l:'otro'},{r:'C',s:'',l:'lugar'},
-    {r:'F',s:'',l:'Y aunque'},{r:'C',s:'',l:'el camino'},{r:'A',s:'m',l:'sea'},{r:'F',s:'',l:'largo'}
+    /* Intro (4) */
+    {r:'C',s:'maj7'},{r:'G',s:'7'},{r:'A',s:'m7'},{r:'F',s:'maj7'},
+    /* Verso 1 (8) */
+    {r:'C',s:'',l:'Hoy'},{r:'G',s:'',l:'vuelvo'},{r:'A',s:'m',l:'a la'},{r:'F',s:'',l:'vieja'},{r:'C',s:'',l:'casa'},{r:'G',s:'',l:'azul'},{r:'A',s:'m',l:'donde'},{r:'F',s:'',l:'aprend\u00ed'},
+    /* Estribillo (12) */
+    {r:'C',s:'',l:'Y canto'},{r:'G',s:'',l:'otra vez'},{r:'A',s:'m',l:'la canci\u00f3n'},{r:'F',s:'',l:'que me'},{r:'C',s:'',l:'ense\u00f1\u00f3'},{r:'G',s:'',l:'el mar'},{r:'A',s:'m',l:'a volver'},{r:'F',s:'',l:'al lugar'},{r:'C',s:'',l:'donde todo'},{r:'G',s:'',l:'empez\u00f3'},{r:'F',s:'',l:'sin mirar'},{r:'C',s:'',l:'atr\u00e1s'},
+    /* Verso 2 (8) */
+    {r:'C',s:'',l:'Las'},{r:'G',s:'',l:'calles'},{r:'A',s:'m',l:'guardan'},{r:'F',s:'',l:'mi voz'},{r:'C',s:'',l:'de ni\u00f1o'},{r:'G',s:'',l:'que un d\u00eda'},{r:'A',s:'m',l:'sali\u00f3'},{r:'F',s:'',l:'a so\u00f1ar'},
+    /* Estribillo (12) */
+    {r:'C',s:'',l:'Y canto'},{r:'G',s:'',l:'otra vez'},{r:'A',s:'m',l:'la canci\u00f3n'},{r:'F',s:'',l:'que me'},{r:'C',s:'',l:'ense\u00f1\u00f3'},{r:'G',s:'',l:'el mar'},{r:'A',s:'m',l:'a volver'},{r:'F',s:'',l:'al lugar'},{r:'C',s:'',l:'donde todo'},{r:'G',s:'',l:'empez\u00f3'},{r:'F',s:'',l:'sin mirar'},{r:'C',s:'',l:'atr\u00e1s'},
+    /* Puente (8) */
+    {r:'A',s:'m',l:'Tal vez'},{r:'F',s:'',l:'el tiempo'},{r:'C',s:'',l:'borr\u00f3'},{r:'G',s:'',l:'las huellas'},{r:'A',s:'m',l:'pero el'},{r:'F',s:'',l:'alma'},{r:'G',s:'',l:'no olvida'},{r:'C',s:'',l:'jam\u00e1s'},
+    /* Verso 3 (8) */
+    {r:'C',s:'',l:'Y vuelvo'},{r:'G',s:'',l:'a cantar'},{r:'A',s:'m',l:'con la'},{r:'F',s:'',l:'misma'},{r:'C',s:'',l:'vieja'},{r:'G',s:'',l:'ilusi\u00f3n'},{r:'A',s:'m',l:'de aquel'},{r:'F',s:'',l:'cantor'},
+    /* Estribillo (12) */
+    {r:'C',s:'',l:'Y canto'},{r:'G',s:'',l:'otra vez'},{r:'A',s:'m',l:'la canci\u00f3n'},{r:'F',s:'',l:'que me'},{r:'C',s:'',l:'ense\u00f1\u00f3'},{r:'G',s:'',l:'el mar'},{r:'A',s:'m',l:'a volver'},{r:'F',s:'',l:'al lugar'},{r:'C',s:'',l:'donde todo'},{r:'G',s:'',l:'empez\u00f3'},{r:'F',s:'',l:'sin mirar'},{r:'C',s:'',l:'atr\u00e1s'},
+    /* Outro (4) */
+    {r:'F',s:'',l:'la la'},{r:'C',s:'',l:'la la'},{r:'G',s:'',l:'la la'},{r:'C',s:'',l:'la'}
   ];
-  var DEMO_PARTS=[{name:'Intro',type:'intro',bars:4},{name:'Verso 1',type:'verse',bars:8},{name:'Estribillo',type:'chorus',bars:12},{name:'Verso 2',type:'verse',bars:4}];
+  var DEMO_PARTS=[
+    {name:'Intro',type:'intro',bars:4},
+    {name:'Verso 1',type:'verse',bars:8},
+    {name:'Estribillo',type:'chorus',bars:12},
+    {name:'Verso 2',type:'verse',bars:8},
+    {name:'Estribillo',type:'chorus',bars:12},
+    {name:'Puente',type:'verse',bars:8},
+    {name:'Verso 3',type:'verse',bars:8},
+    {name:'Estribillo',type:'chorus',bars:12},
+    {name:'Outro',type:'outro',bars:4}
+  ];
 
   function _loadDemoSong(){
     var bpb=(G&&G.bpb)||4;
     G.song={ parts:DEMO_PARTS.slice(), lineBars:SONG_BPL, instIdx:0 };
     if(G.tracks && G.tracks[0]){
-      G.tracks[0].clips=DEMO.map(function(b,i){ return {r:b.r,s:b.s,sb:i*bpb,lb:bpb,tech:'',v:'',lyric:b.l||''}; });
+      // v27.430 — La letra NO se guarda en el clip (lyric:''). La capa canvas
+      // por-clip vivía solo en tracks[0] (piano) → era el "texto que aparecía
+      // solo en el 1er instrumento". Ahora la única fuente es el overlay serif
+      // compartido (WORDS), que _renderSongLyrics re-fluye en TODAS las páginas
+      // de instrumento. Así el mismo texto aparece en piano/bajo/cuerdas/batería.
+      G.tracks[0].clips=DEMO.map(function(b,i){ return {r:b.r,s:b.s,sb:i*bpb,lb:bpb,tech:'',v:'',lyric:''}; });
     }
     try{ G.bars=DEMO.length; }catch(_){}
   }
@@ -59468,7 +59714,8 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     var mx=0, any=false;
     (G.tracks||[]).forEach(function(tk,i){ if(!tk||tk.drum) return; any=true; var e=_maxBarOf(i); if(e>mx)mx=e; });
     if(!any||mx===0){ (G.tracks||[]).forEach(function(tk,i){ if(!tk)return; var e=_maxBarOf(i); if(e>mx)mx=e; }); }
-    return Math.max(mx,1);
+    var _sb=(G.song&&G.song.songBars)||0;   // v27.431 — largo explícito (botón + / overflow lírica)
+    return Math.max(mx,_sb,1);
   }
   function _songRows(){
     var sp=G.song; if(!sp) return [];
@@ -59515,9 +59762,35 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
       _bindSongRowGestures(row, ti);   // gestos del CLIP (windowed)
       _bindLyricGestures(row, ti);     // gestos de la LÍRICA (empujador del mockup)
     });
+    _songAppendAddRow(el);             // v27.431 — botón + (agrega línea a la canción)
     _renderSongLyrics();
     _fitPartLabs();
   }
+  // v27.431 — Botón + de SONG: agrega UNA línea a la canción creciendo el largo
+  // explícito (songBars). Mismo rol que el + lateral en LOOP, pero acá suma una
+  // LÍNEA en vez de un instrumento. Desbloquea crear clips en la línea nueva
+  // (el tope de _songClipTap es _songLen()*bpb, que ahora crece). Reusa la fila
+  // .track-row-empty / .tlbl-empty existente, sin visual nuevo.
+  function _songAddLine(){
+    if(!G.song) return;
+    var lb=(G.song.lineBars)||8;
+    if(typeof undoPush==='function') undoPush('Línea agregada');
+    var _lines=Math.ceil(_songLen()/lb);    // líneas enteras actuales
+    G.song.songBars=(_lines+1)*lb;           // +1 línea entera (usable de punta a punta)
+    buildTracks();
+    if(typeof renderAll==='function') renderAll();
+  }
+  function _songAppendAddRow(el){
+    if(!el) return;
+    var addRow=document.createElement('div');
+    addRow.className='track-row track-row-empty song-add-row';
+    addRow.innerHTML='<div class="tlbl tlbl-v2 tlbl-empty"><span class="tlbl-empty-add" aria-hidden="true">+</span></div>'+
+      '<div class="ttl ttl-empty" aria-label="Agregar línea"><div class="ttl-inner ttl-empty-inner"></div></div>';
+    var _add=addRow.querySelector('.tlbl-empty');
+    if(_add){ _add.addEventListener('click',function(e){ e.stopPropagation(); _songAddLine(); }); }
+    el.appendChild(addRow);
+  }
+  window._songAddLine=_songAddLine;
   function _fitPartLab(el){
     if(!el)return; var col=el.closest('.sl-col')||el.parentNode; if(!col)return;
     var maxH=col.clientHeight-12, maxW=(col.clientWidth||34)-2; if(maxH<10)return;     // 6px arriba + 6px abajo
@@ -59527,73 +59800,183 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
   function _fitPartLabs(){ requestAnimationFrame(function(){ [].slice.call(document.querySelectorAll('html.app-songs .song-part-lab')).forEach(_fitPartLab); }); }
   window._fitPartLab=_fitPartLab; window._fitPartLabs=_fitPartLabs;
 
-  // ════════ LÍRICA por línea — motor del mockup portado (within-line) ════════
-  var LYR={};            // base(bar) → [{t,gap,bold,hl,_el,_w,_x}]
-  var LSEL=null;         // {base, idx}
-  var LMINGAP=5, LPAD=7, _lyrSeeded=false;
-  function _lyrSpace(){ try{var c=document.createElement('canvas').getContext('2d');c.font='500 19px "Cormorant Garamond",serif';return Math.max(3,Math.round(c.measureText('a a').width-c.measureText('aa').width));}catch(_){return 5;} }
-  function _lyrGet(base){ return LYR[base]||(LYR[base]=[]); }
+  // ════════ LÍRICA — EDITOR DE TEXTO (modelo "hoja de Word") v27.434 ════════
+  // La letra es UN string: G.song.lyrics (el "documento"), repartido por word-wrap
+  // entre las líneas (cada línea = ventana de compases). Formato POR CARÁCTER en
+  // arrays paralelos lyricB (negrita) / lyricH (color) que se editan en espejo con
+  // el doc → mapeo trivial. Strips .song-lyrics contenteditable: teclado nativo en
+  // ESPACIO VACÍO (tap → cursor). Tap SOBRE una palabra → la SELECCIONA (resalte,
+  // sin teclado) + barra (negrita/color/eliminar); con la palabra agarrada, arrastrar
+  // EMPUJA (derecha = espacios/espaciadora, izquierda = backspace de blancos, sin
+  // fusionar). Somos dueños del string, los flags y el cursor (offset global) →
+  // 'beforeinput' controlado, el DOM nunca se desincroniza.
+  var LPAD=7, _lyrReflowing=false, _lyrCanvas=null, _pst=null, _lyrSel=null, _lyrDragging=false;
+  window._lyrLines=[];
+  function _lyrMeasureCtx(){ if(!_lyrCanvas) _lyrCanvas=document.createElement('canvas'); var c=_lyrCanvas.getContext('2d'); c.font='500 18px "Cormorant Garamond",serif'; return c; }
+  function _lyrDoc(){ return (G.song && typeof G.song.lyrics==='string') ? G.song.lyrics : ''; }
+  function _lyrSetDoc(s){ if(G.song) G.song.lyrics=String(s==null?'':s); }
   function _lyrSeed(){
-    if(_lyrSeeded) return; _lyrSeeded=true;
-    var demo="Hoy vuelvo a la vieja casa azul donde aprendí a cantar";
-    LYR[0]=demo.split(/\s+/).map(function(t){return {t:t,gap:LMINGAP,bold:false,hl:false};});
+    if(!G.song) return;
+    if(typeof G.song.lyrics==='string') return;            // ya hay documento (incl. '')
+    var full=''; try{ full=DEMO.map(function(b){return b.l||'';}).filter(Boolean).join(' '); }catch(_){}
+    if(!full) full="Hoy vuelvo a la vieja casa azul donde aprend\u00ed a cantar";
+    _lyrSetDoc(full);
   }
-  function _renderSongLyrics(){
-    LMINGAP=_lyrSpace(); _lyrSeed();
-    (window._songWins||[]).forEach(function(r,ti){
-      var host=document.getElementById('lyr-'+ti); if(!host) return;
-      [].slice.call(host.querySelectorAll('.lyr-word,.lyr-edge')).forEach(function(e){e.remove();});
-      var edge=document.createElement('div'); edge.className='lyr-edge'; host.appendChild(edge);
-      var arr=LYR[r.base]||[];
-      arr.forEach(function(wd){ var el=document.createElement('div');
-        el.className='lyr-word'+(wd.bold?' bold':'')+(wd.hl?' hl':'');
-        el.textContent=wd.t; host.appendChild(el); wd._el=el; wd._w=el.offsetWidth; });
-      _lyrLayout(r.base, ti);
-    });
-    _lyrBarUpdate();
+  function _lyrEnsureFlags(){
+    if(!G.song) return; var n=_lyrDoc().length;
+    if(!Array.isArray(G.song.lyricB)) G.song.lyricB=[];
+    if(!Array.isArray(G.song.lyricH)) G.song.lyricH=[];
+    var B=G.song.lyricB, H=G.song.lyricH;
+    while(B.length<n) B.push(false); if(B.length>n) B.length=n;
+    while(H.length<n) H.push(false); if(H.length>n) H.length=n;
   }
-  function _lyrLayout(base, ti){
-    var arr=LYR[base]||[]; var host=document.getElementById('lyr-'+ti); if(!host) return;
-    var x=LPAD;
-    arr.forEach(function(wd,i){ var start=x+(i===0?0:wd.gap); wd._x=start; x=start+(wd._w||0); });
-    arr.forEach(function(wd,i){ if(!wd._el) return;
-      wd._el.style.left=wd._x+'px';
-      wd._el.classList.toggle('sel', !!(LSEL&&LSEL.base===base&&LSEL.idx===i)); });
-    var edge=host.querySelector('.lyr-edge');
-    if(edge){ if(LSEL&&LSEL.base===base&&arr[LSEL.idx]){ edge.style.left=arr[LSEL.idx]._x+'px'; edge.classList.add('on'); } else edge.classList.remove('on'); }
+  function _lyrSpaceW(){ return Math.max(3, _lyrMeasureCtx().measureText(' ').width); }
+  function _lyrLineW(ti){ var w=(window._songWins||[])[ti]; return w ? Math.max(20, w.bars*G.bpb*BW - LPAD*2) : 0; }
+  // Word-wrap que PRESERVA el string (offsets aditivos → mapear el cursor es trivial).
+  function _lyrWrap(doc, widths){
+    var ctx=_lyrMeasureCtx(), lines=[], i=0, L=doc.length, li=0;
+    while(i<L){
+      var W=widths[Math.min(li,widths.length-1)]||widths[0]||200;
+      var lineStart=i, acc='';
+      while(i<L){
+        var m=/^(\s+|\S+)/.exec(doc.slice(i)); var tok=m[0]; var isWord=!/\s/.test(tok.charAt(0));
+        if(isWord && acc.length && ctx.measureText(acc+tok).width>W) break;
+        acc+=tok; i+=tok.length;
+      }
+      if(i===lineStart) i=Math.min(L,lineStart+1);
+      lines.push({text:doc.slice(lineStart,i), start:lineStart});
+      li++;
+    }
+    if(!lines.length) lines.push({text:'',start:0});
+    return lines;
   }
-  function _lyrMoveLeft(arr,i,amount){ var rem=amount,k=i; while(rem>0&&k>=0){ var mg=(k===0?0:LMINGAP); var red=arr[k].gap-mg; if(red>0){var take=Math.min(red,rem);arr[k].gap-=take;rem-=take;} if(rem<=0)break; k--; } }
-  function _bindLyricGestures(row, ti){
-    var host=row.querySelector('.song-lyrics'); if(!host) return;
-    var drag=null;
-    host.addEventListener('pointerdown', function(e){
-      e.stopPropagation();                                  // la lírica es su propia zona (no toca el clip)
-      var win=(window._songWins||[])[ti]; if(!win) return;
-      var wEl=e.target.closest('.lyr-word');
-      if(!wEl){ if(LSEL){ LSEL=null; _renderSongLyrics(); } return; }
-      var idx=[].slice.call(host.querySelectorAll('.lyr-word')).indexOf(wEl);
-      LSEL={base:win.base, idx:idx}; _lyrLayout(win.base, ti); _lyrBarUpdate();
-      drag={base:win.base, idx:idx, lastX:e.clientX};
-      try{host.setPointerCapture(e.pointerId);}catch(_){}
-      e.preventDefault();
-    });
-    host.addEventListener('pointermove', function(e){
-      if(!drag) return;
-      var win=(window._songWins||[])[ti]; if(!win) return;
-      var arr=LYR[drag.base]||[]; if(!arr[drag.idx]) return;
-      var dx=e.clientX-drag.lastX; drag.lastX=e.clientX; if(dx===0) return;
-      if(dx>0){
-        var lineW=win.bars*G.bpb*BW, occ=LPAD;
-        arr.forEach(function(wd,j){ occ+=(j===0?0:wd.gap)+(wd._w||0); });
-        dx=Math.min(dx, Math.max(0, lineW-LPAD-occ+LPAD)); // tope: cola no pasa el ancho de la línea
-        arr[drag.idx].gap+=dx;
-      } else { _lyrMoveLeft(arr, drag.idx, -dx); }
-      _lyrLayout(drag.base, ti); e.preventDefault();
-    });
-    host.addEventListener('pointerup', function(){ drag=null; });
-    host.addEventListener('pointercancel', function(){ drag=null; });
+  function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function _lyrLineHTML(text, ls){
+    var n=text.length, out='', i=0, B=(G.song&&G.song.lyricB)||[], H=(G.song&&G.song.lyricH)||[];
+    while(i<n){
+      var gp=ls+i, bold=!!B[gp], hl=!!H[gp], sel=!!(_lyrSel && gp>=_lyrSel.start && gp<_lyrSel.end);
+      var j=i+1;
+      while(j<n){ var gq=ls+j; if((!!B[gq])!==bold || (!!H[gq])!==hl || (!!(_lyrSel&&gq>=_lyrSel.start&&gq<_lyrSel.end))!==sel) break; j++; }
+      var chunk=_esc(text.slice(i,j)), st=[];
+      if(bold) st.push('font-weight:700');
+      if(hl) st.push('color:var(--acc)');
+      if(sel){ st.push('background:var(--ink)'); st.push('color:var(--bg)'); st.push('border-radius:4px'); }
+      out += st.length ? '<span style="'+st.join(';')+'">'+chunk+'</span>' : chunk;
+      i=j;
+    }
+    return out;
   }
-  // barra negra de palabra (eliminar/negrita/color/cerrar)
+  // ── helpers de offset/nodo (robustos ante spans de formato) ──
+  function _lyrHostOf(node){ while(node && node!==document.body){ if(node.classList && node.classList.contains('song-lyrics')) return node; node=node.parentNode; } return null; }
+  function _lyrTextNodes(host){ var out=[]; (function walk(n){ for(var c=n.firstChild;c;c=c.nextSibling){ if(c.nodeType===3) out.push(c); else if(c.nodeType===1) walk(c); } })(host); return out; }
+  function _lyrLocalOffset(host, node, off){
+    var tot=(host.textContent||'').length;
+    if(node===host) return Math.min(off>0?tot:0, tot);
+    var nodes=_lyrTextNodes(host), acc=0;
+    for(var i=0;i<nodes.length;i++){ if(nodes[i]===node) return acc+off; acc+=nodes[i].length; }
+    return Math.min(acc,tot);
+  }
+  function _lyrGlobalOffset(node, off){
+    var host=_lyrHostOf(node && node.nodeType===3 ? node.parentNode : node); if(!host) return null;
+    var start=parseInt(host.dataset.start||'0',10)||0, tot=(host.textContent||'').length;
+    return start+Math.max(0,Math.min(_lyrLocalOffset(host,node,off),tot));
+  }
+  function _lyrSelRange(){
+    var sel=document.getSelection(); if(!sel||sel.rangeCount===0) return null;
+    var a=_lyrGlobalOffset(sel.anchorNode, sel.anchorOffset);
+    var b=_lyrGlobalOffset(sel.focusNode, sel.focusOffset);
+    if(a==null||b==null) return null;
+    return {a:Math.min(a,b), b:Math.max(a,b)};
+  }
+  function _lyrCaretOffsetFromPoint(host, x, y){
+    var start=parseInt(host.dataset.start||'0',10)||0, tlen=(host.textContent||'').length, rng=null;
+    if(document.caretRangeFromPoint){ rng=document.caretRangeFromPoint(x,y); }
+    else if(document.caretPositionFromPoint){ var p=document.caretPositionFromPoint(x,y); if(p){ rng=document.createRange(); rng.setStart(p.offsetNode,p.offset); } }
+    if(!rng) return start+tlen;
+    var node=rng.startContainer; if(_lyrHostOf(node.nodeType===3?node.parentNode:node)!==host) return start+tlen;
+    return start+Math.max(0,Math.min(_lyrLocalOffset(host,node,rng.startOffset),tlen));
+  }
+  function _lyrWordAt(off){
+    var doc=_lyrDoc(), L=doc.length; if(!L) return null;
+    var i=Math.max(0,Math.min(off,L)); if(i>=L) i=L-1;
+    if(/\s/.test(doc.charAt(i))){
+      var k=i; while(k<L && /\s/.test(doc.charAt(k))) k++;
+      if(k<L) i=k; else { k=i; while(k>0 && /\s/.test(doc.charAt(k-1))) k--; if(k<=0) return null; i=k-1; }
+    }
+    if(i<0||i>=L||/\s/.test(doc.charAt(i))) return null;
+    var s=i, e=i; while(s>0 && !/\s/.test(doc.charAt(s-1))) s--; while(e<L && !/\s/.test(doc.charAt(e))) e++;
+    return {start:s, end:e};
+  }
+  function _lyrWordHere(off){
+    // Palabra SOLO si el toque cae sobre sus letras (off dentro/al borde de un no-espacio).
+    // Toque en espacio/hueco/vacío → null (= escribir, cursor nativo).
+    var doc=_lyrDoc(), L=doc.length; if(!L) return null;
+    var onChar = (off<L && !/\s/.test(doc.charAt(off))) ? off : ((off>0 && !/\s/.test(doc.charAt(off-1))) ? off-1 : -1);
+    if(onChar<0) return null;
+    var s=onChar, e=onChar; while(s>0 && !/\s/.test(doc.charAt(s-1))) s--; while(e<L && !/\s/.test(doc.charAt(e))) e++;
+    return {start:s, end:e};
+  }
+  function _lyrLeadingSpaces(wStart){ var doc=_lyrDoc(), k=wStart, n=0; while(k>0 && /\s/.test(doc.charAt(k-1))){ k--; n++; } return n; }
+  function _lyrMinLeading(wStart){ var doc=_lyrDoc(), k=wStart; while(k>0 && /\s/.test(doc.charAt(k-1))) k--; return k>0?1:0; }
+  // ── splice del documento + flags en espejo (única mutación) ──
+  function _lyrSpliceDoc(a,b,ins){
+    var doc=_lyrDoc(); ins=(ins==null?'':String(ins)); var L=ins.length;
+    a=Math.max(0,Math.min(a,doc.length)); b=Math.max(a,Math.min(b,doc.length));
+    _lyrEnsureFlags(); var B=G.song?G.song.lyricB:[], H=G.song?G.song.lyricH:[];
+    var inB=!!(B[a-1]), inH=!!(H[a-1]), fb=[], fh=[];
+    for(var k=0;k<L;k++){ fb.push(inB); fh.push(inH); }
+    if(G.song){ G.song.lyricB=B.slice(0,a).concat(fb,B.slice(b)); G.song.lyricH=H.slice(0,a).concat(fh,H.slice(b)); }
+    _lyrSetDoc(doc.slice(0,a)+ins+doc.slice(b));
+    return a+L;
+  }
+  function _lyrReplace(a,b,ins){ var caret=_lyrSpliceDoc(a,b,ins); _renderSongLyrics(); _lyrSetCaret(caret); }
+  function _lyrPushReplace(a,b,ins){ _lyrSpliceDoc(a,b,ins); _renderSongLyrics(); }   // sin mover cursor (no sube teclado)
+  function _lyrInsertAtSel(s){ var r=_lyrSelRange(); if(!r) return; _lyrReplace(r.a,r.b,s); }
+  function _lyrBeforeInput(e){
+    var t=e.inputType||''; e.preventDefault();
+    if(_lyrSel){ _lyrSel=null; _lyrHideBar(); }
+    var r=_lyrSelRange(); if(!r) return; var a=r.a, b=r.b, doc=_lyrDoc();
+    if(t.indexOf('insert')===0){
+      if(t==='insertParagraph'||t==='insertLineBreak') return;            // Enter ignorado
+      var d=e.data; if(d==null && e.dataTransfer){ try{ d=e.dataTransfer.getData('text/plain'); }catch(_){ d=''; } }
+      _lyrReplace(a,b,String(d==null?'':d).replace(/[\r\n]+/g,' '));
+    } else if(t.indexOf('delete')===0){
+      if(b>a) _lyrReplace(a,b,'');
+      else if(t==='deleteContentForward'){ if(a<doc.length) _lyrReplace(a,a+1,''); }
+      else { if(a>0) _lyrReplace(a-1,a,''); }
+    }
+  }
+  function _lyrSetCaret(off){
+    var lines=window._lyrLines||[]; if(!lines.length) return;
+    var ti=0; for(var k=0;k<lines.length;k++){ if(off>=lines[k].start) ti=k; }
+    var host=document.getElementById('lyr-'+ti); if(!host) return;
+    var local=Math.max(0,Math.min(off-lines[ti].start,(host.textContent||'').length));
+    try{
+      host.focus({preventScroll:true});
+      var nodes=_lyrTextNodes(host); if(!nodes.length){ var tn=document.createTextNode(''); host.appendChild(tn); nodes=[tn]; }
+      var acc=0, target=null, toff=0;
+      for(var i=0;i<nodes.length;i++){ if(local<=acc+nodes[i].length){ target=nodes[i]; toff=local-acc; break; } acc+=nodes[i].length; }
+      if(!target){ target=nodes[nodes.length-1]; toff=target.length; }
+      var sel=document.getSelection(), rng=document.createRange(); rng.setStart(target,Math.min(toff,target.length)); rng.collapse(true);
+      sel.removeAllRanges(); sel.addRange(rng);
+    }catch(_){}
+  }
+  // ── selección de palabra (resalte sin teclado) + barra ──
+  function _lyrBlurActive(){ try{ var ae=document.activeElement; if(ae && ae.classList && ae.classList.contains('song-lyrics')) ae.blur(); }catch(_){} }
+  function _lyrSelectWord(w){ _lyrSel={start:w.start, end:w.end}; _lyrBlurActive(); _renderSongLyrics(); _lyrBarUpdate(); }
+  function _lyrToggleFmt(which){
+    if(!_lyrSel || !G.song) return; _lyrEnsureFlags();
+    var arr = which==='bold' ? G.song.lyricB : G.song.lyricH;
+    var s=_lyrSel.start, e=_lyrSel.end, all=(e>s);
+    for(var i=s;i<e;i++){ if(!arr[i]){ all=false; break; } }
+    for(var j=s;j<e;j++){ arr[j]=!all; }
+    _renderSongLyrics(); _lyrBarUpdate();
+  }
+  function _lyrDeleteSelWord(){
+    if(!_lyrSel) return; var s=_lyrSel.start, e=_lyrSel.end, doc=_lyrDoc();
+    if(s>0 && /\s/.test(doc.charAt(s-1))) s--; else if(e<doc.length && /\s/.test(doc.charAt(e))) e++;   // limpiar un blanco adyacente
+    _lyrSpliceDoc(s,e,''); _lyrSel=null; _lyrHideBar(); _renderSongLyrics();
+  }
   function _lyrBar(){
     var b=document.getElementById('lyr-wordbar'); if(b) return b;
     b=document.createElement('div'); b.id='lyr-wordbar'; b.className='wordbar-lyr';
@@ -59604,29 +59987,119 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
       '<span class="sep"></span>'+
       '<button data-a="close" title="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
     document.body.appendChild(b);
+    b.addEventListener('pointerdown', function(e){ e.stopPropagation(); });   // no perder la selección
     b.addEventListener('click', function(e){
-      var btn=e.target.closest('button'); if(!btn||!LSEL) return;
-      var arr=LYR[LSEL.base]||[]; var wd=arr[LSEL.idx];
-      var a=btn.dataset.a;
-      if(a==='del'){ if(wd){ arr.splice(LSEL.idx,1); } LSEL=null; }
-      else if(a==='bold'){ if(wd) wd.bold=!wd.bold; }
-      else if(a==='color'){ if(wd) wd.hl=!wd.hl; }
-      else if(a==='close'){ LSEL=null; }
-      _renderSongLyrics();
+      var btn=e.target.closest('button'); if(!btn) return; var a=btn.dataset.a;
+      if(a==='del') _lyrDeleteSelWord();
+      else if(a==='bold') _lyrToggleFmt('bold');
+      else if(a==='color') _lyrToggleFmt('hl');
+      else if(a==='close'){ _lyrSel=null; _lyrHideBar(); _renderSongLyrics(); }
     });
     return b;
   }
   function _lyrBarUpdate(){
-    var b=_lyrBar(); var on=!!LSEL && !!(LYR[LSEL.base]&&LYR[LSEL.base][LSEL.idx]);
-    b.classList.toggle('on', on);
-    if(on){ var wd=LYR[LSEL.base][LSEL.idx];
-      b.querySelector('[data-a="bold"]').classList.toggle('act', !!wd.bold);
-      b.querySelector('[data-a="color"]').classList.toggle('act', !!wd.hl); }
+    var b=_lyrBar(), on=!!_lyrSel; b.classList.toggle('on', on);
+    if(on && G.song){ _lyrEnsureFlags(); var s=_lyrSel.start, e=_lyrSel.end, allB=(e>s), allH=(e>s);
+      for(var i=s;i<e;i++){ if(!G.song.lyricB[i]) allB=false; if(!G.song.lyricH[i]) allH=false; }
+      var bb=b.querySelector('[data-a="bold"]'), cc=b.querySelector('[data-a="color"]');
+      if(bb) bb.classList.toggle('act', allB); if(cc) cc.classList.toggle('act', allH);
+    }
   }
-  // deselect al tocar fuera de la lírica
+  function _lyrHideBar(){ var b=document.getElementById('lyr-wordbar'); if(b) b.classList.remove('on'); }
+  // ── gestos por línea: tap=selecciona palabra / cursor en vacío · drag=empuja ──
+  function _lyrPrepHost(host){
+    if(host._lyrBound) return; host._lyrBound=true;
+    host.setAttribute('contenteditable','true'); host.setAttribute('spellcheck','false');
+    try{ host.setAttribute('inputmode','text'); host.setAttribute('enterkeyhint','done'); }catch(_){}
+    host.style.userSelect='text'; host.style.webkitUserSelect='text';
+    host.style.touchAction='pan-y'; host.style.cursor='text'; host.style.whiteSpace='pre'; host.style.outline='none'; host.style.padding='0 '+LPAD+'px';   // pan-y: scroll vertical OK, horizontal lo maneja el empujador (sin robo del navegador)
+    host.style.fontFamily='"Cormorant Garamond",serif'; host.style.fontSize='18px'; host.style.fontWeight='500';   // = fuente medida → el wrap coincide con lo dibujado (no corta)
+    try{ var hh=parseInt(getComputedStyle(host).height,10); if(hh) host.style.lineHeight=hh+'px'; }catch(_){}
+    host.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); } });
+    host.addEventListener('beforeinput', _lyrBeforeInput);
+    host.addEventListener('paste', function(e){ var dt=(e.clipboardData||window.clipboardData); if(!dt) return; var s=dt.getData('text/plain'); if(s==null) return; e.preventDefault(); _lyrInsertAtSel(String(s).replace(/[\r\n]+/g,' ')); });
+    host.addEventListener('pointerdown', function(e){
+      e.stopPropagation(); if(e.button!=null && e.button!==0) return;
+      var off=_lyrCaretOffsetFromPoint(host, e.clientX, e.clientY);
+      var word=_lyrWordHere(off);
+      _pst={x:e.clientX, y:e.clientY, pid:e.pointerId, host:host, mode:'idle', word:word, tapOff:off};
+      if(word){ e.preventDefault(); try{ host.setPointerCapture(e.pointerId); }catch(_){} }   // SOBRE palabra → bloquear foco + capturar puntero (seleccionar/empujar fluido, sin teclado)
+      // en VACÍO → NO preventDefault: el contenteditable toma foco + cursor nativo (teclado fiable en TODAS las líneas)
+    });
+    host.addEventListener('pointermove', function(e){
+      if(!_pst || _pst.pid!==e.pointerId || _pst.host!==host) return;
+      var dx=e.clientX-_pst.x, dy=e.clientY-_pst.y;
+      if(_pst.mode==='idle'){
+        if(Math.abs(dx)>6 && Math.abs(dx)>Math.abs(dy) && _pst.word){
+          _pst.mode='push'; _pst.wStart=_pst.word.start; _pst.wEnd=_pst.word.end;
+          _pst.baseLeading=_lyrLeadingSpaces(_pst.wStart); _pst.minLeading=_lyrMinLeading(_pst.wStart);
+          _pst.applied=0; _pst.spaceW=_lyrSpaceW(); _lyrBlurActive();
+          _lyrSel=null; _lyrDragging=true;                 // sin resalte durante el drag → render no destructivo
+          try{ host.setPointerCapture(e.pointerId); }catch(_){}
+        } else if(Math.abs(dy)>10 && Math.abs(dy)>Math.abs(dx)){ _pst.mode='ignore'; }
+      }
+      if(_pst.mode==='push'){
+        e.preventDefault();
+        var target=Math.round(dx/_pst.spaceW), minT=-(_pst.baseLeading-_pst.minLeading); if(target<minT) target=minT;
+        var delta=target-_pst.applied;
+        if(delta>0){ _lyrPushReplace(_pst.wStart, _pst.wStart, new Array(delta+1).join(' ')); _pst.wStart+=delta; _pst.wEnd+=delta; }
+        else if(delta<0){ var rm=-delta; _lyrPushReplace(_pst.wStart-rm, _pst.wStart, ''); _pst.wStart-=rm; _pst.wEnd-=rm; }
+        _pst.applied=target;
+      }
+    });
+    host.addEventListener('pointerup', function(){
+      if(!_pst || _pst.host!==host){ _pst=null; return; }
+      if(_pst.mode==='idle'){
+        if(_pst.word){ _lyrSelectWord(_pst.word); }
+        else if(_lyrSel){ _lyrSel=null; _lyrHideBar(); _renderSongLyrics(); }
+      } else if(_pst.mode==='push'){
+        _lyrDragging=false; _lyrSel={start:_pst.wStart, end:_pst.wEnd};
+        _renderSongLyrics(); _lyrBarUpdate();                              // al soltar: resalte de la palabra empujada + barra
+      }
+      _pst=null;
+    });
+    host.addEventListener('pointercancel', function(){ if(_lyrDragging){ _lyrDragging=false; _renderSongLyrics(); } _pst=null; });
+  }
+  function _renderSongLyrics(){
+    _lyrSeed(); _lyrEnsureFlags();
+    var wins=window._songWins||[]; if(!wins.length){ window._lyrLines=[]; return; }
+    var widths=wins.map(function(_w,ti){ return _lyrLineW(ti); });
+    var doc=_lyrDoc();
+    var lines=_lyrWrap(doc, widths);
+    var hasParts=!!(G.song && G.song.parts && G.song.parts.length);
+    var pushing=!!(_pst && _pst.mode==='push');
+    if(!hasParts && lines.length>wins.length && !_lyrReflowing && !pushing && G.song){
+      var lb=(G.song.lineBars)||8;
+      G.song.songBars=Math.max((G.song.songBars||0), lines.length*lb);
+      _lyrReflowing=true;
+      try{ buildTracks(); if(typeof renderAll==='function') renderAll(); } finally{ _lyrReflowing=false; }
+      return;
+    }
+    wins.forEach(function(_w,ti){
+      var host=document.getElementById('lyr-'+ti); if(!host) return;
+      _lyrPrepHost(host);
+      var ln=lines[ti]||{text:'',start:doc.length};
+      if(_lyrDragging){
+        // mutación NO destructiva: preserva el nodo de texto bajo el dedo → el navegador NO cancela el puntero (empuje fluido)
+        var tn=host.firstChild;
+        if(host.childNodes.length===1 && tn && tn.nodeType===3){ if(tn.nodeValue!==ln.text) tn.nodeValue=ln.text; }
+        else host.textContent=ln.text;
+      } else {
+        var html=_lyrLineHTML(ln.text, ln.start);
+        if(host.innerHTML!==html) host.innerHTML=html;
+      }
+      host.dataset.start=ln.start;
+    });
+    window._lyrLines=lines;
+    _lyrBarUpdate();
+  }
+  // compat: _buildSongRows sigue llamando _bindLyricGestures(row,ti)
+  function _bindLyricGestures(row, ti){ var host=row.querySelector('.song-lyrics'); if(host) _lyrPrepHost(host); }
+  // tocar fuera de la lírica/barra → limpiar selección
   document.addEventListener('pointerdown', function(e){
     if(window.APP_MODE!=='songs') return;
-    if(!e.target.closest('.song-lyrics') && !e.target.closest('.wordbar-lyr')){ if(LSEL){ LSEL=null; _renderSongLyrics(); } }
+    if(e.target && e.target.closest && (e.target.closest('.song-lyrics')||e.target.closest('.wordbar-lyr'))) return;
+    if(_lyrSel){ _lyrSel=null; _lyrHideBar(); if(typeof _renderSongLyrics==='function') _renderSongLyrics(); }
   });
   window._renderSongLyrics=_renderSongLyrics;
   // ── GESTOS SONG (windowed) — reusa las MISMAS funciones reales del LOOP,
@@ -59857,17 +60330,52 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     bar.style.display='';
     _renderInstBar();
   }
+  // v27.429 — Familia (en español, mayúscula) de un track, derivada de su inst.
+  // Cualquier instrumento futuro cae acá automáticamente vía su key.
+  function _famLabelOf(tk){
+    if(!tk) return 'INST';
+    if(tk.drum || tk.inst==='drums') return 'BATER\u00cdA';
+    var k=(tk.inst||'').toLowerCase();
+    if(k.indexOf('salamander')>=0 || k.indexOf('piano')>=0) return 'PIANO';
+    if(k.indexOf('bass')>=0 || k.indexOf('bajo')>=0) return 'BAJO';
+    if(k.indexOf('nylon')>=0 || k.indexOf('strat')>=0 || k.indexOf('gtr')>=0 || k.indexOf('guitar')>=0) return 'GUITARRA';
+    if(k.indexOf('string')>=0 || k.indexOf('cuerda')>=0 || k.indexOf('cello')>=0 || k.indexOf('ensemble')>=0) return 'CUERDAS';
+    return (tk.n||'INST').toUpperCase();
+  }
+  // v27.429 — Labels del wheel: una entrada por track del loop activo.
+  // Numera SOLO cuando una familia aparece >1 vez (PIANO 1 / PIANO 2 / ...).
+  function _instBarLabels(){
+    var tracks=G.tracks||[];
+    var fams=tracks.map(_famLabelOf);
+    var counts={}; fams.forEach(function(f){ counts[f]=(counts[f]||0)+1; });
+    var seen={};
+    return tracks.map(function(tk,i){
+      var f=fams[i];
+      if(counts[f]>1){ seen[f]=(seen[f]||0)+1; return f+' '+seen[f]; }
+      return f;
+    });
+  }
   function _renderInstBar(){
     var bar=document.getElementById('os-instbar'); if(!bar||!G.song) return;
-    var labels=['Piano','Bajo','Cuerdas','Bater\u00eda'];
-    var cur=labels[G.song.instIdx]||('Inst '+(G.song.instIdx+1));
-    var pages=(G.tracks||[]).length||4;
-    var html='<span class="os-ib-cur">'+cur+'</span><span class="os-ib-pg">p\u00e1gina '+((G.song.instIdx||0)+1)+' / '+pages+'</span>';
-    (G.tracks||[]).forEach(function(tk,i){ html+='<span class="os-ib-tab'+(i===G.song.instIdx?' on':'')+'" data-i="'+i+'">'+(labels[i]||('Inst '+(i+1)))+'</span>'; });
-    html+='<span class="os-ib-bpl">compases/l\u00ednea:</span>';
+    var labels=_instBarLabels();
+    var N=labels.length||1;
+    var idx=Math.max(0, Math.min(G.song.instIdx||0, N-1));
+    G.song.instIdx=idx;
+    var cur=labels[idx]||('INST '+(idx+1));
+    var triL='<svg viewBox="0 0 11 13" width="11" height="13" aria-hidden="true"><polygon points="10,0 10,13 1,6.5" fill="var(--acc)" stroke="none"/></svg>';
+    var triR='<svg viewBox="0 0 11 13" width="11" height="13" aria-hidden="true"><polygon points="1,0 1,13 10,6.5" fill="var(--acc)" stroke="none"/></svg>';
+    var html='<span class="os-ib-wheel">'
+      +'<span class="os-ib-prev" role="button" tabindex="0" aria-label="Instrumento anterior">'+triL+'</span>'
+      +'<span class="os-ib-cur">'+cur+'</span>'
+      +'<span class="os-ib-next" role="button" tabindex="0" aria-label="Instrumento siguiente">'+triR+'</span>'
+      +'</span>';
+    html+='<span class="os-ib-bars">';
     [4,8,12,16].forEach(function(m){ html+='<span class="os-ib-m'+((G.song.lineBars||8)===m?' on':'')+'" data-m="'+m+'">'+m+'</span>'; });
+    html+='</span>';
     bar.innerHTML=html;
-    bar.querySelectorAll('.os-ib-tab').forEach(function(elx){ elx.addEventListener('click',function(){ G.song.instIdx=+elx.dataset.i; try{buildTracks();renderAll();}catch(_){ } _renderInstBar(); }); });
+    function rot(d){ var n=(G.tracks||[]).length||1; G.song.instIdx=(((G.song.instIdx||0)+d)%n+n)%n; try{buildTracks();renderAll();}catch(_){ } _renderInstBar(); }
+    var pv=bar.querySelector('.os-ib-prev'); if(pv) pv.addEventListener('click',function(){ rot(-1); });
+    var nx=bar.querySelector('.os-ib-next'); if(nx) nx.addEventListener('click',function(){ rot(1); });
     bar.querySelectorAll('.os-ib-m').forEach(function(elx){ elx.addEventListener('click',function(){ G.song.lineBars=+elx.dataset.m; try{buildTracks();renderAll();}catch(_){ } _renderInstBar(); }); });
   }
 
