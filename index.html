@@ -977,7 +977,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.453</title>
+<title>OnlyLoops · v27.454</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -9352,7 +9352,7 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.453</span>
+      <span class="title" id="dkv-title">Vista kit · v27.454</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -45875,6 +45875,7 @@ const PROGRESSION_STYLES_LIST = [
   { id:'demo',     label:'Demo', isDemo:true },           // v27.442 — solapa Demo (presets de demostración)
   { id:'v251',     label:'2-5-1', is251:true },           // v27.444 — solapa 2-5-1 (variantes ii–V–I)
   { id:'blues',    label:'Blues', isBlues:true },         // v27.453 — solapa Blues (20 formas, a la derecha de 2-5-1)
+  { id:'bossa',    label:'Bossa', isBossa:true },         // v27.454 — solapa Bossa (recursos armónicos del estilo)
   { id:'rock',     label:'Rock' },
   { id:'funk',     label:'Funk' },
   { id:'metal',    label:'Metal' },
@@ -55801,8 +55802,8 @@ console.log('[v17.4.3] TECH_FORMULAS cargado · 113 fórmulas · helpers + hooks
       <span id="sp-dd-title">Progresión</span>
       <!-- v27.449 — New/Add como switch doble (se ven los 2 valores, igual que MAYOR/MENOR) -->
       <div id="sp-dd-mode" class="sp-dd-fsw" data-pos="new" title="New = reemplaza · Add = pega a continuación">
-        <span class="sp-dd-fseg active" onclick="_spddSetMode('new')">New</span>
-        <span class="sp-dd-fseg" onclick="_spddSetMode('add')">Add</span>
+        <span class="sp-dd-fseg active" onclick="_spddSetAddMode('new')">New</span>
+        <span class="sp-dd-fseg" onclick="_spddSetAddMode('add')">Add</span>
         <div class="sp-dd-fknob"></div>
       </div>
       <!-- v27.448 — Botón Key: tonalidad con la que se carga la progresión (no toca la actual en modo Add) -->
@@ -56396,7 +56397,7 @@ function _openStyleDD() {
   root.style.display = 'block';
   window._spddPendingKey = null;   // v27.448 — la tonalidad de carga arranca = la actual
   if (typeof _spddUpdateKeyBtn === 'function') _spddUpdateKeyBtn();
-  if (typeof _spddSetMode === 'function') _spddSetMode(window._spddAddMode ? 'add' : 'new'); // v27.449 — sync switch
+  if (typeof _spddSetAddMode === 'function') _spddSetAddMode(window._spddAddMode ? 'add' : 'new'); // v27.449 — sync switch
   _spddRender();
   requestAnimationFrame(() => { root.classList.add('open'); });
   document.addEventListener('keydown', _spddEsc);
@@ -56413,7 +56414,7 @@ window._spddAddMode = false;     // false = New (reemplaza) · true = Add (pega 
 window._spddPendingKey = null;   // {idx, mode} tonalidad elegida para la carga; null = la actual
 window._spddKeyPending = false;  // flag: el wheel hwp está sirviendo al menú (no muta G)
 
-function _spddSetMode(mode) {
+function _spddSetAddMode(mode) {   // v27.454 — renombrada (colisión con legacy _spddSetMode que selecciona 'rock')
   window._spddAddMode = (mode === 'add');
   const sw = document.getElementById('sp-dd-mode');
   if (sw) {
@@ -56423,7 +56424,7 @@ function _spddSetMode(mode) {
     });
   }
 }
-window._spddSetMode = _spddSetMode;
+window._spddSetAddMode = _spddSetAddMode;
 
 function _spddPendKeyIdx() {
   return (window._spddPendingKey && typeof window._spddPendingKey.idx === 'number')
@@ -56506,6 +56507,7 @@ function _spddFindLoopById(loopId) {
   if (!loop && typeof DEMO_LOOPS !== 'undefined') loop = DEMO_LOOPS.find(l => l.id === loopId);
   if (!loop && typeof LOOPS_251 !== 'undefined') loop = LOOPS_251.find(l => l.id === loopId);
   if (!loop && typeof LOOPS_BLUES !== 'undefined') loop = LOOPS_BLUES.find(l => l.id === loopId);
+  if (!loop && typeof LOOPS_BOSSA !== 'undefined') loop = LOOPS_BOSSA.find(l => l.id === loopId);
   return loop || null;
 }
 
@@ -56628,7 +56630,7 @@ function _spddRender() {
   // v27.167 — Sync visibility del switch MAYOR/MENOR (oculto en Mis loops)
   const fsw = document.getElementById('sp-dd-filter');
   if (fsw) {
-    if (_spddActiveStyle === 'myloops' || _spddActiveStyle === 'demo' || _spddActiveStyle === 'v251' || _spddActiveStyle === 'blues') {
+    if (_spddActiveStyle === 'myloops' || _spddActiveStyle === 'demo' || _spddActiveStyle === 'v251' || _spddActiveStyle === 'blues' || _spddActiveStyle === 'bossa') {
       fsw.classList.add('hidden');
     } else {
       fsw.classList.remove('hidden');
@@ -56651,15 +56653,18 @@ function _spddRender() {
   }
 
   // ── Modo 2-5-1 (v27.444) — variantes teóricas del ii–V–I para audición ──
-  if (_spddActiveStyle === 'v251' || _spddActiveStyle === 'blues') {
-    const arr = (_spddActiveStyle === 'blues')
-      ? ((typeof LOOPS_BLUES !== 'undefined') ? LOOPS_BLUES : [])
-      : ((typeof LOOPS_251 !== 'undefined') ? LOOPS_251 : []);
-    const fallbackName = (_spddActiveStyle === 'blues') ? 'Blues' : '2-5-1';
+  if (_spddActiveStyle === 'v251' || _spddActiveStyle === 'blues' || _spddActiveStyle === 'bossa') {
+    const arr = (_spddActiveStyle === 'bossa')
+      ? ((typeof LOOPS_BOSSA !== 'undefined') ? LOOPS_BOSSA : [])
+      : (_spddActiveStyle === 'blues')
+        ? ((typeof LOOPS_BLUES !== 'undefined') ? LOOPS_BLUES : [])
+        : ((typeof LOOPS_251 !== 'undefined') ? LOOPS_251 : []);
+    const fallbackName = (_spddActiveStyle === 'bossa') ? 'Bossa' : (_spddActiveStyle === 'blues') ? 'Blues' : '2-5-1';
     grid.innerHTML = '<div class="sp-dd-mode-section major">' + arr.map(loop => {
       const safeLabel = (loop.label || fallbackName).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
       const chords = (loop.chords || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-      const tag = loop.cat === 'Ext' ? 'Extensi&oacute;n' : 'Rearmonizaci&oacute;n';
+      const tag = loop.tag ? loop.tag.replace(/'/g, '&#39;').replace(/"/g, '&quot;')
+                           : (loop.cat === 'Ext' ? 'Extensi&oacute;n' : 'Rearmonizaci&oacute;n');
       return (
         '<button class="sp-dd-card" data-loop-id="' + loop.id + '" onclick="_spddApplyUserLoop(\'' + loop.id + '\')">' +
           '<div class="sp-dd-cbody">' +
@@ -56815,7 +56820,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.453',
+    version: 'v27.454',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -86459,6 +86464,5021 @@ const LOOPS_BLUES = [
   }
 ];
 
+
+// ── LOOPS_BOSSA · v27.454 — solapa Bossa: recursos armónicos del estilo (4 compases) ──
+const LOOPS_BOSSA = [
+  {
+    "id": "bossa_01",
+    "label": "01 · Tónica 6/9 (I-vi-ii-V)",
+    "chords": "C6/9 · Am9 · Dm9 · G13",
+    "cat": "bossa",
+    "tag": "Tónica",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "C",
+            "s": "69",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "C",
+            "s": "69",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "C",
+            "s": "69",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_02",
+    "label": "02 · ii-V-I con tensiones",
+    "chords": "Dm9 · G13 · Cmaj9 · C6/9",
+    "cat": "bossa",
+    "tag": "Cadencia",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C",
+            "s": "69",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C",
+            "s": "69",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C",
+            "s": "69",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_03",
+    "label": "03 · ii-V-I con V alterado",
+    "chords": "Dm9 · G7alt · Cmaj9 · Cmaj9",
+    "cat": "bossa",
+    "tag": "Cadencia",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "G",
+            "s": "alt",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "G",
+            "s": "alt",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "G",
+            "s": "alt",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_04",
+    "label": "04 · Dominante sus4 → V",
+    "chords": "Dm9 · G7sus4 · G13 · Cmaj9",
+    "cat": "bossa",
+    "tag": "Cadencia",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "G",
+            "s": "7sus4",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "G",
+            "s": "7sus4",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "G",
+            "s": "7sus4",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_05",
+    "label": "05 · Turnaround iii-VI-ii-V",
+    "chords": "Em9 · A7♭9 · Dm9 · G13",
+    "cat": "bossa",
+    "tag": "Cadencia",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "E",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "A",
+            "s": "7b9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "E",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "A",
+            "s": "7b9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "E",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "A",
+            "s": "7b9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_06",
+    "label": "06 · Quintas con dom. secundarios",
+    "chords": "Cmaj9 · A7♭9 · D9 · G13",
+    "cat": "bossa",
+    "tag": "Cadencia",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "A",
+            "s": "7b9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "D",
+            "s": "9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "A",
+            "s": "7b9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "D",
+            "s": "9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "A",
+            "s": "7b9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "D",
+            "s": "9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_07",
+    "label": "07 · Disminuto de paso (I-♯I°-ii)",
+    "chords": "Cmaj9 · D♭°7 · Dm9 · G13",
+    "cat": "bossa",
+    "tag": "Cromático",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C#",
+            "s": "dim7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C#",
+            "s": "dim7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C#",
+            "s": "dim7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_08",
+    "label": "08 · Disminuto (IV-♯IV°-I)",
+    "chords": "Fmaj7 · F♯°7 · Cmaj9 · G13",
+    "cat": "bossa",
+    "tag": "Cromático",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "F",
+            "s": "maj7",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "F#",
+            "s": "dim7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "F",
+            "s": "maj7",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "F#",
+            "s": "dim7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "F",
+            "s": "maj7",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "F#",
+            "s": "dim7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "G",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_09",
+    "label": "09 · Sustitución tritonal (Ipanema)",
+    "chords": "Cmaj9 · D9 · Dm9 · D♭13",
+    "cat": "bossa",
+    "tag": "Cromático",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "D",
+            "s": "9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C#",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "D",
+            "s": "9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C#",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "D",
+            "s": "9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "D",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C#",
+            "s": "13",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_10",
+    "label": "10 · Subdominante menor (IV-iv-I)",
+    "chords": "Fmaj7 · Fm6 · Cmaj9 · C6/9",
+    "cat": "bossa",
+    "tag": "Modal",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "F",
+            "s": "maj7",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "F",
+            "s": "m6",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C",
+            "s": "69",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "F",
+            "s": "maj7",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "F",
+            "s": "m6",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C",
+            "s": "69",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "F",
+            "s": "maj7",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "F",
+            "s": "m6",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C",
+            "s": "69",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_11",
+    "label": "11 · Backdoor (I-iv-♭VII7-I)",
+    "chords": "Cmaj9 · Fm6 · B♭13 · Cmaj9",
+    "cat": "bossa",
+    "tag": "Modal",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "C",
+    "keyMode": "major",
+    "keyIdx": 0,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "F",
+            "s": "m6",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "Bb",
+            "s": "13",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "F",
+            "s": "m6",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "Bb",
+            "s": "13",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "F",
+            "s": "m6",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "Bb",
+            "s": "13",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "C",
+            "s": "maj9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_12",
+    "label": "12 · Línea cromática menor",
+    "chords": "Am · Am(maj7) · Am7 · Am6",
+    "cat": "bossa",
+    "tag": "Menor",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "Am",
+    "keyMode": "minor",
+    "keyIdx": 9,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "A",
+            "s": "minor",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "A",
+            "s": "mmaj7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "A",
+            "s": "m7",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "A",
+            "s": "m6",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "A",
+            "s": "minor",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "A",
+            "s": "mmaj7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "A",
+            "s": "m7",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "A",
+            "s": "m6",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "A",
+            "s": "minor",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "A",
+            "s": "mmaj7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "A",
+            "s": "m7",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "A",
+            "s": "m6",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_13",
+    "label": "13 · ii-V-i menor (m7♭5-V7♭9-i)",
+    "chords": "Bm7♭5 · E7♭9 · Am9 · Am6",
+    "cat": "bossa",
+    "tag": "Menor",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "Am",
+    "keyMode": "minor",
+    "keyIdx": 9,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "B",
+            "s": "m7b5",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "E",
+            "s": "7b9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "A",
+            "s": "m6",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "B",
+            "s": "m7b5",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "E",
+            "s": "7b9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "A",
+            "s": "m6",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "B",
+            "s": "m7b5",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "E",
+            "s": "7b9",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "A",
+            "s": "m6",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_14",
+    "label": "14 · Menor con ♭VI y subV",
+    "chords": "Am9 · Fmaj7 · B♭13 · Am6",
+    "cat": "bossa",
+    "tag": "Menor",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "Am",
+    "keyMode": "minor",
+    "keyIdx": 9,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "F",
+            "s": "maj7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "Bb",
+            "s": "13",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "A",
+            "s": "m6",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "F",
+            "s": "maj7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "Bb",
+            "s": "13",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "A",
+            "s": "m6",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "F",
+            "s": "maj7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "Bb",
+            "s": "13",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "A",
+            "s": "m6",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bossa_15",
+    "label": "15 · Turnaround menor (i-♯i°-ii-V)",
+    "chords": "Am9 · B♭°7 · Bm7♭5 · E7♭9",
+    "cat": "bossa",
+    "tag": "Menor",
+    "createdAt": "2026-06-05T00:00:00.000Z",
+    "builtin": true,
+    "isBossa": true,
+    "bpm": 130,
+    "key": "Am",
+    "keyMode": "minor",
+    "keyIdx": 9,
+    "bars": 4,
+    "bpb": 4,
+    "tracks": [
+      {
+        "n": "Piano",
+        "inst": "salamander",
+        "vol": 0.56,
+        "muted": false,
+        "drum": false,
+        "sound": "salamander",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "Bb",
+            "s": "dim7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "B",
+            "s": "m7b5",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          },
+          {
+            "r": "E",
+            "s": "7b9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "BALADA",
+            "v": "Imagine style"
+          }
+        ]
+      },
+      {
+        "n": "Bass",
+        "inst": "bass_acoustic",
+        "vol": 0.5,
+        "muted": false,
+        "drum": false,
+        "sound": "bass_acoustic",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "Bb",
+            "s": "dim7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "B",
+            "s": "m7b5",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          },
+          {
+            "r": "E",
+            "s": "7b9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "WALKING",
+            "v": "Carter"
+          }
+        ]
+      },
+      {
+        "n": "Strings",
+        "inst": "strings_ensemble",
+        "vol": 0.32,
+        "muted": false,
+        "drum": false,
+        "sound": "strings_ensemble",
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": true,
+        "clips": [
+          {
+            "r": "A",
+            "s": "m9",
+            "sb": 0,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "Bb",
+            "s": "dim7",
+            "sb": 4,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "B",
+            "s": "m7b5",
+            "sb": 8,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          },
+          {
+            "r": "E",
+            "s": "7b9",
+            "sb": 12,
+            "lb": 4,
+            "grade": "",
+            "tech": "HOLD",
+            "v": "Whole"
+          }
+        ]
+      },
+      {
+        "n": "Drums",
+        "inst": "drums",
+        "vol": 0.3,
+        "muted": false,
+        "drum": true,
+        "sound": null,
+        "defaultEstilo": null,
+        "defaultTech": null,
+        "defaultVar": null,
+        "chorus": false,
+        "delay": false,
+        "reverb": false,
+        "clips": [
+          {
+            "r": 0,
+            "s": "",
+            "sb": 0,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 1,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 2,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 3,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 4,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 5,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 6,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 7,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 8,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 9,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 10,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 11,
+            "lb": 1,
+            "tech": "PATCH_1",
+            "v": "8vos hat",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 12,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 13,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 14,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          },
+          {
+            "r": 0,
+            "s": "",
+            "sb": 15,
+            "lb": 1,
+            "tech": "PATCH_2",
+            "v": "Walking Moon",
+            "estilo": "rock"
+          }
+        ]
+      }
+    ]
+  }
+];
+
 function _loadUserLoops(){
   // v27.340 — Prepend BUILTIN_USER_LOOPS al inicio. Estos vienen embebidos
   // en el código y aparecen en cualquier dispositivo (iPhone/iPad/PC). Los
@@ -86548,6 +91568,7 @@ function _applyUserLoop(loopId){
   if (!loop && typeof DEMO_LOOPS !== 'undefined') loop = DEMO_LOOPS.find(l => l.id === loopId); // v27.442 — presets Demo
   if (!loop && typeof LOOPS_251 !== 'undefined') loop = LOOPS_251.find(l => l.id === loopId);   // v27.444 — variantes 2-5-1
   if (!loop && typeof LOOPS_BLUES !== 'undefined') loop = LOOPS_BLUES.find(l => l.id === loopId); // v27.453 — variantes Blues
+  if (!loop && typeof LOOPS_BOSSA !== 'undefined') loop = LOOPS_BOSSA.find(l => l.id === loopId); // v27.454 — variantes Bossa
   if (!loop){ if (typeof toast === 'function') toast('Loop no encontrado'); return false; }
 
   if (typeof undoPush === 'function') undoPush('Cargar: ' + loop.label);
