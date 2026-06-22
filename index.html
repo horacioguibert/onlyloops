@@ -97655,6 +97655,7 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
       '</div>'+
       '<div class="olm-opt" id="ol-mp3-chords"><div class="lbl"><b>Detecci\u00f3n de acordes</b><small>apagala para stems m\u00e1s r\u00e1pidos</small></div><div class="olm-sw"><i></i></div></div>'+
       '<div class="olm-opt" id="ol-mp3-melody"><div class="lbl"><b>Detecci\u00f3n Melod\u00eda</b><small>apagala para stems m\u00e1s r\u00e1pidos</small></div><div class="olm-sw"><i></i></div></div>'+
+      '<div class="olm-opt" id="ol-mp3-turbo"><div class="lbl"><b>Modo Turbo \u26a1</b><small>GPU m\u00e1s r\u00e1pida \u00b7 usa m\u00e1s recursos</small></div><div class="olm-sw"><i></i></div></div>'+
       '<div class="olm-range">desde <input id="ol-mp3-start" type="number" value="0" min="0"> dur <input id="ol-mp3-dur" type="number" value="60" min="1"><div class="chk" id="ol-mp3-full"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12.5l4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>completo</div></div>'+
       '<div class="olm-prog" id="ol-mp3-prog"><div class="pulse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h6l4 5M4 17h6l4-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 9.5L20 7m0 0l-2.6-.4M20 7l-.4 2.6M15.5 14.5L20 17m0 0l-.4-2.6M20 17l-2.6.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="ptxt" id="ol-mp3-ptxt">Eleg\u00ed las pistas y toc\u00e1 \u00abAnalizar &amp; Cargar\u00bb</div><div class="pbar"><i id="ol-mp3-pbar"></i></div></div>'+
       '<button id="ol-mp3-send">Analizar &amp; Cargar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h15M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
@@ -97675,6 +97676,8 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     if(chordsOpt) chordsOpt.onclick=function(){ chordsOpt.classList.toggle('on'); };
     var melOpt=document.getElementById('ol-mp3-melody');
     if(melOpt) melOpt.onclick=function(){ melOpt.classList.toggle('on'); };
+    var turboOpt=document.getElementById('ol-mp3-turbo');
+    if(turboOpt) turboOpt.onclick=function(){ turboOpt.classList.toggle('on'); };
     document.getElementById('ol-mp3-send').onclick=_go;
     document.getElementById('ol-mp3-detail').onclick=function(){ var l=document.getElementById('ol-mp3-log'); l.style.display=(l.style.display==='none'?'block':'none'); };
     _showPre(preFile);
@@ -97740,6 +97743,7 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     send.disabled=true;
     var withChords=true; var _co=document.getElementById('ol-mp3-chords'); if(_co) withChords=_co.classList.contains('on');
     var withMelody=true; var _mo=document.getElementById('ol-mp3-melody'); if(_mo) withMelody=_mo.classList.contains('on');
+    var turbo=false; var _to=document.getElementById('ol-mp3-turbo'); if(_to) turbo=_to.classList.contains('on');
     var cur=4, devShown='';
     if(pbar) pbar.style.width='4%';
     if(ptxt) ptxt.textContent='Iniciando el motor\u2026';
@@ -97755,6 +97759,7 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     fd.append('stems',(window.STEM_PICK||[]).join(','));
     fd.append('chords', withChords?'1':'0');
     fd.append('melody', withMelody?'1':'0');
+    fd.append('gpu', turbo?'A100':'A10G');
     try{ var rr=await fetch(API+'/analyze',{method:'POST',body:fd}); if(!rr.ok) throw 0; }
     catch(_){ if(ptxt) ptxt.textContent='\u2717 Motor local no disponible \u2014 abr\u00ed desde OnlySongs Studio.'; send.disabled=false; return; }
     if(window.__OL_POLL_AN){ clearInterval(window.__OL_POLL_AN); }
