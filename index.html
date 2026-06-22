@@ -97567,7 +97567,7 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     function photo(src,alt){ return '<div class="olm-th"><img src="'+(src||'')+'" alt="'+alt+'"></div>'; }
     var icoVoz='<div class="olm-th"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3M9 21h6" stroke-linecap="round"/></svg></div>';
     var icoOtros='<div class="olm-th big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 14v-4M9 18V6M12 15V9M15 18V6M20 14v-4"/></svg></div>';
-    function stem(k,nm,thumb){ return '<div class="olm-stem on" data-k="'+k+'">'+thumb+'<div class="olm-meta"><div class="olm-nm">'+nm+'</div><div class="olm-pi">1 pista</div></div><div class="olm-pick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5l4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>'; }
+    function stem(k,nm,thumb,lk){ return '<div class="olm-stem'+(lk?' locked':'')+'" data-k="'+k+'">'+thumb+'<div class="olm-meta"><div class="olm-nm">'+nm+'</div><div class="olm-pi">'+(lk?'PRO':'1 pista')+'</div></div><div class="olm-pick">'+(lk?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke-linecap="round"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5l4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>')+'</div></div>'; }
     ov.innerHTML=
     '<style>'+
     '#ol-mp3-ov *{box-sizing:border-box}'+
@@ -97602,6 +97602,10 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     '.olm-pick svg{width:13px;height:13px}'+
     '.olm-stem.on{border-color:var(--acc);background:var(--acc2)}'+
     '.olm-stem.on .olm-pick{background:var(--acc);border-color:var(--acc);color:#fff}'+
+    '.olm-stem.locked{opacity:.5;cursor:not-allowed}'+
+    '.olm-stem.locked:active{transform:none}'+
+    '.olm-stem.locked .olm-pick{color:var(--ink3);border-color:var(--rule2);background:transparent}'+
+    '.olm-stem.locked .olm-pi{color:var(--acc);font-weight:600;letter-spacing:.6px}'+
     '.olm-range{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--rule2);border-radius:11px;padding:10px 12px;margin-bottom:13px;font-family:"DM Mono",monospace;font-size:13px;color:var(--ink2);flex-wrap:wrap}'+
     '.olm-range input[type=number]{width:52px;background:var(--card);border:1px solid var(--rule2);border-radius:7px;padding:5px 7px;font:inherit;color:var(--ink);text-align:center}'+
     '.olm-range input:disabled{opacity:.4}'+
@@ -97643,15 +97647,15 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
       '<div class="olm-sep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h6l4 5M4 17h6l4-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 9.5L20 7m0 0l-2.6-.4M20 7l-.4 2.6M15.5 14.5L20 17m0 0l-.4-2.6M20 17l-2.6.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="t">Separaci\u00f3n de pistas</span></div>'+
       '<div class="olm-grid" id="ol-mp3-grid">'+
         stem('vocals','Voces',icoVoz)+
-        stem('guitar','Cuerdas',photo(II.strings_ensemble,'Cuerdas'))+
-        stem('piano','Piano',photo(II.piano,'Piano'))+
         stem('drums','Bater\u00eda',photo(II.drums,'Bater\u00eda'))+
         stem('bass','Bajo',photo(II.bass,'Bajo'))+
         stem('other','Otros',icoOtros)+
+        stem('piano','Piano',photo(II.piano,'Piano'),1)+
+        stem('guitar','Cuerdas',photo(II.strings_ensemble,'Cuerdas'),1)+
       '</div>'+
-      '<div class="olm-opt on" id="ol-mp3-chords"><div class="lbl"><b>Detecci\u00f3n de acordes</b><small>apagala para stems m\u00e1s r\u00e1pidos</small></div><div class="olm-sw"><i></i></div></div>'+
-      '<div class="olm-opt on" id="ol-mp3-melody"><div class="lbl"><b>Detecci\u00f3n Melod\u00eda</b><small>apagala para stems m\u00e1s r\u00e1pidos</small></div><div class="olm-sw"><i></i></div></div>'+
-      '<div class="olm-range">desde <input id="ol-mp3-start" type="number" value="0" min="0"> dur <input id="ol-mp3-dur" type="number" value="30" min="1"><div class="chk" id="ol-mp3-full"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12.5l4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>completo</div></div>'+
+      '<div class="olm-opt" id="ol-mp3-chords"><div class="lbl"><b>Detecci\u00f3n de acordes</b><small>apagala para stems m\u00e1s r\u00e1pidos</small></div><div class="olm-sw"><i></i></div></div>'+
+      '<div class="olm-opt" id="ol-mp3-melody"><div class="lbl"><b>Detecci\u00f3n Melod\u00eda</b><small>apagala para stems m\u00e1s r\u00e1pidos</small></div><div class="olm-sw"><i></i></div></div>'+
+      '<div class="olm-range">desde <input id="ol-mp3-start" type="number" value="0" min="0"> dur <input id="ol-mp3-dur" type="number" value="60" min="1"><div class="chk" id="ol-mp3-full"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12.5l4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>completo</div></div>'+
       '<div class="olm-prog" id="ol-mp3-prog"><div class="pulse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h6l4 5M4 17h6l4-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 9.5L20 7m0 0l-2.6-.4M20 7l-.4 2.6M15.5 14.5L20 17m0 0l-.4-2.6M20 17l-2.6.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="ptxt" id="ol-mp3-ptxt">Eleg\u00ed las pistas y toc\u00e1 \u00abAnalizar &amp; Cargar\u00bb</div><div class="pbar"><i id="ol-mp3-pbar"></i></div></div>'+
       '<button id="ol-mp3-send">Analizar &amp; Cargar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h15M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
       '<div class="olm-detail" id="ol-mp3-detail">ver detalle t\u00e9cnico</div>'+
@@ -97662,7 +97666,7 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     document.getElementById('ol-mp3-x').onclick=function(){ ov.style.display='none'; };
     document.getElementById('ol-mp3-drop').onclick=function(){ document.getElementById('ol-mp3-file').click(); };
     document.getElementById('ol-mp3-file').onchange=function(){ var f=this.files[0]; if(f){ ST.pendingFile=f; _showPre(f); } };
-    ov.querySelectorAll('.olm-stem').forEach(function(s){ s.addEventListener('click',function(){ s.classList.toggle('on'); _syncPick(); }); });
+    ov.querySelectorAll('.olm-stem').forEach(function(s){ s.addEventListener('click',function(){ if(s.classList.contains('locked')) return; s.classList.toggle('on'); _syncPick(); }); });
     ['vocals','drums','bass','other'].forEach(function(k){ var e=ov.querySelector('.olm-stem[data-k="'+k+'"]'); if(e) e.classList.add('on'); });
     _syncPick();
     var full=document.getElementById('ol-mp3-full');
