@@ -971,7 +971,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.638</title>
+<title>OnlyLoops · v27.639</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -5360,6 +5360,18 @@ body.landscape-mode #track-sheet .s-body {
   background: rgba(0,0,0,.04) !important;
 }
 
+/* v27.639 — JERARQUÍA DE CAPAS (confirmada en vivo con Horacio).
+   Tres niveles bien apilados:
+     · menús/overlays (Config, Mixer, Instrumentos, Acordes) → z:100+  (INTACTOS, no se tocan)
+     · sidebar + labels de tracks y de stems                 → z:50   (tapan el contenido, quedan bajo los menús)
+     · clips + waveforms de stems                            → z:auto
+   Antes el sidebar estaba en z:5/30 y los clips de batería + los waveforms de
+   stems se montaban encima al scrollear. El segundo selector devuelve fondo
+   SÓLIDO al label de stems aunque la fila esté muteada (la regla :has de arriba
+   lo dejaba casi transparente y el waveform se veía a través). */
+.tlbl, .tlbl-song, .olstem-sb { z-index: 50 !important; }
+.track-row:has(.tlbl-mute.muted) .olstem-sb { background: var(--bg2) !important; }
+
 /* v15.0-DEMO — Plano maestro modular 10U: --lbl-w = 2U = 78px (390/10*2) */
 :root {
   --lbl-w: 78px;
@@ -8828,7 +8840,7 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.638</span>
+      <span class="title" id="dkv-title">Vista kit · v27.639</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -38889,24 +38901,12 @@ function _migrateDrumTracksToClips() {
       t._migrated_v20_3 = true;
       return;
     }
-    // Inicializar 1 clip por compás con PATCH_1 / 8vos hat (default rock)
-    const bars = G.bars || 8;
-    const bpb = G.bpb || 4;
-    const defaultTech = 'PATCH_1';
-    const defaultVar = '8vos hat';
-    for (let bar = 0; bar < bars; bar++) {
-      t.clips.push({
-        r: 0, s: '', // root/suffix neutros (no aplican a drums pero requeridos por algunos paths)
-        sb: bar * bpb,
-        lb: bpb,
-        tech: defaultTech,
-        v: defaultVar,
-        estilo: 'rock',
-        _origin: 'rock',
-      });
-    }
+    // v27.639 — NO auto-sembrar batería. Antes se metía 1 clip/compás PATCH_1/8vos
+    // hat en tracks de bata vacíos, lo que hacía que la batería "viviera su propia
+    // vida": reaparecía sola tras NEW y al importar sin acordes. Ahora la bata se
+    // comporta como cualquier track de instrumento: vacío queda vacío. Solo marcamos
+    // como migrado para no re-evaluar.
     t._migrated_v20_3 = true;
-    migrated++;
   });
   if (migrated > 0) console.log('[v20.3.0] migrated ' + migrated + ' drum track(s) to clip-based');
 }
@@ -43158,6 +43158,21 @@ window.addEventListener('load',()=>{
     if (versionEl) {
       const m = (document.title || '').match(/v?(\d+\.\d+(?:\.\d+)?[\w.\-]*)/);
       versionEl.textContent = m ? m[1] : '—';
+    }
+  } catch(_) {}
+  // v27.639 — Tema por DEFAULT = MOISES (Color Engine / LNF). LNF_PRESETS[0] = MOISES
+  // tras el reorden de esta versión. Se respeta la elección manual previa: si el
+  // usuario cicló alguna paleta legacy (flag ol_user_chose_palette), NO se pisa.
+  // lnfApplyPreset aplica color + font + notación del preset (igual que tocarlo en el menú).
+  try {
+    let _userChosePal = false;
+    try { _userChosePal = (localStorage.getItem('ol_user_chose_palette') === '1'); } catch(_) {}
+    if (!_userChosePal && typeof lnfApplyPreset === 'function' &&
+        typeof LNF_PRESETS !== 'undefined' && LNF_PRESETS[0]) {
+      setTimeout(() => {
+        try { lnfApplyPreset(LNF_PRESETS[0]); }
+        catch(e) { console.warn('[boot] MOISES default:', e); }
+      }, 130);
     }
   } catch(_) {}
   // v20.10.12 — Cargar Pink Floyd como preset por default al abrir la app.
@@ -50819,10 +50834,10 @@ const LNF_CUSTOM_PRESETS = [null, null, null, null, null, null, null, null];
 //      neutro + acento rojo medio, para diferenciarse visualmente de HUESO/MOISES).
 // quedan para presets del usuario (guardar/tirar libremente).
 const LNF_PRESETS = [
+  { name: 'MOISES',    h: 180, s: 5,  l: 10, accentOffset: 1, font: 7,
+    fontH: 175, fontS: 65, fontL: 55, notation: 'jazz' },    // DM Mono + turquesa · Jazz  (v27.639 DEFAULT)
   { name: 'HUESO',     h: 40,  s: 25, l: 85, accentOffset: 0, font: 0,
     fontH: 210, fontS: 55, fontL: 45, notation: 'AmI' },     // Cormorant + petróleo · Cifrado+Grado
-  { name: 'MOISES',    h: 180, s: 5,  l: 10, accentOffset: 1, font: 7,
-    fontH: 175, fontS: 65, fontL: 55, notation: 'jazz' },    // DM Mono + turquesa · Jazz
   { name: 'GRIS-ROJO', h: 0,   s: 0,  l: 85, accentOffset: 0, font: 0,
     fontH: 0,   fontS: 75, fontL: 50, notation: 'nash' },    // gris claro + rojo · Nashville
   { name: 'NOCHE',     h: 225, s: 22, l: 12, accentOffset: 0, font: 0,
@@ -57513,7 +57528,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.638',
+    version: 'v27.639',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -93136,6 +93151,11 @@ function newLoop(){
     });
   }
 
+  // 3b) v27.639 — Limpiar también los stems importados (VOZ/BAJO/BAT/OTR + melodía).
+  //     NEW debe dejar el lienzo realmente en cero: sin esto los carriles de stems
+  //     quedaban pegados y seguían sonando con play.
+  try { if (typeof window.__olStemClear === 'function') window.__olStemClear(); } catch(_) {}
+
   // 4) Clear referencias colgadas a clips inexistentes
   G.activeClip = null;
   G.selectedClip = null;
@@ -96945,8 +96965,11 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     // NO la duración del FLAC (que puede ser más larga y estiraba el dibujo sobre
     // compases inexistentes). Muestreamos solo [0, tEnd] → el waveform queda alineado
     // con los acordes y la voz se dibuja donde realmente suena.
-    const tEnd=(ST.beats.length>1)?ST.beats[ST.beats.length-1]:L.buf.duration;
-    L.peaksDur=Math.min(L.buf.duration, Math.max(0.001, tEnd));
+    // v27.639 — ventana del waveform = BUFFER COMPLETO. _invMap extrapola más allá
+    // del último beat del mapa (línea ~56, lineal por spb), así que el dibujo cubre
+    // TODO el audio que realmente suena, alineado a la grilla. Antes se capaba a tEnd
+    // (último beat del análisis) y el waveform quedaba más corto que el audio.
+    L.peaksDur=Math.max(0.001, L.buf.duration);
     const sr=L.buf.sampleRate||44100;
     const winSamp=Math.min(L.buf.length, Math.max(N, Math.floor(L.peaksDur*sr)));
     const nch=Math.min(2, L.buf.numberOfChannels);
@@ -96984,8 +97007,8 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     }
     g.fillStyle=ST.accColor; g.globalAlpha=(L.id==='dru'?0.6:0.85);
     const BW=_bw(), mid=cv.height/2;
-    const D=L.peaksDur||L.buf.duration;              // ventana del análisis, NO el FLAC completo
-    const lastBeat=(ST.beats.length>1)?(ST.beats.length-1):(D/(ST.spb||0.5));
+    const D=L.peaksDur||L.buf.duration;              // v27.639 — buffer completo
+    const lastBeat=_invMap(D);                        // beat real del fin del audio (extrapola fuera del mapa)
     const barW=Math.max(1, (lastBeat*BW*sx)/L.peaks.length);
     for(let i=0;i<L.peaks.length;i++){
       const t=i/L.peaks.length*D;             // tiempo dentro de la ventana del análisis
@@ -97457,6 +97480,10 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     } finally { ST.loading=false; }
   }
   window._olStemLoad=_loadSong;
+  // v27.639 — clear público de stems (para que newLoop / NEW vacíe los carriles
+  // importados además de los clips de tracks). Reusa el teardown existente:
+  // detiene fuentes, desconecta gains, remueve filas ol-stem-row-* + melody, ST.lanes=[].
+  window.__olStemClear=function(){ try{ _teardownAll(); }catch(_){} };
   window._olStemOpen=_overlay;
   window._olStemSetVol=function(key, vol){ const L=ST.lanes.find(x=>x.stem===key); if(L) _stemVol(L, vol); };
   window._olStemGetVol=function(key){ const L=ST.lanes.find(x=>x.stem===key); return L?L.vol:0.5; };
