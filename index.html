@@ -971,7 +971,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.639</title>
+<title>OnlyLoops · v27.646b</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -4832,14 +4832,15 @@ body.landscape-mode #track-sheet .s-body {
    60px → 45px. Los wheels de TÉCNICA (hw5) y SUBTÉCNICA (hw6) quedan
    en 60px para acomodar nombres largos en 2-3 líneas. Los items dentro
    heredan la altura para que el centrado vertical funcione. */
-#cew-hw1-track, #cew-hw2-track, #cew-hw3-track, #cew-hw4-track, #cew-hw7-track {
+#cew-hw1-track, #cew-hw2-track, #cew-hw3-track, #cew-hw4-track, #cew-hw7-track, #cew-hw10-track {
   height: 45px;
 }
 #cew-hw1-track .cew-hw-item,
 #cew-hw2-track .cew-hw-item,
 #cew-hw3-track .cew-hw-item,
 #cew-hw4-track .cew-hw-item,
-#cew-hw7-track .cew-hw-item {
+#cew-hw7-track .cew-hw-item,
+#cew-hw10-track .cew-hw-item {
   height: 45px;
 }
 .cew-hw-track::before,.cew-hw-track::after{
@@ -8751,6 +8752,13 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
         </div>
       </div>
       <div class="cew-hw-row">
+        <div class="cew-hw-lbl">VOICING</div>
+        <div class="cew-hw-track" id="cew-hw10-track">
+          <div class="cew-hw-sel"></div>
+          <div class="cew-hw-strip" id="cew-hw10-strip"></div>
+        </div>
+      </div>
+      <div class="cew-hw-row">
         <div class="cew-hw-lbl">OCTAVA</div>
         <div class="cew-hw-track" id="cew-hw4-track">
           <div class="cew-hw-sel"></div>
@@ -8840,7 +8848,7 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.639</span>
+      <span class="title" id="dkv-title">Vista kit · v27.646b</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -34775,6 +34783,154 @@ window.toggleDualPianoMode = toggleDualPianoMode;
 // v20.10.6 — buildDirectorGrid eliminado (deprecado). Reemplazado por
 // el sheet de STYLE_PRESETS accesible desde el botón "ESTILO" del header.
 
+// ═══════════════════════════════════════════════════════════════════════════
+// v27.644 — MOTOR DE VOICINGS (piano) · capa PURA entre PIANO_CHORD_IV y técnica
+// ───────────────────────────────────────────────────────────────────────────
+// Voicing = disposición vertical del acorde. ES ORTOGONAL a la técnica (ritmo).
+// Transforma el array `iv` (intervalos en semitonos desde la fundamental, en
+// estado fundamental tal como los da PIANO_CHORD_IV) en un `iv` "voiced". NO
+// toca PIANO_CHORD_IV, ni el sampler de piano, ni las muestras de cola larga, ni
+// las 24 t\u00e9cnicas (que siguen recibiendo un `iv` y nada cambia para ellas)
+// \u2192 zonas R6.2 INTACTAS.
+// clip.voi guarda el voicing por-clip. Ausente o 'auto' → conducción de voces
+// automática (mínimo movimiento vs el acorde previo del mismo track).
+// Teoría: inversiones (bajo cifrado clásico), close/open+drop-2, rootless
+// (Bill Evans), shell (Bud Powell). Refs: Levine, DeGreg, Piston.
+// ═══════════════════════════════════════════════════════════════════════════
+const VOICING_ITEMS = [
+  { v:'auto',     label:'Auto \u2b50', desc:'Conducci\u00f3n de voces: el motor elige el m\u00e1s cercano al acorde previo.' },
+  { v:'root',     label:'Fundamental', desc:'Estado fundamental \u00b7 la t\u00f3nica al bajo.' },
+  { v:'inv1',     label:'1\u00aa inv.', desc:'Tercera al bajo (6/3).' },
+  { v:'inv2',     label:'2\u00aa inv.', desc:'Quinta al bajo (6/4).' },
+  { v:'inv3',     label:'3\u00aa inv.', desc:'S\u00e9ptima al bajo \u00b7 solo acordes con 7\u00aa.' },
+  { v:'close',    label:'Cerrado',     desc:'Todas las voces dentro de una octava.' },
+  { v:'open',     label:'Abierto',     desc:'Drop-2 \u00b7 la 2\u00aa voz desde arriba baja una octava.' },
+  { v:'rootless', label:'Sin t\u00f3nica', desc:'Sin fundamental (la toca el bajo) \u00b7 jazz moderno.' },
+  { v:'shell',    label:'Shell',       desc:'Solo guide tones: 3\u00aa y 7\u00aa.' },
+];
+
+// ¿el voicing v aplica al acorde de intervalos iv?
+function _voicingApplies(v, iv){
+  if(!Array.isArray(iv)) return v==='auto'||v==='root';
+  const n = iv.length;
+  const has7 = iv.some(x => { const m=(((x%12)+12)%12); return m===10||m===11; });
+  // v27.645 — 'close' solo difiere de 'root' cuando hay una nota por encima de
+  // la octava (extensiones 9/11/13): ahí comprimir aporta. En tríadas/séptimas
+  // el cerrado = fundamental, así que no se ofrece (evita opción redundante).
+  const hasExt = (Math.max.apply(null, iv) >= 12);
+  switch(v){
+    case 'inv3':     return has7;
+    case 'rootless': return n>=4;
+    case 'shell':    return has7 && n>=4;
+    case 'close':    return hasExt;
+    default:         return true;
+  }
+}
+
+// Posición cerrada: pitch-classes únicas ordenadas dentro de una octava.
+function _voiClose(iv){
+  const pcs = Array.from(new Set(iv.map(x => (((x%12)+12)%12))));
+  pcs.sort((a,b)=>a-b);
+  return pcs;
+}
+
+// Lleva los primeros k grados una octava arriba (bajo cifrado → inversión).
+function _voiRotateUp(iv, k){
+  const out = iv.slice();
+  for(let i=0;i<k && i<out.length;i++) out[i] += 12;
+  return out.sort((a,b)=>a-b);
+}
+
+// voiceChord(iv, voicing) — transformación PURA. Devuelve nuevo array de intervalos.
+function voiceChord(iv, voicing){
+  if(!Array.isArray(iv) || !iv.length) return iv;
+  if(!voicing || voicing==='root' || voicing==='auto') return iv.slice();
+  if(!_voicingApplies(voicing, iv)) return iv.slice();
+  const base = iv.slice();
+  switch(voicing){
+    case 'inv1': return _voiRotateUp(base, 1); // 3\u00aa al bajo
+    case 'inv2': return _voiRotateUp(base, 2); // 5\u00aa al bajo
+    case 'inv3': return _voiRotateUp(base, 3); // 7\u00aa al bajo
+    case 'close': return _voiClose(base);
+    case 'open': {                              // drop-2 sobre el cerrado
+      const c = _voiClose(base).sort((a,b)=>a-b);
+      if(c.length < 2) return c;
+      c[c.length-2] -= 12;                       // 2\u00aa voz desde arriba baja 8va
+      return c.sort((a,b)=>a-b);
+    }
+    case 'rootless': {                           // sacar la fundamental (pc 0)
+      const r = base.filter(x => ((((x%12)+12)%12)) !== 0);
+      return r.length ? r : base;
+    }
+    case 'shell': {                              // guide tones 3\u00aa + 7\u00aa
+      const out = [];
+      const third = base.find(x => { const m=(((x%12)+12)%12); return m===3||m===4; });
+      const seventh = base.find(x => { const m=(((x%12)+12)%12); return m===10||m===11; });
+      if(third!=null) out.push((((third%12)+12)%12));
+      if(seventh!=null) out.push((((seventh%12)+12)%12));
+      return out.length ? out.sort((a,b)=>a-b) : base;
+    }
+  }
+  return base;
+}
+
+// Voice-leading automático: candidatos (inversiones \u00d7 close/drop-2) y elige el
+// de MÍNIMO MOVIMIENTO respecto al acorde previo. Notas comunes cuestan 0; los
+// saltos grandes se penalizan; la voz superior se mantiene con contorno suave.
+function _voiCost(cand, prevIv){
+  let cost=0;
+  for(const note of cand){
+    let dmin=Infinity;
+    for(const p of prevIv){ const d=Math.abs(note-p); if(d<dmin) dmin=d; }
+    cost += dmin + (dmin>4 ? (dmin-4)*1.5 : 0);
+  }
+  return cost;
+}
+function _voiceLeadAuto(iv, prevIv){
+  if(!Array.isArray(iv) || !iv.length) return iv.slice();
+  if(!Array.isArray(prevIv) || !prevIv.length) return _voiClose(iv); // sin previo → cerrado
+  const closeBase = _voiClose(iv);
+  const n = closeBase.length;
+  const cands = [];
+  for(let rot=0; rot<n; rot++){
+    const c = closeBase.map((x,i)=> i<rot ? x+12 : x).sort((a,b)=>a-b);
+    cands.push(c);
+    if(c.length>=2){ const d=c.slice(); d[d.length-2]-=12; cands.push(d.sort((a,b)=>a-b)); }
+  }
+  const prevTop = Math.max.apply(null, prevIv);
+  let best=cands[0], bestCost=Infinity;
+  for(const c of cands){
+    const total = _voiCost(c, prevIv) + Math.abs(Math.max.apply(null,c) - prevTop)*0.5;
+    if(total < bestCost){ bestCost=total; best=c; }
+  }
+  return best;
+}
+
+// Orquestador: 'auto' → voice-leading vs previo del track; fijo → voiceChord.
+// Guarda el resultado como ancla "previo" del track para el próximo acorde.
+window._voiPrevByTrack = window._voiPrevByTrack || {};
+function _applyVoicing(iv, voicing, ti){
+  if(!Array.isArray(iv) || !iv.length) return iv;
+  let out;
+  if(!voicing || voicing==='auto'){
+    out = _voiceLeadAuto(iv, window._voiPrevByTrack[ti]);
+  } else {
+    out = voiceChord(iv, voicing);
+  }
+  try { window._voiPrevByTrack[ti] = out.slice(); } catch(_){}
+  return out;
+}
+window.voiceChord = voiceChord;
+window._applyVoicing = _applyVoicing;
+window.VOICING_ITEMS = VOICING_ITEMS;
+window._voicingApplies = _voicingApplies;
+
+// v27.646b — Orden ÚNICO de las 59 variantes de piano, de CERRADO (ataque al
+// inicio + sustain) a ABIERTO (notas repartidas en el compás). Deriva del
+// análisis de spread temporal de PIANO_TECH_V. Usado por el wheel unificado.
+const PIANO_TECH_ORDER = [{t:'MELODIC',s:'Top note'}, {t:'HOLD',s:'Drone'}, {t:'PAD',s:'Full ext.'}, {t:'HOLD',s:'Whole'}, {t:'PAD',s:'Closed'}, {t:'MELODIC',s:'Top + chord'}, {t:'PAD',s:'Open'}, {t:'TAG',s:'Pickup'}, {t:'PAD',s:'+ Bajo 8va'}, {t:'PAD',s:'Sostenuto'}, {t:'CINEMATIC',s:'Pedal cristal'}, {t:'ARPEGGIO',s:'Roll up'}, {t:'CINEMATIC',s:'Hit + sus'}, {t:'CINEMATIC',s:'Octava space'}, {t:'FILL',s:'Run up'}, {t:'FILL',s:'Run down'}, {t:'BALLAD',s:'Hallelujah'}, {t:'BALLAD',s:'Imagine'}, {t:'BLOCK',s:'On 1 + 3'}, {t:'TAG',s:'Cadence'}, {t:'MELODIC',s:'Bird call'}, {t:'MONTUNO',s:'Habanera'}, {t:'MONTUNO',s:'Reggae'}, {t:'BALLAD',s:'Bridge Water'}, {t:'ARPEGGIO',s:'Full ext.'}, {t:'BALLAD',s:'Let It Be'}, {t:'ARPEGGIO',s:'Asc.'}, {t:'ARPEGGIO',s:'Desc.'}, {t:'BLOCK',s:'Pulse'}, {t:'TAG',s:'Outro hold'}, {t:'BLOCK',s:'Anticipated'}, {t:'BLOCK',s:'Oct bass'}, {t:'BLOCK',s:'Bass + Chord'}, {t:'STRIDE',s:'Stride'}, {t:'MONTUNO',s:'Bossa'}, {t:'STRIDE',s:'Walk + comp'}, {t:'FUNK',s:'Gospel'}, {t:'BLOCK',s:'Piano Man'}, {t:'BALLAD',s:'Your Song'}, {t:'FUNK',s:'Wurly comp'}, {t:'BALLAD',s:'Tears Heaven'}, {t:'MONTUNO',s:'Cuban'}, {t:'MELODIC',s:'Counter melody'}, {t:'ALBERTI',s:'Pop'}, {t:'ARPEGGIO',s:'Vaivén'}, {t:'ARPEGGIO',s:'Broken'}, {t:'BALLAD',s:'Fields Gold'}, {t:'STRIDE',s:'Boogie'}, {t:'STRIDE',s:'Shuffle'}, {t:'ALBERTI',s:'6/8'}, {t:'FUNK',s:'Stab'}, {t:'ALBERTI',s:'Mozart'}, {t:'CINEMATIC',s:'Tremolo 3-7'}, {t:'HOLD',s:'Swell'}, {t:'FUNK',s:'16th chops'}, {t:'FILL',s:'Glissando'}, {t:'FILL',s:'Drum roll'}, {t:'FILL',s:'Trill'}, {t:'SILENCIO',s:'Silencio'}];
+window.PIANO_TECH_ORDER = PIANO_TECH_ORDER;
+
 function playPianoChord(root, suffix, tech, varName, bpm) {
   const ctx = getCtx();
   if (!ctx) return false;
@@ -34853,6 +35009,14 @@ function playPianoChord(root, suffix, tech, varName, bpm) {
   } else {
     iv = PIANO_CHORD_IV[suffix] || PIANO_CHORD_IV.major;
     rs = ROOT_OFF[root] || 0;
+    // v27.644 — VOICING: aplicar la disposición elegida (o conducción de voces
+    // automática). Solo en acordes normales; los slash chords ya definen su
+    // propia inversión arriba. R6.2 INTACTA: PIANO_CHORD_IV no se modifica.
+    try {
+      const _voi = window._pianoCurrentClipVoi;
+      const _ti  = (typeof currentTrackIdx !== 'undefined') ? currentTrackIdx : 0;
+      iv = _applyVoicing(iv, _voi, _ti);
+    } catch(_){}
   }
   const bs = 60 / (bpm || 120);
   const now = ctx.currentTime + 0.04;
@@ -35989,8 +36153,13 @@ function _syncBarsToContent(){
     // v27.9 — También mirror del header (banda 2 con #hdr-bars-mirror)
     const hBars = document.getElementById('hdr-bars-mirror');
     if (hBars) hBars.textContent = G.bars;
-    // Si playhead quedó fuera del rango por bajar G.bars, resetear a 0
-    if (G.playPos >= G.bars * bpb) G.playPos = 0;
+    // Si playhead quedó fuera del rango por bajar G.bars, resetear a 0.
+    // v27.640 — SOLO si NO está sonando. Con stems el loop real se extiende más
+    // allá de G.bars (vía _keepBars), así que durante play playPos supera
+    // G.bars*bpb legítimamente; resetearlo acá hacía saltar el cursor a 0 en cada
+    // re-render (mute / compresión) → el poll de stems lo leía como wrap y
+    // re-arrancaba el audio desde cero. Estando detenido, el clamp sigue igual.
+    if (!G.playing && G.playPos >= G.bars * bpb) G.playPos = 0;
     // Sincronizar barsIdx del cycleBars
     try {
       if (typeof BARS_V !== 'undefined' && Array.isArray(BARS_V)){
@@ -39089,6 +39258,11 @@ function startPB(){
           window._pianoCurrentTotalClips = _activeClipsCount;
           window._pianoCurrentClipLb = cl.lb || 4;
           window._pianoCurrentTrackRole = _trackRole;
+          // v27.644 — VOICING por-clip: el motor lo lee en playPianoChord. Al
+          // arrancar el track (ci===0) limpiamos el "previo" para que la
+          // conducción de voces auto no arrastre el voicing de otra vuelta.
+          window._pianoCurrentClipVoi = (cl.voi != null) ? cl.voi : 'auto';
+          try { if (ci === 0 && window._voiPrevByTrack) delete window._voiPrevByTrack[ti]; } catch(_){}
           // v16.3.34 — alias genérico: bass y guitar también necesitan lb del clip
           // para escalar el patrón musical al tiempo del clip (idem piano).
           window._currentClipLb = cl.lb || 4;
@@ -48527,6 +48701,7 @@ const HWS = {
   7: {items:[], pad:0, off:0, drag:false, x0:0, last:-1, idx:0, ac:null},  // DURACIÓN
   8: {items:[], pad:0, off:0, drag:false, x0:0, last:-1, idx:0, ac:null},  // SONIDO (v17.1.0)
   9: {items:[], pad:0, off:0, drag:false, x0:0, last:-1, idx:0, ac:null},  // ESTILO (v19.1.0)
+  10:{items:[], pad:0, off:0, drag:false, x0:0, last:-1, idx:0, ac:null},  // VOICING (v27.644)
 };
 
 function hwsBuild(n, items, sel, onMove, onRelease){
@@ -49151,6 +49326,7 @@ function cewRenderAllInline(clip){
         clip.s = newSuf;
         updateHero(clip);
         cewUpdateRowVals(clip);
+        try { _cewBuildVoicingWheel(clip); } catch(_){} // v27.644
         _cewPlayPreviewClip(clip);
         try { renderTrack(G.editRef.ti); } catch(_){}
       }
@@ -49178,6 +49354,9 @@ function cewRenderAllInline(clip){
       try { renderTrack(G.editRef.ti); } catch(_){}
     }
   );
+
+  // ── 4b. VOICING (HW10) — v27.644 ───────────────────────────
+  _cewBuildVoicingWheel(clip);
 
   // ── 5. ESTILO (HW9) — v19.1.0 ───────────────────────────────
   // v27.17 — En chord-editor: wheel ESTILO solo visible para BATERÍA.
@@ -49239,6 +49418,7 @@ function _cewBuildSufWheel(famIdx, sufIdx, clip){
       clip.s = newSuf;
       updateHero(clip);
       cewUpdateRowVals(clip);
+      try { _cewBuildVoicingWheel(clip); } catch(_){} // v27.644 — voicings aplicables cambian con el sufijo
       _cewPlayPreviewClip(clip);
       try { renderTrack(G.editRef.ti); } catch(_){}
     }
@@ -49246,7 +49426,45 @@ function _cewBuildSufWheel(famIdx, sufIdx, clip){
 }
 
 // ════════════════════════════════════════════════════════════════
-// v19.1.0 — _cewBuildStyleWheel: wheel ESTILO (HW9) del chord-editor.
+// v27.644 — _cewBuildVoicingWheel: wheel VOICING (HW10) del chord-editor.
+// Solo visible para piano (intervalos puros). Filtra los voicings que
+// aplican al acorde actual (ej. 3ª inv./shell solo si hay 7ª). Default
+// = 'auto' (conducción de voces). Persiste en clip.voi.
+// ════════════════════════════════════════════════════════════════
+function _cewBuildVoicingWheel(clip){
+  if (!clip || !G.editRef) return;
+  let _isPiano = false;
+  try {
+    const _t = G.tracks[G.editRef.ti];
+    _isPiano = (typeof _isPianoFamily === 'function') ? !!_isPianoFamily(_t.inst) : false;
+  } catch(_){}
+  const _trackEl = document.getElementById('cew-hw10-track');
+  const _row = _trackEl ? _trackEl.closest('.cew-hw-row') : null;
+  if (_row) _row.style.display = _isPiano ? '' : 'none';
+  if (!_isPiano) return;
+  // Intervalos del acorde actual → filtrar voicings aplicables
+  let _iv = [0,4,7];
+  try { _iv = PIANO_CHORD_IV[clip.s] || PIANO_CHORD_IV.major; } catch(_){}
+  const _apply = VOICING_ITEMS.filter(it => _voicingApplies(it.v, _iv));
+  let _cur = (clip.voi != null) ? clip.voi : 'auto';
+  let _idx = _apply.findIndex(it => it.v === _cur);
+  if (_idx < 0) { _idx = 0; clip.voi = _apply[0].v; } // el voicing actual ya no aplica → auto
+  const items = _apply.map(it => ({ label: it.label }));
+  hwsBuild(10, items, _idx,
+    function(idx){ HWS[10].idx = idx; },
+    function(idx){
+      const item = _apply[idx];
+      if (!item) return;
+      clip.voi = item.v;
+      cewUpdateRowVals(clip);
+      _cewPlayPreviewClip(clip);
+      try { renderTrack(G.editRef.ti); } catch(_){}
+    }
+  );
+}
+window._cewBuildVoicingWheel = _cewBuildVoicingWheel;
+
+
 // 21 items de STYLES_LIST. Default = 'varios' (mantiene retrocompat).
 // Al cambiar el estilo, se regeneran TÉCNICA y SUBTÉCNICA respetando
 // la nueva selección — pero clip.tech y clip.v quedan intactos para
@@ -49312,6 +49530,15 @@ function _cewBuildTechSubWheels(clip){
   const _estilo = clip.estilo || 'rock';
   const t = G.tracks[G.editRef.ti];
   const _trackInst = t?.inst;
+
+  // v27.646b — PIANO: wheel ÚNICO "TÉCNICA" con las 59 variantes ordenadas
+  // cerrado→abierto (oculta SUBTÉCNICA). Para escuchar todas en secuencia.
+  if (typeof _isPianoFamily === 'function' && _isPianoFamily(_trackInst)) {
+    _cewBuildPianoUnifiedWheel(clip);
+    return;
+  }
+  // no-piano: asegurar SUBTÉCNICA visible (por si el track anterior era piano)
+  try { const _h6=document.getElementById('cew-hw6-track'); const _r6=_h6?_h6.closest('.cew-hw-row'):null; if(_r6) _r6.style.display=''; } catch(_){}
   const _cap = (typeof slotCapability === 'function') ? slotCapability(_trackInst) : null;
 
   // ─── v20.1.0: ROUTING UNIFICADO POR CATÁLOGO ──────────────────────
@@ -49406,6 +49633,31 @@ function _cewBuildSubWheel(techIdx, varIdx, clip){
     }
   );
 }
+// v27.646b — Wheel ÚNICO de TÉCNICA para piano: las 59 variantes ordenadas
+// cerrado→abierto (PIANO_TECH_ORDER). Oculta el wheel SUBTÉCNICA (hw6).
+// Al elegir, setea clip.tech + clip.v directo (keys de PIANO_TECH_V), así el
+// motor toca exactamente esa variante. Pensado para escuchar todas en orden.
+function _cewBuildPianoUnifiedWheel(clip){
+  if (!clip || !G.editRef) return;
+  try { const _h6=document.getElementById('cew-hw6-track'); const _r6=_h6?_h6.closest('.cew-hw-row'):null; if(_r6) _r6.style.display='none'; } catch(_){}
+  const order = (typeof PIANO_TECH_ORDER!=='undefined') ? PIANO_TECH_ORDER : [];
+  const items = order.map(o => ({ label: o.t + ' · ' + o.s }));
+  let cur = order.findIndex(o => o.t === clip.tech && o.s === clip.v);
+  if (cur < 0) cur = 0;
+  hwsBuild(5, items, cur,
+    function(idx){ HWS[5].idx = idx; },
+    function(idx){
+      const o = order[idx];
+      if (!o) return;
+      clip.tech = o.t; clip.v = o.s;
+      cewUpdateRowVals(clip);
+      _cewPlayPreviewClip(clip);
+      try { renderTrack(G.editRef.ti); } catch(_){}
+    }
+  );
+}
+window._cewBuildPianoUnifiedWheel = _cewBuildPianoUnifiedWheel;
+
 function _cewBuildSoundWheel(clip){
   if (!clip || !G.editRef) return;
   const t = G.tracks[G.editRef.ti];
@@ -49539,10 +49791,14 @@ function _cewPlayPreviewClip(clip){
     window._currentClipLb   = clip.lb || 4;
     window._currentClipVar  = clip.v || '';
     window._currentClipTech = clip.tech || '';
+    // v27.644 — VOICING en preview: el motor pianístico lo lee en playPianoChord.
+    const _pPcVoi = window._pianoCurrentClipVoi;
+    window._pianoCurrentClipVoi = (clip.voi != null) ? clip.voi : 'auto';
     // v27.332 — Pasar clip.v explícito como 5to arg (espejo del motor principal).
     // Sin esto, en preview con clips de mismo (r,s) en otros compases, playChord
     // podía agarrar via find la subtech del clip equivocado.
     playChord(clip.r, clip.s, clip.tech, G.bpm, clip.v);
+    window._pianoCurrentClipVoi = _pPcVoi;
     window._currentClipLb   = _pCcLb;
     window._currentClipVar  = _pCcVar;
     window._currentClipTech = _pCcTech;
@@ -57528,7 +57784,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.639',
+    version: 'v27.646b',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
@@ -93156,6 +93412,14 @@ function newLoop(){
   //     quedaban pegados y seguían sonando con play.
   try { if (typeof window.__olStemClear === 'function') window.__olStemClear(); } catch(_) {}
 
+  // 3c) v27.640 — Bug #2: NEW también vacía la ESTRUCTURA del cancionero (SONG).
+  //     Los clips ya se borraron arriba, pero las secciones (G.song.parts) y el
+  //     largo explícito (G.song.songBars) sobrevivían: al pasar a SONG se veían
+  //     los clips/acordes/secciones de la sesión anterior. Con parts=[] y
+  //     songBars=0, _songLen() devuelve 1 y _songRows() arma 1 línea vacía.
+  //     (lyricWords se limpia más abajo, punto 7b.)
+  try { if (G.song) { G.song.parts = []; G.song.songBars = 0; } } catch(_) {}
+
   // 4) Clear referencias colgadas a clips inexistentes
   G.activeClip = null;
   G.selectedClip = null;
@@ -95082,24 +95346,11 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
   var ORIG={}, SONG_BPL=8, loaded=false;
 
   // Canción demo con clips REALES (r = nombre de nota, s = sufijo) + letra.
-  var DEMO=[
-    /* AMAZING GRACE — letra John Newton (1779) + melodía tradicional "New Britain" (1835).
-       DOMINIO PÚBLICO: letra y armonía libres de copyright. Tono G mayor. */
-    /* Verso 1 (16) */
-    {r:'G',s:'',l:'Amazing'},{r:'G',s:'',l:'grace how'},{r:'C',s:'',l:'sweet the'},{r:'G',s:'',l:'sound'},
-    {r:'G',s:'',l:'that'},{r:'E',s:'m',l:'saved a'},{r:'D',s:'',l:'wretch like'},{r:'D',s:'',l:'me'},
-    {r:'G',s:'',l:'I'},{r:'G',s:'7',l:'once was'},{r:'C',s:'',l:'lost but'},{r:'G',s:'',l:'now am'},
-    {r:'G',s:'',l:'found'},{r:'D',s:'',l:'was blind but'},{r:'G',s:'',l:'now I'},{r:'G',s:'',l:'see'},
-    /* Verso 2 (16) */
-    {r:'G',s:'',l:'\u2019Twas grace'},{r:'G',s:'',l:'that taught'},{r:'C',s:'',l:'my heart'},{r:'G',s:'',l:'to fear'},
-    {r:'G',s:'',l:'and'},{r:'E',s:'m',l:'grace my'},{r:'D',s:'',l:'fears re-'},{r:'D',s:'',l:'lieved'},
-    {r:'G',s:'',l:'how'},{r:'G',s:'7',l:'precious'},{r:'C',s:'',l:'did that'},{r:'G',s:'',l:'grace ap-'},
-    {r:'G',s:'',l:'pear'},{r:'D',s:'',l:'the hour I'},{r:'G',s:'',l:'first be-'},{r:'G',s:'',l:'lieved'}
-  ];
-  var DEMO_PARTS=[
-    {name:'Verso 1',type:'verse',bars:16},
-    {name:'Verso 2',type:'verse',bars:16}
-  ];
+  /* v27.641 — DEMO de arranque ELIMINADO (Amazing Grace). La app arranca SONG
+     en blanco. Sin contenido aquí, _lyrSeed no tiene de dónde sembrar letras
+     fantasma → mata de raíz el bug "las letras no desaparecen tras NEW". */
+  var DEMO=[];
+  var DEMO_PARTS=[];
 
   function _loadDemoSong(){
     var bpb=(G&&G.bpb)||4;
@@ -95972,7 +96223,9 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
       try{
         var t0=(G.tracks||[])[0];
         var emptyAll=(G.tracks||[]).every(function(tk){ return !tk.clips||tk.clips.length===0; });
-        if(emptyAll && !loaded){ _loadDemoSong(); loaded=true; }
+        /* v27.641 — siembra de demo (Amazing Grace) ELIMINADA. SONG arranca en
+           blanco: _songRows() con clips vacíos arma 1 línea vacía (_songLen piso 1). */
+        if(emptyAll && !loaded){ loaded=true; }
       }catch(e){ console.warn('[OnlySongs] load',e); }
       BW = U;   // v27.511 — SONG nunca compacta; ignora G.zoomCompact (preferencia exclusiva de LOOP)
       applyBranding('songs');
@@ -96286,10 +96539,6 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
   var folder='Mis canciones';
   // Canciones de DOMINIO PÚBLICO (contrato completo de importSong)
   var DEMO_SONGS=[
-    { title:'Amazing Grace', artist:'John Newton · trad.', bpm:80, key:'G', meter:'3/4',
-      parts:[{name:'VERSO',bars:16}],
-      chords:[{bar:0,root:'G'},{bar:1,root:'G'},{bar:2,root:'C'},{bar:3,root:'G'},{bar:4,root:'G'},{bar:5,root:'E',suffix:'m'},{bar:6,root:'D'},{bar:7,root:'D'},{bar:8,root:'G'},{bar:9,root:'G',suffix:'7'},{bar:10,root:'C'},{bar:11,root:'G'},{bar:12,root:'G'},{bar:13,root:'D'},{bar:14,root:'G'},{bar:15,root:'G'}],
-      lyrics:[{bar:0,beat:0,text:'Amazing'},{bar:1,beat:0,text:'grace'},{bar:1,beat:1.5,text:'how'},{bar:2,beat:0,text:'sweet'},{bar:2,beat:1.5,text:'the'},{bar:3,beat:0,text:'sound'},{bar:4,beat:0,text:'that'},{bar:5,beat:0,text:'saved'},{bar:5,beat:1.5,text:'a'},{bar:6,beat:0,text:'wretch'},{bar:6,beat:1.5,text:'like'},{bar:7,beat:0,text:'me'},{bar:8,beat:0,text:'I'},{bar:9,beat:0,text:'once'},{bar:9,beat:1.5,text:'was'},{bar:10,beat:0,text:'lost'},{bar:10,beat:1.5,text:'but'},{bar:11,beat:0,text:'now'},{bar:11,beat:1.5,text:'am'},{bar:12,beat:0,text:'found'},{bar:13,beat:0,text:'was'},{bar:13,beat:1,text:'blind'},{bar:13,beat:2,text:'but'},{bar:14,beat:0,text:'now'},{bar:14,beat:1.5,text:'I'},{bar:15,beat:0,text:'see'}] },
     { title:'Scarborough Fair', artist:'Tradicional', bpm:90, key:'A', meter:'3/4',
       parts:[{name:'VERSO',bars:8}],
       chords:[{bar:0,root:'A',suffix:'m'},{bar:1,root:'C'},{bar:2,root:'D'},{bar:3,root:'A',suffix:'m'},{bar:4,root:'A',suffix:'m'},{bar:5,root:'G'},{bar:6,root:'A',suffix:'m'},{bar:7,root:'A',suffix:'m'}],
@@ -96834,6 +97083,12 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     { const _m=document.getElementById('ol-melody-row'); if(_m) _m.remove(); }
     try{ _shShow(false); }catch(_){}
     ST.lanes=[];
+    // v27.640 — Bug #3: invalidar el MP3 pendiente al limpiar (NEW). Sin esto el
+    // archivo anterior seguía en ST.pendingFile (y en el <input file>), y tocar
+    // «Analizar» re-analizaba el tema viejo. El guard de _go (if(!f)) ya impide
+    // arrancar el motor sin un MP3 nuevo seleccionado.
+    ST.pendingFile=null;
+    try{ var _fi=document.getElementById('ol-mp3-file'); if(_fi) _fi.value=''; }catch(_){}
     ['__OL_LIVE_SRCS','__OL_LIVE_GAINS'].forEach(k=>{
       if(window[k]){ window[k].forEach(n=>{ try{n.stop&&n.stop();}catch(_){} try{n.disconnect();}catch(_){} }); window[k].length=0; }
     });
@@ -96926,7 +97181,7 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
   // ═══ POLL — EDGE-TRIGGERED: solo eventos discretos, nunca reconciliación continua ═══
   function _startPoll(){
     if(ST.poll) return;
-    let wasPlaying=false, lastPos=0, lastKey=null;
+    let wasPlaying=false, lastPos=0, lastKey=null, _lastStart=0;
     ST.poll=setInterval(function(){
       try{
         if(typeof G==='undefined'||!ST.lanes.length) return;
@@ -96937,13 +97192,20 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
         }
         _keepBars();   // que el arreglo cubra los stems (no wrappear en los acordes)
         // — play start —
-        if(G.playing && !wasPlaying){ wasPlaying=true; lastPos=G.playPos||0; _startAll(); return; }
+        if(G.playing && !wasPlaying){ wasPlaying=true; lastPos=G.playPos||0; _lastStart=Date.now(); _startAll(); return; }
         // — stop —
         if(!G.playing && wasPlaying){ wasPlaying=false; _stopSources(); lastPos=0; return; }
         if(!G.playing || !ST.playing) return;
         // — salto hacia atrás (loop wrap o reset): playPos solo BAJA al wrappear —
         const pos=G.playPos||0;
-        if(pos < lastPos - 0.25){ _startAll(); lastPos=pos; return; }   // re-sincroniza UNA vez
+        if(pos < lastPos - 0.25){
+          // v27.640 — Fix B DEFENSIVO: ignorar re-syncs espurios. Un wrap real o
+          // reset legítimo nunca ocurre <350ms después del último arranque (un loop
+          // dura segundos). Si algo resetea playPos a 0 por un instante en pleno
+          // play (p.ej. un re-render por mute/compresión), NO re-arrancamos el audio.
+          if(Date.now() - _lastStart > 350){ _lastStart=Date.now(); _startAll(); }
+          lastPos=pos; return;
+        }
         lastPos=pos;
         // entre eventos: NO tocar nada. El reloj de Web Audio mantiene el sync.
       }catch(_){}
@@ -97574,7 +97836,9 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
   function _overlay(preFile){
     try{ var r=document.getElementById('sp-dd-root'); if(r) r.classList.remove('open'); }catch(_){}
     var ov=document.getElementById('ol-mp3-ov');
-    if(ov){ ov.style.display='flex'; _resetProg(); var _s=document.getElementById('ol-mp3-send'); if(_s) _s.disabled=false;
+    if(ov){ ov.style.display='flex'; _resetProg();
+      var _pg=document.getElementById('ol-mp3-prog'); if(_pg){ _pg.style.display='none'; }
+      var _s=document.getElementById('ol-mp3-send'); if(_s){ _s.style.display=''; _s.disabled=false; }
       if(preFile){ _showPre(preFile); }
       else {
         // v27.638 — reabrir el menú de stems SIN archivo nuevo (ya hay un MP3 cargado):
@@ -97648,7 +97912,11 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     '.olm-sw i{position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.18s;box-shadow:0 1px 2px rgba(0,0,0,.25)}'+
     '.olm-opt.on .olm-sw{background:var(--acc)}'+
     '.olm-opt.on .olm-sw i{left:22px}'+
-    '.olm-prog{border:1.5px dashed var(--rule2);border-radius:14px;padding:12px;text-align:center;margin-bottom:13px;min-height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}'+
+    '.olm-prog{position:relative;border:1.5px dashed var(--rule2);border-radius:14px;padding:12px;text-align:center;margin-bottom:13px;min-height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}'+
+    '.olm-cancel{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--rule2);background:var(--card);color:var(--ink2);display:none;align-items:center;justify-content:center;cursor:pointer;transition:.16s;z-index:2}'+
+    '.olm-cancel:active{transform:scale(.9)}'+
+    '.olm-cancel svg{width:16px;height:16px}'+
+    '.olm-prog.running .olm-cancel{display:flex}'+
     '.olm-prog .pulse{width:44px;height:44px;border-radius:50%;background:var(--acc2);display:flex;align-items:center;justify-content:center;color:var(--acc);animation:olmpulse 1.5s ease-in-out infinite}'+
     '.olm-prog .pulse svg{width:23px;height:23px}'+
     '@keyframes olmpulse{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.12);opacity:1}}'+
@@ -97663,7 +97931,9 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     '#ol-mp3-send:disabled{opacity:.5}'+
     '#ol-mp3-send:active{transform:scale(.985)}'+
     '#ol-mp3-send svg{width:18px;height:18px}'+
-    '#ol-mp3-log{background:#1f1b16;color:#cfe3c2;border-radius:10px;padding:9px;font:11px/1.4 "DM Mono",monospace;max-height:120px;overflow:auto;white-space:pre-wrap;margin-top:11px;display:none}'+
+    '#ol-mp3-log{background:#1f1b16;color:#cfe3c2;border-radius:10px;padding:11px;font:11px/1.55 "DM Mono",monospace;max-height:300px;overflow:auto;white-space:pre-wrap;margin-top:11px;display:none;border:1px solid rgba(255,255,255,.06)}'+
+    '#ol-mp3-log .lh{color:#8fd6b0;font-weight:600}'+
+    '#ol-mp3-log .dim{color:#7c8a78}'+
     '.olm-detail{font-family:"DM Mono",monospace;font-size:10.5px;color:var(--ink3);text-align:center;margin-top:8px;cursor:pointer;text-decoration:underline}'+
     '</style>'+
     '<div id="ol-mp3-card">'+
@@ -97677,14 +97947,12 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
         stem('drums','Bater\u00eda',photo(II.drums,'Bater\u00eda'))+
         stem('bass','Bajo',photo(II.bass,'Bajo'))+
         stem('other','Otros',icoOtros)+
-        stem('piano','Piano',photo(II.piano,'Piano'),1)+
-        stem('guitar','Cuerdas',photo(II.strings_ensemble,'Cuerdas'),1)+
       '</div>'+
       '<div class="olm-opt" id="ol-mp3-chords"><div class="lbl"><b>Detecci\u00f3n de acordes</b><small>apagala para stems m\u00e1s r\u00e1pidos</small></div><div class="olm-sw"><i></i></div></div>'+
       '<div class="olm-opt" id="ol-mp3-melody"><div class="lbl"><b>Detecci\u00f3n Melod\u00eda</b><small>apagala para stems m\u00e1s r\u00e1pidos</small></div><div class="olm-sw"><i></i></div></div>'+
       '<div class="olm-opt" id="ol-mp3-turbo"><div class="lbl"><b>Modo Turbo \u26a1</b><small>GPU m\u00e1s r\u00e1pida \u00b7 usa m\u00e1s recursos</small></div><div class="olm-sw"><i></i></div></div>'+
       '<div class="olm-range">desde <input id="ol-mp3-start" type="number" value="0" min="0"> dur <input id="ol-mp3-dur" type="number" value="60" min="1"><div class="chk" id="ol-mp3-full"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12.5l4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>completo</div></div>'+
-      '<div class="olm-prog" id="ol-mp3-prog"><div class="pulse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h6l4 5M4 17h6l4-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 9.5L20 7m0 0l-2.6-.4M20 7l-.4 2.6M15.5 14.5L20 17m0 0l-.4-2.6M20 17l-2.6.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="ptxt" id="ol-mp3-ptxt">Eleg\u00ed las pistas y toc\u00e1 \u00abAnalizar &amp; Cargar\u00bb</div><div class="pbar"><i id="ol-mp3-pbar"></i></div></div>'+
+      '<div class="olm-prog" id="ol-mp3-prog" style="display:none"><button id="ol-mp3-cancel" class="olm-cancel" title="Frenar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></button><div class="pulse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h6l4 5M4 17h6l4-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 9.5L20 7m0 0l-2.6-.4M20 7l-.4 2.6M15.5 14.5L20 17m0 0l-.4-2.6M20 17l-2.6.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="ptxt" id="ol-mp3-ptxt">Eleg\u00ed las pistas y toc\u00e1 \u00abAnalizar &amp; Cargar\u00bb</div><div class="pbar"><i id="ol-mp3-pbar"></i></div></div>'+
       '<button id="ol-mp3-send">Analizar &amp; Cargar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h15M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
       '<div class="olm-detail" id="ol-mp3-detail">ver detalle t\u00e9cnico</div>'+
       '<pre id="ol-mp3-log"></pre>'+
@@ -97743,8 +98011,21 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
   }
   function _resetProg(){
     var prog=document.getElementById('ol-mp3-prog'); if(!prog) return;
-    prog.classList.remove('done');
-    prog.innerHTML='<div class="pulse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h6l4 5M4 17h6l4-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 9.5L20 7m0 0l-2.6-.4M20 7l-.4 2.6M15.5 14.5L20 17m0 0l-.4-2.6M20 17l-2.6.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="ptxt" id="ol-mp3-ptxt">Eleg\u00ed las pistas y toc\u00e1 \u00abAnalizar &amp; Cargar\u00bb</div><div class="pbar"><i id="ol-mp3-pbar"></i></div>';
+    prog.classList.remove('done'); prog.classList.remove('running');
+    prog.innerHTML='<button id="ol-mp3-cancel" class="olm-cancel" title="Frenar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg></button><div class="pulse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h6l4 5M4 17h6l4-5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 9.5L20 7m0 0l-2.6-.4M20 7l-.4 2.6M15.5 14.5L20 17m0 0l-.4-2.6M20 17l-2.6.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="ptxt" id="ol-mp3-ptxt">Eleg\u00ed las pistas y toc\u00e1 \u00abAnalizar &amp; Cargar\u00bb</div><div class="pbar"><i id="ol-mp3-pbar"></i></div>';
+    var cx=document.getElementById('ol-mp3-cancel'); if(cx) cx.onclick=_cancelGo;
+  }
+  // v27.642 — X de FRENADO: aborta el fetch /analyze, corta el polling y avisa al
+  // motor (POST /cancel best-effort). Restaura el botón Analizar. NOTA: matar el
+  // job en Modal de verdad requiere endpoint /cancel en el Worker (pendiente backend).
+  function _cancelGo(){
+    try{ if(window.__OL_AC) window.__OL_AC.abort(); }catch(_){}
+    window.__OL_AC=null;
+    if(window.__OL_POLL_AN){ clearInterval(window.__OL_POLL_AN); window.__OL_POLL_AN=null; }
+    try{ fetch(API+'/cancel',{method:'POST'}).catch(function(){}); }catch(_){}
+    _resetProg();
+    var prog=document.getElementById('ol-mp3-prog'); if(prog){ prog.style.display='none'; }
+    var send=document.getElementById('ol-mp3-send'); if(send){ send.style.display=''; send.disabled=false; }
   }
   function _phaseDev(t){ t=t||''; if(/GPU Apple|\(MPS\)/.test(t)) return 'GPU'; if(/dispositivo: CPU|MPS fall/.test(t)) return 'CPU'; return ''; }
   function _phase(t, wc){
@@ -97768,6 +98049,12 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     var ptxt=document.getElementById('ol-mp3-ptxt');
     var pbar=document.getElementById('ol-mp3-pbar');
     send.disabled=true;
+    // v27.642 — el botón Analizar se transforma en el recuadro "Separando…" con X de frenado
+    send.style.display='none';
+    if(prog){ prog.style.display=''; prog.classList.add('running'); }
+    var _cx=document.getElementById('ol-mp3-cancel'); if(_cx) _cx.onclick=_cancelGo;
+    var _t0=performance.now();
+    var _ac=new AbortController(); window.__OL_AC=_ac;
     var withChords=true; var _co=document.getElementById('ol-mp3-chords'); if(_co) withChords=_co.classList.contains('on');
     var withMelody=true; var _mo=document.getElementById('ol-mp3-melody'); if(_mo) withMelody=_mo.classList.contains('on');
     var turbo=false; var _to=document.getElementById('ol-mp3-turbo'); if(_to) turbo=_to.classList.contains('on');
@@ -97778,7 +98065,7 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     if(!ready){ if(ptxt) ptxt.textContent='\u2717 No se pudo preparar el motor. Cerr\u00e1 y reabr\u00ed la app.'; log.style.display='block'; send.disabled=false; return; }
     var fd=new FormData();
     fd.append('file',f);
-    fd.append('q','fast6');                                /* RAPIDA 6 pistas: htdemucs_6s 1 pasada (~10x mas rapido que hq6) */
+    fd.append('q','fast6');                                /* v27.643 — el Worker traduce 'fast6'; el MOTOR (Modal _core) FUERZA 4 stems htdemucs simple. 6 stems = upgrade futuro. */
     fd.append('start',document.getElementById('ol-mp3-start').value);
     fd.append('dur',document.getElementById('ol-mp3-dur').value);
     fd.append('full',document.getElementById('ol-mp3-full').classList.contains('on')?'1':'0');
@@ -97787,14 +98074,13 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
     fd.append('chords', withChords?'1':'0');
     fd.append('melody', withMelody?'1':'0');
     fd.append('gpu', turbo?'A100':'A10G');
-    try{ var rr=await fetch(API+'/analyze',{method:'POST',body:fd}); if(!rr.ok) throw 0; }
-    catch(_){ if(ptxt) ptxt.textContent='\u2717 Motor local no disponible \u2014 abr\u00ed desde OnlySongs Studio.'; send.disabled=false; return; }
+    try{ var rr=await fetch(API+'/analyze',{method:'POST',body:fd,signal:_ac.signal}); if(!rr.ok) throw 0; }
+    catch(_){ if(_ac.signal.aborted) return; if(ptxt) ptxt.textContent='\u2717 No se pudo conectar con el motor. Revis\u00e1 tu conexi\u00f3n e intent\u00e1 de nuevo.'; if(prog) prog.classList.remove('running'); send.style.display=''; send.disabled=false; return; }
     if(window.__OL_POLL_AN){ clearInterval(window.__OL_POLL_AN); }
     var t=setInterval(async function(){
       try{
         var r=await(await fetch(API+'/status')).json();
         var lg=(r.log||'');
-        if(log){ log.textContent=(lg||'\u2026'); log.scrollTop=log.scrollHeight; }
         // ── barra HONESTA: avanza por fases reales del motor, creep lento dentro de cada fase ──
         var ph=_phase(lg, withChords);
         if(cur<ph.lo) cur=ph.lo;                           // piso de la fase
@@ -97802,15 +98088,33 @@ body.mlsel-active #hdr-style-btn { display: none !important; }
         if(pbar) pbar.style.width=cur.toFixed(1)+'%';
         var dev=_phaseDev(lg); if(dev) devShown=dev;
         if(ptxt){ var suf=devShown?(' \u00b7 '+(devShown==='GPU'?'GPU Apple':'CPU')):''; ptxt.textContent=ph.m+suf; }
+        // v27.642 — DETALLE TÉCNICO (desarrollo): metadatos del job + tiempos + log crudo del motor
+        if(log){
+          var _el=((performance.now()-_t0)/1000);
+          var _full=document.getElementById('ol-mp3-full').classList.contains('on');
+          var _hdr='OnlySongs \u00b7 motor de stems\n'
+            +'\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n'
+            +'modelo       Demucs htdemucs (4 stems \u00b7 1 pasada)\n'
+            +'dispositivo  '+(devShown==='GPU'?'GPU':(devShown==='CPU'?'CPU':'detectando\u2026'))+'\n'
+            +'GPU          '+(turbo?'A100 (Turbo)':'A10G')+'\n'
+            +'pistas       '+((window.STEM_PICK||[]).join(', ')||'\u2014')+'\n'
+            +'acordes      '+(withChords?'s\u00ed':'no')+'    melod\u00eda  '+(withMelody?'s\u00ed':'no')+'\n'
+            +'rango        '+(_full?'completo':('desde '+document.getElementById('ol-mp3-start').value+'s \u00b7 '+document.getElementById('ol-mp3-dur').value+'s'))+'\n'
+            +'fase         '+ph.m+'\n'
+            +'progreso     '+cur.toFixed(1)+'%\n'
+            +'transcurrido '+_el.toFixed(1)+'s\n'
+            +'\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 log del motor \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n';
+          log.textContent=_hdr+(lg||'\u2026'); log.scrollTop=log.scrollHeight;
+        }
         if(r.done && r.name){
-          clearInterval(t); window.__OL_POLL_AN=null;
+          clearInterval(t); window.__OL_POLL_AN=null; window.__OL_AC=null;
           if(pbar) pbar.style.width='100%';
-          if(prog){ prog.classList.add('done'); prog.innerHTML='<div class="doneT">Separaci\u00f3n Finalizada</div><div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12.5l4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'; }
+          if(prog){ prog.classList.remove('running'); prog.classList.add('done'); prog.innerHTML='<div class="doneT">Separaci\u00f3n Finalizada</div><div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12.5l4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'; }
           await _loadSong(r.name);
           ST.pendingFile=null;
           setTimeout(function(){ var ovv=document.getElementById('ol-mp3-ov'); if(ovv) ovv.style.display='none'; },900);
           send.disabled=false;
-        } else if(r.done){ clearInterval(t); window.__OL_POLL_AN=null; send.disabled=false; }
+        } else if(r.done){ clearInterval(t); window.__OL_POLL_AN=null; window.__OL_AC=null; if(prog){ prog.classList.remove('running'); prog.style.display='none'; } send.style.display=''; send.disabled=false; }
       }catch(_){}
     },1200);
     window.__OL_POLL_AN=t;
