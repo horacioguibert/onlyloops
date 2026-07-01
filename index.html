@@ -971,7 +971,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.661</title>
+<title>OnlyLoops · v27.666</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -8847,6 +8847,13 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
         </div>
       </div>
       <div class="cew-hw-row">
+        <div class="cew-hw-lbl">MODO</div>
+        <div class="cew-hw-track" id="cew-hw11-track">
+          <div class="cew-hw-sel"></div>
+          <div class="cew-hw-strip" id="cew-hw11-strip"></div>
+        </div>
+      </div>
+      <div class="cew-hw-row">
         <div class="cew-hw-lbl">OCTAVA</div>
         <div class="cew-hw-track" id="cew-hw4-track">
           <div class="cew-hw-sel"></div>
@@ -8936,7 +8943,7 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.661</span>
+      <span class="title" id="dkv-title">Vista kit · v27.666</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -9536,6 +9543,20 @@ body.landscape-mode #part-sheet .ps-tech-wrap{flex-direction:row}
             <div class="is-mw-track">
               <div class="is-mw-sel"></div>
               <div class="is-mw-strip" id="is-mw-voi"></div>
+            </div>
+          </div>
+          <button class="is-mw-arr" data-dir="+1" aria-label="Siguiente">›</button>
+        </div>
+      </div>
+
+      <div class="is-mw-block is-mw-block-mode" data-mw-kind="mode">
+        <div class="is-mw-toplbl">MODO</div>
+        <div class="is-mw" data-mw="mode">
+          <button class="is-mw-arr" data-dir="-1" aria-label="Anterior">‹</button>
+          <div class="is-mw-frame">
+            <div class="is-mw-track">
+              <div class="is-mw-sel"></div>
+              <div class="is-mw-strip" id="is-mw-mode"></div>
             </div>
           </div>
           <button class="is-mw-arr" data-dir="+1" aria-label="Siguiente">›</button>
@@ -12968,17 +12989,19 @@ function _firePianoMidi(midi, when, dur, vel) {
     svg.removeAttribute('width'); svg.removeAttribute('height');
     svg.style.display = 'block';
     host.scrollLeft = 0;                      // sin scroll: arrancar desde el borde
-    // v27.660 — ajustar el ANCHO del panel al ancho real del teclado (+padding),
-    // así el contenedor no queda mucho más ancho que el piano. El padre real es
-    // .cs-piano-panel (host → .olpk-wrap → .cs-piano-panel).
+    // v27.662 — ajustar ANCHO y ALTO del panel a la medida REAL del teclado
+    // (+padding del wrap). Así el contenedor no queda más ancho ni más alto que
+    // el piano: se elimina la franja negra muerta de abajo. host → .olpk-wrap →
+    // .cs-piano-panel.
     try {
       const wrap  = host.parentElement;            // .olpk-wrap
       const panel = wrap && wrap.parentElement;    // .cs-piano-panel
       if (panel){
-        // padding lateral del wrap (8px*2) + un respiro
-        const cs = getComputedStyle(wrap);
-        const padX = (parseFloat(cs.paddingLeft)||0) + (parseFloat(cs.paddingRight)||0);
-        panel.style.width = Math.ceil(finalW + padX + 2) + 'px';
+        const cs   = getComputedStyle(wrap);
+        const padX = (parseFloat(cs.paddingLeft)  ||0) + (parseFloat(cs.paddingRight) ||0);
+        const padY = (parseFloat(cs.paddingTop)   ||0) + (parseFloat(cs.paddingBottom)||0);
+        panel.style.width  = Math.ceil(finalW + padX + 2) + 'px';
+        panel.style.height = Math.ceil(finalH + padY)     + 'px';
       }
     } catch(_){}
   }
@@ -13136,72 +13159,85 @@ function _firePianoMidi(midi, when, dur, vel) {
     if (btn) btn.classList.remove('olpk-open');
   };
 
-  // ─── Reubicación libre del panel (mismo patrón que LIVE_DRAG) ───
-  // Se agarra desde el panel entero (como LIVE), se arrastra en X e Y, queda donde
-  // se suelta (sin snap). Límite: no salirse del viewport. No usa librerías.
+  // ─── Reubicación libre del panel ───────────────────────────────────────────
+  // v27.666 — CAUSA RAÍZ del "se cierra al tocar": el chord-sheet registra un
+  // handler tap-outside en `document` con POINTERDOWN en captura. En iOS el
+  // pointerdown dispara ANTES que touchstart, así que ese handler cerraba el
+  // panel antes de que ningún listener de touch pudiera reaccionar. Además el
+  // panel no ganaba el hit-test (el toque caía en #app/#seq).
+  // SOLUCIÓN: interceptar POINTERDOWN en `window` en fase de CAPTURA. La captura
+  // recorre window → document → target, así que este handler corre ANTES que el
+  // tap-outside del chord-sheet (que está en document). Con hit-test por
+  // coordenadas + stopImmediatePropagation, el toque nunca llega al tap-outside
+  // ni al #seq: el panel no se cierra y arranca el drag con el primer toque.
   const PIANO_DRAG = {
     dragging:false, startX:0, startY:0, startLeft:0, startTop:0, moved:false,
-    getX(e){ return e.touches ? e.touches[0].clientX : e.clientX; },
-    getY(e){ return e.touches ? e.touches[0].clientY : e.clientY; },
-    start(e){
+    _pid:-1,
+    inPanel(x, y){
       const panel = document.getElementById('cs-piano-panel');
-      if (!panel || !panel.classList.contains('show')) return;
-      // Hit-test por COORDENADAS, no por target: aunque el sequencer (#seq) quede
-      // por encima en el stacking y "robe" el target, si el toque cae dentro del
-      // rectángulo del panel abierto, arrancamos el drag igual. Esto gana a
-      // cualquier overlay sin pelear con z-index/stacking-contexts.
-      const x = PIANO_DRAG.getX(e), y = PIANO_DRAG.getY(e);
+      if (!panel || !panel.classList.contains('show')) return null;
       const r = panel.getBoundingClientRect();
-      if (x < r.left || x > r.right || y < r.top || y > r.bottom) return;  // fuera del panel
+      if (x < r.left || x > r.right || y < r.top || y > r.bottom) return null;
+      return panel;
+    },
+    onDown(e){
+      // Solo toques primarios; el hit-test decide si es sobre el panel.
+      const panel = PIANO_DRAG.inPanel(e.clientX, e.clientY);
+      if (!panel) return;
+      // GANAR: cortar la propagación en captura → el tap-outside (document) y el
+      // #seq nunca ven este pointerdown, así que no cierran nada.
+      e.stopPropagation();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      if (e.cancelable) e.preventDefault();
       PIANO_DRAG.dragging = true; PIANO_DRAG.moved = false;
-      PIANO_DRAG.startX = x;
-      PIANO_DRAG.startY = y;
-      PIANO_DRAG.startLeft = r.left;
-      PIANO_DRAG.startTop  = r.top;
-      // pasar a caja posicionada por left/top (deja de ser full-width)
+      PIANO_DRAG._pid = e.pointerId;
+      const r = panel.getBoundingClientRect();
+      PIANO_DRAG.startX = e.clientX;  PIANO_DRAG.startY = e.clientY;
+      PIANO_DRAG.startLeft = r.left;  PIANO_DRAG.startTop = r.top;
       panel.classList.add('olpk-moved','olpk-dragging');
       panel.style.width = r.width + 'px';
-      panel.style.left = r.left + 'px';
-      panel.style.top  = r.top  + 'px';
-      if (e.cancelable) e.preventDefault();
+      panel.style.left  = r.left  + 'px';
+      panel.style.top   = r.top   + 'px';
+      // Capturar el puntero: todos los move/up van al panel aunque el dedo salga.
+      try { panel.setPointerCapture(e.pointerId); } catch(_){}
     },
-    move(e){
-      if (!PIANO_DRAG.dragging) return;
+    onMove(e){
+      if (!PIANO_DRAG.dragging || e.pointerId !== PIANO_DRAG._pid) return;
       const panel = document.getElementById('cs-piano-panel');
       if (!panel) return;
-      const dx = PIANO_DRAG.getX(e) - PIANO_DRAG.startX;
-      const dy = PIANO_DRAG.getY(e) - PIANO_DRAG.startY;
+      e.stopPropagation();
+      if (e.cancelable) e.preventDefault();
+      const dx = e.clientX - PIANO_DRAG.startX;
+      const dy = e.clientY - PIANO_DRAG.startY;
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) PIANO_DRAG.moved = true;
-      const w = panel.offsetWidth, h = panel.offsetHeight;
-      const vw = window.innerWidth, vh = window.innerHeight;
-      // dejar siempre al menos 80px del panel visible en cada eje (no perderlo)
+      const w = panel.offsetWidth, vw = window.innerWidth, vh = window.innerHeight;
       const KEEP = 80;
-      const minLeft = -(w - KEEP),  maxLeft = vw - KEEP;
-      const minTop  = 0,            maxTop  = vh - KEEP;
       let left = PIANO_DRAG.startLeft + dx;
       let top  = PIANO_DRAG.startTop  + dy;
-      left = Math.max(minLeft, Math.min(maxLeft, left));
-      top  = Math.max(minTop,  Math.min(maxTop,  top));
+      left = Math.max(-(w - KEEP), Math.min(vw - KEEP, left));
+      top  = Math.max(0,           Math.min(vh - KEEP, top));
       panel.style.left = left + 'px';
       panel.style.top  = top  + 'px';
-      if (e.cancelable) e.preventDefault();
     },
-    end(){
-      if (!PIANO_DRAG.dragging) return;
-      PIANO_DRAG.dragging = false;
+    onUp(e){
+      if (!PIANO_DRAG.dragging || e.pointerId !== PIANO_DRAG._pid) return;
+      // Cortar también el pointerup/click asociado para que no reabra nada.
+      e.stopPropagation();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      PIANO_DRAG.dragging = false; PIANO_DRAG._pid = -1;
       const panel = document.getElementById('cs-piano-panel');
-      if (panel) panel.classList.remove('olpk-dragging');
+      if (panel){
+        panel.classList.remove('olpk-dragging');
+        try { panel.releasePointerCapture(e.pointerId); } catch(_){}
+      }
     },
     init(){
-      // Listener a nivel DOCUMENT en CAPTURA: el evento pasa por document antes
-      // que por cualquier elemento, así start() lo ve aunque #seq u otro overlay
-      // sea el target. start() decide por coordenadas si el toque cae en el panel.
-      document.addEventListener('mousedown', PIANO_DRAG.start, true);
-      document.addEventListener('touchstart', PIANO_DRAG.start, { passive:false, capture:true });
-      window.addEventListener('mousemove', PIANO_DRAG.move, true);
-      window.addEventListener('touchmove', PIANO_DRAG.move, { passive:false, capture:true });
-      window.addEventListener('mouseup', PIANO_DRAG.end, true);
-      window.addEventListener('touchend', PIANO_DRAG.end, true);
+      // POINTERDOWN en window-CAPTURA: corre antes que el tap-outside del
+      // chord-sheet (document-captura). move/up en window también en captura.
+      window.addEventListener('pointerdown', PIANO_DRAG.onDown, true);
+      window.addEventListener('pointermove', PIANO_DRAG.onMove, true);
+      window.addEventListener('pointerup',   PIANO_DRAG.onUp,   true);
+      window.addEventListener('pointercancel', PIANO_DRAG.onUp, true);
     }
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', PIANO_DRAG.init);
@@ -35293,6 +35329,22 @@ const VOICING_ITEMS = [
   { v:'shell',    label:'Shell',       desc:'Solo guide tones: 3\u00aa y 7\u00aa.' },
 ];
 
+// v27.665 — MODOS (chord-scale theory). Por ahora SOLO UI: el wheel se muestra y
+// persiste la selecci\u00f3n (clip.mode / track.mode), pero NO recalcula las
+// f\u00f3rmulas todav\u00eda. El cableado de tensiones por modo se define despu\u00e9s con
+// el consultor de armon\u00eda. Default = j\u00f3nico (equivale al comportamiento actual).
+// Los 7 modos de la escala mayor, ordenados por brillo (de m\u00e1s brillante a m\u00e1s oscuro).
+const MODE_ITEMS_7 = [
+  { v:'jonico',     label:'J\u00f3nico \u2b50', desc:'1\u00aa grado \u00b7 mayor \u00b7 tensiones 9, 13 (11 evitar).' },
+  { v:'lidio',      label:'Lidio',       desc:'4\u00ba grado \u00b7 mayor \u00b7 tensiones 9, #11, 13 (sin avoid).' },
+  { v:'mixolidio',  label:'Mixolidio',   desc:'5\u00ba grado \u00b7 dominante \u00b7 tensiones 9, 13 (11 evitar).' },
+  { v:'dorico',     label:'D\u00f3rico',     desc:'2\u00ba grado \u00b7 menor \u00b7 tensiones 9, 11, 13\u266e (sin avoid).' },
+  { v:'eolico',     label:'E\u00f3lico',     desc:'6\u00ba grado \u00b7 menor \u00b7 tensiones 9, 11, \u266d13.' },
+  { v:'frigio',     label:'Frigio',      desc:'3\u00ba grado \u00b7 menor \u00b7 tensi\u00f3n 11 (\u266d9 y \u266d13 evitar).' },
+  { v:'locrio',     label:'Locrio',      desc:'7\u00ba grado \u00b7 semidisminuido \u00b7 tensiones 11, \u266d13.' },
+];
+window.MODE_ITEMS_7 = MODE_ITEMS_7;
+
 // ¿el voicing v aplica al acorde de intervalos iv?
 function _voicingApplies(v, iv){
   if(!Array.isArray(iv)) return v==='auto'||v==='root';
@@ -45168,6 +45220,7 @@ function openInstSheet(ti) {
   }
   INST_EDIT.octShift = t.octShift || 0;
   INST_EDIT.voi = t.defaultVoi || ((Array.isArray(t.clips) && t.clips[0] && t.clips[0].voi) || 'auto');  // v27.652b — voicing track-level
+  INST_EDIT.mode = t.defaultMode || ((Array.isArray(t.clips) && t.clips[0] && t.clips[0].mode) || 'jonico');  // v27.665 — modo track-level (solo UI)
   INST_EDIT.tShift = t.tShift || 0;  // v27.563 - corrimiento de tiempo por instrumento
   // Snapshot también de FX (mix vals + on/off) para revert
   INST_EDIT._fxSnapshot = {};
@@ -46553,6 +46606,12 @@ function _instMwItemsFor(kind){
     return VOICING_ITEMS.map(it => ({ v: it.v, label: it.label }));
   }
 
+  // v27.665 — MODO (solo piano): mismos valores que el chord-editor. Solo UI.
+  if(kind === 'mode'){
+    if (typeof MODE_ITEMS_7 === 'undefined') return [{ v:'jonico', label:'J\u00f3nico' }];
+    return MODE_ITEMS_7.map(it => ({ v: it.v, label: it.label }));
+  }
+
   // v27.174 — SUBTÉCNICA: idéntico — sin branch legacy 'varios'.
   if(kind === 'subtech'){
     const _estilo = _instCurrentStyle();
@@ -46606,6 +46665,11 @@ function _instMwCurrentIdx(kind, items){
   }
   if(kind === 'voi'){
     const cur = INST_EDIT.voi || 'auto';
+    const i = items.findIndex(it => it.v === cur);
+    return Math.max(0, i);
+  }
+  if(kind === 'mode'){
+    const cur = INST_EDIT.mode || 'jonico';
     const i = items.findIndex(it => it.v === cur);
     return Math.max(0, i);
   }
@@ -46686,11 +46750,13 @@ function instMwBuildAll(){
     if (_subBlk) _subBlk.style.display = _isPiano ? 'none' : '';
     const _voiBlk = document.querySelector('.is-mw-block[data-mw-kind="voi"]');
     if (_voiBlk) _voiBlk.style.display = _isPiano ? '' : 'none';
+    const _modeBlk = document.querySelector('.is-mw-block[data-mw-kind="mode"]');   // v27.665
+    if (_modeBlk) _modeBlk.style.display = _isPiano ? '' : 'none';
   } catch(_){}
   const _kinds = _isDrum
     ? ['instrument','estilo','sound','tech','subtech','oct','shift']
     : (_isPiano
-        ? ['instrument','sound','tech','voi','oct','shift']
+        ? ['instrument','sound','tech','voi','mode','oct','shift']
         : ['instrument','sound','tech','subtech','oct','shift']);
   _kinds.forEach(kind => {
     instMwBuild(kind);
@@ -46925,6 +46991,18 @@ function _instMwApplyKind(kind){
       INST_EDIT.voi = item.v;
       t.defaultVoi = item.v;
       if (Array.isArray(t.clips)) t.clips.forEach(c => { c.voi = item.v; });
+      try{ renderTrack(INST_EDIT.ti); }catch(_){}
+    }
+  }
+
+  else if(kind === 'mode'){
+    // v27.665 — MODO track-level: propaga c.mode a TODOS los clips del track
+    // (decisión global de la línea, como pidió el arquitecto). Solo persiste;
+    // el recálculo de tensiones por modo se cablea en una fase posterior.
+    if (INST_EDIT.mode !== item.v) {
+      INST_EDIT.mode = item.v;
+      t.defaultMode = item.v;
+      if (Array.isArray(t.clips)) t.clips.forEach(c => { c.mode = item.v; });
       try{ renderTrack(INST_EDIT.ti); }catch(_){}
     }
   }
@@ -49297,6 +49375,7 @@ const HWS = {
   8: {items:[], pad:0, off:0, drag:false, x0:0, last:-1, idx:0, ac:null},  // SONIDO (v17.1.0)
   9: {items:[], pad:0, off:0, drag:false, x0:0, last:-1, idx:0, ac:null},  // ESTILO (v19.1.0)
   10:{items:[], pad:0, off:0, drag:false, x0:0, last:-1, idx:0, ac:null},  // VOICING (v27.644)
+  11:{items:[], pad:0, off:0, drag:false, x0:0, last:-1, idx:0, ac:null},  // MODO (v27.665)
 };
 
 function hwsBuild(n, items, sel, onMove, onRelease){
@@ -49953,6 +50032,9 @@ function cewRenderAllInline(clip){
   // ── 4b. VOICING (HW10) — v27.644 ───────────────────────────
   _cewBuildVoicingWheel(clip);
 
+  // ── 4c. MODO (HW11) — v27.665 (solo UI, sin cablear fórmulas) ─
+  try { _cewBuildModeWheel(clip); } catch(_){}
+
   // ── 5. ESTILO (HW9) — v19.1.0 ───────────────────────────────
   // v27.17 — En chord-editor: wheel ESTILO solo visible para BATERÍA.
   //          Piano/cuerdas/bajo usan catálogo unificado ('todos').
@@ -50058,6 +50140,44 @@ function _cewBuildVoicingWheel(clip){
   );
 }
 window._cewBuildVoicingWheel = _cewBuildVoicingWheel;
+
+// ════════════════════════════════════════════════════════════════
+// v27.665 — _cewBuildModeWheel: wheel MODO (HW11) del chord-editor.
+// Igual medida y comportamiento que VOICING. Solo visible para piano.
+// Por ahora SOLO persiste clip.mode (no recalcula fórmulas todavía).
+// Default = 'jonico' (= comportamiento actual). Cableado con el
+// consultor de armonía en una fase posterior.
+// ════════════════════════════════════════════════════════════════
+function _cewBuildModeWheel(clip){
+  if (!clip || !G.editRef) return;
+  if (typeof MODE_ITEMS_7 === 'undefined') return;
+  let _isPiano = false;
+  try {
+    const _t = G.tracks[G.editRef.ti];
+    _isPiano = (typeof _isPianoFamily === 'function') ? !!_isPianoFamily(_t.inst) : false;
+  } catch(_){}
+  const _trackEl = document.getElementById('cew-hw11-track');
+  const _row = _trackEl ? _trackEl.closest('.cew-hw-row') : null;
+  if (_row) _row.style.display = _isPiano ? '' : 'none';
+  if (!_isPiano) return;
+  let _cur = (clip.mode != null) ? clip.mode : 'jonico';
+  let _idx = MODE_ITEMS_7.findIndex(it => it.v === _cur);
+  if (_idx < 0) { _idx = 0; clip.mode = MODE_ITEMS_7[0].v; }
+  const items = MODE_ITEMS_7.map(it => ({ label: it.label }));
+  hwsBuild(11, items, _idx,
+    function(idx){ HWS[11].idx = idx; },
+    function(idx){
+      const item = MODE_ITEMS_7[idx];
+      if (!item) return;
+      clip.mode = item.v;               // SOLO persiste (sin recalcular fórmulas todavía)
+      cewUpdateRowVals(clip);
+      // Nota: NO se llama a _cewPlayPreviewClip para no sugerir un cambio de sonido
+      // que aún no existe. Cuando se cablee la teoría, se agrega el preview.
+      try { renderTrack(G.editRef.ti); } catch(_){}
+    }
+  );
+}
+window._cewBuildModeWheel = _cewBuildModeWheel;
 
 
 // 21 items de STYLES_LIST. Default = 'varios' (mantiene retrocompat).
@@ -58379,7 +58499,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.661',
+    version: 'v27.666',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
