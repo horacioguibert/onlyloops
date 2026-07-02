@@ -971,7 +971,7 @@
   · Licencias: MIT (Tone.js) + OFL-1.1 (fonts) + CC0 (samples). Cero copyleft.
   ════════════════════════════════════════════════════════════════════════════
 -->
-<title>OnlyLoops · v27.666</title>
+<title>OnlyLoops · v27.673</title>
 
 <!-- PWA — OnlyLoops as installable app -->
 <link rel="manifest" href="/manifest.json">
@@ -7911,6 +7911,66 @@ body.mixer-dragging *{touch-action:none !important}
   /* v27.154 — Corrimiento 20px a la izquierda (curva del iPhone tapaba los botones) */
   margin-right: 20px;
 }
+/* ─── v27.670 — Botón OMITIR 5ta (boceto Omitir_5ta.jpg + auditoría) ───────
+   Anclaje EXACTO al bloque de íconos: borde izq alineado con el botón Play
+   (left:20px = 269-249 medidos), borde der muriendo en el espacio entre ✓ y
+   🗑 (right:32px = 378-346). Absolute dentro de cs-col-right → fuera del
+   flujo, el header no crece. Base 5px sobre la línea divisoria, en la
+   baseline del acorde grande. Conjunto reducido para caber en 77px. */
+.cs-header-3col .cs-col-right { position: relative; }
+#cs-omit5 {
+  position: absolute;
+  /* v27.671 — ANCHO FIJO anclado a la DERECHA (auditoría iPad/desktop): con
+     left+right la cápsula se estiraba al crecer la columna (grid 1fr). Ahora
+     right+width fijos: viaja pegada al bloque de íconos y nunca crece hacia
+     la izquierda. En iPhone (390pt) rinde idéntico: left del Play, right en
+     el espacio ✓/🗑 (medido 269..346). */
+  /* v27.673 — Auditoría: el switch sobresalía 2.4px por fuera del borde (el
+     contenido interno excedía el content-box desde v27.670 — esa era la causa
+     del "pisado"). Borde +5px a la derecha (right 28→23, width 77→82); texto
+     y switch quedan EXACTOS donde estaban (x=280 y 328..352 medidos). */
+  right: 23px;
+  width: 82px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 5px 6px;
+  border: 1px solid var(--rule, rgba(0,0,0,.18));
+  border-radius: 8px;
+  background: var(--card, #fff);
+  color: var(--ink, #1a1a1a);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color .15s;
+}
+#cs-omit5 .cs-omit5-lbl { white-space: nowrap; letter-spacing: 0; }
+#cs-omit5 .cs-omit5-lbl sup { font-size: 7px; }
+#cs-omit5 .cs-omit5-sw {
+  position: relative;
+  width: 24px; height: 14px;
+  border-radius: 7px;
+  background: var(--rule, rgba(0,0,0,.22));
+  transition: background .2s ease-out;
+  flex: 0 0 auto;
+}
+#cs-omit5 .cs-omit5-knob {
+  position: absolute;
+  top: 1.5px; left: 1.5px;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--card, #fff);
+  box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  transition: transform .2s ease-out;
+}
+#cs-omit5.on { border-color: var(--acc, #4aa); }
+#cs-omit5.on .cs-omit5-sw { background: var(--acc, #4aa); }
+#cs-omit5.on .cs-omit5-knob { transform: translateX(10px); }
+/* Batería: el header muestra Vista kit — el voicing de 5ª no aplica */
+.chord-sheet-drums #cs-omit5 { display: none; }
 .cs-icons-row .shbtn {
   width: 32px; height: 32px;
   border-radius: 50%;
@@ -8809,6 +8869,10 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
           <button class="shbtn ok" onclick="applyEdit()" aria-label="Aplicar y cerrar">✓</button>
           <button class="shbtn del" onclick="deleteClip()" aria-label="Eliminar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
         </div>
+        <button id="cs-omit5" type="button" onclick="olToggleOmit5()" aria-label="Omitir 5ta" aria-pressed="false">
+          <span class="cs-omit5-lbl">Omitir 5<sup>ta</sup></span>
+          <span class="cs-omit5-sw"><span class="cs-omit5-knob"></span></span>
+        </button>
       </div>
     </div>
 
@@ -8943,7 +9007,7 @@ html.app-songs .part-line .song-part-lab{color:var(--ink3);font-family:var(--mon
       <div id="dkv-grip"></div>
     </div>
     <div id="dkv-header">
-      <span class="title" id="dkv-title">Vista kit · v27.666</span>
+      <span class="title" id="dkv-title">Vista kit · v27.673</span>
       <div id="dkv-bpm-ctl">
         <span class="lbl">BPM</span>
         <button id="dkv-bpm-minus" aria-label="BPM −1" title="BPM −1">−</button>
@@ -12630,21 +12694,170 @@ window._arpFromIv = _arpFromIv;
 // la tónica para no quedar sin fundamento.
 // ═══════════════════════════════════════════════════════════════════════════
 const PIANO_TECH_NO_BASS = new Set(['Whole','Closed','Run up','Run down','Glissando','Drum roll','Pickup','Silencio']);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// v27.667 — MOTOR DE MODOS GRIEGOS (chord-scale theory) · autorizado R6.2
+// "Aceptás el riesgo de romper R6.2, procedé bajo mi responsabilidad."
+//
+// La CALIDAD del acorde (1-3-5-7) la fija el sufijo y NO se toca. El modo solo
+// COLOREA/OMITE las tensiones GENÉRICAS naturales (9=pc2, 11=pc5, 13=pc9) que
+// están en registro de extensión (x>=12). Las tensiones ya alteradas por el
+// sufijo (♭9,#9,#11,♭13 → otros pc) se respetan siempre (prioridad del sufijo).
+//
+// Enfoque A+B (decidido con el asesor armónico de Horacio):
+//   A) mode='auto' → deriva el modo del GRADO del acorde en la tonalidad
+//      (I=jónico, ii=dórico, … según G.keyIdx/G.keyMode). Default, cero clicks.
+//   B) mode explícito → override para usuarios avanzados (rompe la regla a
+//      conciencia). El sufijo alterado explícito gana sobre todo.
+//
+// Tensiones por modo (semitono destino de cada grado genérico; null = avoid→omit):
+//   Fuentes: Berklee/Nettles "Harmony", Levine "Jazz Theory", G.Russell (Lydian).
+// ═══════════════════════════════════════════════════════════════════════════
+const MODE_TENSIONS = {
+  //           9(pc2)  11(pc5)  13(pc9)
+  jonico:    { n9: 2,  n11: null, n13: 9 },  // maj7 · 9,13 · 11 avoid→omit
+  lidio:     { n9: 2,  n11: 6,    n13: 9 },  // maj7 · 9,#11,13 · sin avoid
+  mixolidio: { n9: 2,  n11: null, n13: 9 },  // 7dom · 9,13 · 11 avoid→omit
+  dorico:    { n9: 2,  n11: 5,    n13: 9 },  // m7 · 9,11,13♮ · sin avoid
+  eolico:    { n9: 2,  n11: 5,    n13: 8 },  // m7 · 9,11,♭13
+  frigio:    { n9: null, n11: 5,  n13: 8 },  // m7 · 11 · ♭9,♭13 avoid→omit 9
+  locrio:    { n9: null, n11: 5,  n13: 8 },  // m7♭5 · 11,♭13 · ♭9 avoid→omit 9
+};
+window.MODE_TENSIONS = MODE_TENSIONS;
+
+// Grado (semitonos desde la tónica de la escala) → modo, según keyMode.
+const _MODE_BY_DEG_MAJOR = {0:'jonico',2:'dorico',4:'frigio',5:'lidio',7:'mixolidio',9:'eolico',11:'locrio'};
+const _MODE_BY_DEG_MINOR = {0:'eolico',2:'locrio',3:'jonico',5:'dorico',7:'frigio',8:'lidio',10:'mixolidio'};
+
+// Resuelve el modo efectivo de un acorde. (A+B)
+//   modeSel  = clip.mode / track.defaultMode ('auto' | modo | undefined)
+//   rootName = nombre de la tónica del acorde (clip.r) — ej. 'C', 'F#'
+//   iv       = intervalos crudos de PIANO_CHORD_IV (para fallback por calidad)
+function _deriveMode(modeSel, rootName, iv){
+  // (B) override explícito del usuario
+  if (modeSel && modeSel !== 'auto' && MODE_TENSIONS[modeSel]) return modeSel;
+  // (A) auto: derivar del grado en la tonalidad
+  const rootPc = (typeof ROOT_OFF !== 'undefined' && ROOT_OFF[rootName] != null) ? ROOT_OFF[rootName] : null;
+  const keyPc  = (typeof G !== 'undefined' && typeof G.keyIdx === 'number') ? G.keyIdx : 0;
+  const isMin  = (typeof G !== 'undefined' && G.keyMode === 'minor');
+  if (rootPc != null){
+    const deg = ((rootPc - keyPc) + 12) % 12;
+    const m = (isMin ? _MODE_BY_DEG_MINOR : _MODE_BY_DEG_MAJOR)[deg];
+    if (m) return m;   // acorde diatónico → modo del grado
+  }
+  // Cromático (no diatónico) → fallback por CALIDAD del acorde
+  if (Array.isArray(iv)){
+    const pc = x => ((x%12)+12)%12;
+    const has = p => iv.some(x => pc(x)===p);
+    const has3M = has(4), has3m = has(3), hasb5 = has(6), has7m = has(10), has7M = has(11);
+    if (has3m && hasb5) return 'locrio';        // m7♭5
+    if (has3m)          return 'dorico';        // menor → dórico
+    if (has3M && has7m) return 'mixolidio';     // dominante
+    if (has3M && has7M) return 'jonico';        // maj7
+    if (has3M)          return 'jonico';        // mayor simple
+  }
+  return 'jonico';
+}
+window._deriveMode = _deriveMode;
+
+// Aplica las tensiones del modo al array de intervalos. Solo toca extensiones
+// naturales genéricas (pc 2/5/9 en x>=12); todo lo demás queda intacto.
+function _applyMode(iv, mode){
+  if (!Array.isArray(iv)) return iv;
+  const T = MODE_TENSIONS[mode];
+  if (!T) return iv.slice();     // modo desconocido → sin cambios
+  const pc = x => ((x%12)+12)%12;
+  const out = [];
+  for (const x of iv){
+    if (x >= 12){                // registro de extensión
+      const p = pc(x);
+      if (p === 2){              // 9 natural
+        if (T.n9 === null) continue;               // avoid → omitir
+        out.push(x + (T.n9 - 2)); continue;        // recolorear
+      }
+      if (p === 5){              // 11 justa
+        if (T.n11 === null) continue;              // avoid → omitir
+        out.push(x + (T.n11 - 5)); continue;
+      }
+      if (p === 9){              // 13 natural
+        if (T.n13 === null) continue;
+        out.push(x + (T.n13 - 9)); continue;
+      }
+    }
+    out.push(x);                 // nota de acorde o tensión ya alterada → intacta
+  }
+  return out.sort((a,b)=>a-b);
+}
+window._applyMode = _applyMode;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// v27.668 — FÓRMULA REAL ("la matemática de lo que suena") para el header del
+// chord-editor (#cs-int). Antes mostraba INTERVALS[sufijo] (tabla teórica
+// estática) que MENTÍA: ignoraba el modo (tensiones recoloreadas/omitidas) y
+// la reducción pianística (5ª omitida en acordes densos).
+//
+// Pipeline espejo del motor (playPianoChord):
+//   PIANO_CHORD_IV[sufijo] → _applyMode(_deriveMode) → reducción de densidad.
+// Nota de precisión: el rootless del motor quita la tónica del PAD porque la
+// técnica ya la toca en el bajo — la tónica SUENA igual. Por eso acá se llama
+// _pianoVoiceExt(iv, false): conserva la T (que suena en algún registro) y
+// omite la 5ª de los densos (que no suena en ninguno).
+// Bajo y batería no usan este motor → fórmula teórica del sufijo.
+// ═══════════════════════════════════════════════════════════════════════════
+function _fxSoundingFormula(clip, inst){
+  try {
+    const suffix = (clip && clip.s) || 'major';
+    const stat = (typeof INTERVALS !== 'undefined' && INTERVALS[suffix]) || '';
+    const base = (typeof PIANO_CHORD_IV !== 'undefined') ? PIANO_CHORD_IV[suffix] : null;
+    if (!Array.isArray(base)) return stat;
+    const _isBass = (typeof _isBassFamily === 'function') && _isBassFamily(inst);
+    const _isDrum = !inst || /drum/i.test(String(inst));
+    const _isSlash = String(suffix).charAt(0) === '/';
+    if (_isBass || _isDrum || _isSlash) return stat;
+    // 1) modo efectivo (mismo criterio A+B del motor)
+    const mode = _deriveMode((clip.mode != null) ? clip.mode : 'auto', clip.r, base);
+    let iv = _applyMode(base, mode);
+    // 2) reducción de densidad (5ª omitida en densos); tónica SIEMPRE presente
+    //    porque suena en el voicing o en el bajo de la técnica (tonic rescue).
+    iv = _pianoVoiceExt(iv, false);
+    // 3) nombrar con la nomenclatura de INTERVALS (registro define 2/4/6 vs 9/11/13)
+    const LO = {0:'T',1:'♭2',2:'2',3:'3m',4:'3M',5:'4',6:'♭5',7:'5',8:'♯5',9:'6',10:'7m',11:'7M'};
+    const HI = {0:'8',1:'♭9',2:'9',3:'♯9',4:'3M',5:'11',6:'♯11',7:'5',8:'♭13',9:'13',10:'7m',11:'7M'};
+    const isDim = /^(sh)?dim/.test(suffix);
+    return iv.slice().sort((a,b)=>a-b).map(x=>{
+      const p = ((x % 12) + 12) % 12;
+      let n = (x >= 12) ? (HI[p] || LO[p]) : LO[p];
+      if (isDim && p === 9) n = 'bb7';          // convención dim: 6ª = doble bemol 7
+      return n;
+    }).join(' · ');
+  } catch(_) {
+    try { return INTERVALS[(clip && clip.s)] || ''; } catch(__){ return ''; }
+  }
+}
+window._fxSoundingFormula = _fxSoundingFormula;
+
 function _pianoVoiceExt(iv, hasBass){
   if(!Array.isArray(iv) || iv.length < 4) return iv.slice();   // tríadas: sin cambios
   let out = iv.slice();
   const pc = x => ((x%12)+12)%12;
-  const has3M = out.some(x => pc(x)===4);
   // ¿es acorde de extensión? (tiene 9/11/13 — nota por encima de la 7ª)
   const hasExt = out.some(x => x >= 12 || pc(x)===2);
-  // 1) Choque 11 justa con 3M → #11
-  if(has3M) out = out.map(x => pc(x)===5 ? x+1 : x);
-  // 2) Omitir la 5ª justa en acordes densos (5+ notas)
-  if(out.length >= 5){
+  // v27.667 — La antigua regla 11→#11 se movió al MOTOR DE MODOS (_applyMode):
+  // ahora la sube el modo lidio y la omite jónico/mixolidio. Acá solo queda la
+  // reducción de densidad (5ª y tónica), que es independiente del modo.
+  // v27.669 — OMIT 5ta (botón ON/OFF del chord-editor, regla del asesor de
+  // armonía): la 5ª JUSTA se omite SOLO si el botón está ON y el resultado
+  // post-modo tiene más de 4 notas ("con extensiones, para no empastar").
+  // Busca pc7 (5ª justa) → dim/semidim (♭5=pc6) y aug (♯5=pc8) quedan
+  // protegidos por estructura: la 5ª alterada define el carácter y NUNCA se
+  // toca. Las omisiones del MODO (avoid notes) son una capa independiente que
+  // corre antes y SIEMPRE, diga lo que diga este botón.
+  const _omit5 = (typeof G !== 'undefined' && G.omit5 === true);
+  if(_omit5 && out.length >= 5){
     const i5 = out.findIndex(x => pc(x)===7);
     if(i5 >= 0) out.splice(i5,1);
   }
-  // 3) Rootless en extensiones cuando la técnica ya provee el bajo
+  // Rootless en extensiones cuando la técnica ya provee el bajo
   if(hasBass && hasExt && out.length >= 5){
     const i0 = out.findIndex(x => pc(x)===0 && x < 12);
     if(i0 >= 0) out.splice(i0,1);
@@ -35335,7 +35548,8 @@ const VOICING_ITEMS = [
 // el consultor de armon\u00eda. Default = j\u00f3nico (equivale al comportamiento actual).
 // Los 7 modos de la escala mayor, ordenados por brillo (de m\u00e1s brillante a m\u00e1s oscuro).
 const MODE_ITEMS_7 = [
-  { v:'jonico',     label:'J\u00f3nico \u2b50', desc:'1\u00aa grado \u00b7 mayor \u00b7 tensiones 9, 13 (11 evitar).' },
+  { v:'auto',       label:'Auto \u2b50', desc:'Deriva el modo del grado del acorde en la tonalidad (recomendado).' },
+  { v:'jonico',     label:'J\u00f3nico', desc:'1\u00aa grado \u00b7 mayor \u00b7 tensiones 9, 13 (11 evitar).' },
   { v:'lidio',      label:'Lidio',       desc:'4\u00ba grado \u00b7 mayor \u00b7 tensiones 9, #11, 13 (sin avoid).' },
   { v:'mixolidio',  label:'Mixolidio',   desc:'5\u00ba grado \u00b7 dominante \u00b7 tensiones 9, 13 (11 evitar).' },
   { v:'dorico',     label:'D\u00f3rico',     desc:'2\u00ba grado \u00b7 menor \u00b7 tensiones 9, 11, 13\u266e (sin avoid).' },
@@ -35554,9 +35768,19 @@ function playPianoChord(root, suffix, tech, varName, bpm) {
   } else {
     iv = PIANO_CHORD_IV[suffix] || PIANO_CHORD_IV.major;
     rs = ROOT_OFF[root] || 0;
+    // v27.667 — MOTOR DE MODOS: colorea las tensiones (9/11/13) según el modo
+    // efectivo (auto=deriva del grado en la tonalidad · override=elección del
+    // usuario). Corre ANTES de la reducción pianística y del voicing, sobre la
+    // fórmula teórica cruda. No toca la calidad del acorde ni las alteraciones
+    // explícitas del sufijo.
+    try {
+      const _modeSel = window._pianoCurrentClipMode;   // 'auto' | modo | undefined
+      const _mode = _deriveMode(_modeSel, root, iv);
+      iv = _applyMode(iv, _mode);
+    } catch(_){}
     // v27.659 — REDUCCIÓN PIANÍSTICA (autorizado R6.2): convertir la fórmula
     // teórica completa en un voicing que suena profesional (omite 5ª en densos,
-    // 11→#11 en mayores, rootless si la técnica toca bajo). Se adapta a la
+    // rootless si la técnica toca bajo). Se adapta a la
     // técnica: las 8 técnicas sin bajo conservan la tónica.
     try {
       const _hasBass = !PIANO_TECH_NO_BASS.has(vn);
@@ -36155,7 +36379,7 @@ const G={
   // v27.88 — Confirmado AmI como default (acorde dominante visual, grado de
   // referencia chico arriba) — más natural para el usuario que ya piensa en
   // cifrado americano.
-  notation:'AmI',key:'A',keyIdx:9,
+  notation:'AmI',key:'A',keyIdx:9,keyMode:'minor',omit5:false,
   playing:false,playPos:0,
   // v27.29 — Estado del zoom horizontal compact (true = 4 compases visibles, false = 2 default)
   zoomCompact:false,
@@ -39827,6 +40051,7 @@ function startPB(){
           // arrancar el track (ci===0) limpiamos el "previo" para que la
           // conducción de voces auto no arrastre el voicing de otra vuelta.
           window._pianoCurrentClipVoi = (cl.voi != null) ? cl.voi : 'auto';
+          window._pianoCurrentClipMode = (cl.mode != null) ? cl.mode : 'auto';   // v27.667
           try { if (ci === 0 && window._voiPrevByTrack) delete window._voiPrevByTrack[ti]; } catch(_){}
           // v16.3.34 — alias genérico: bass y guitar también necesitan lb del clip
           // para escalar el patrón musical al tiempo del clip (idem piano).
@@ -41335,7 +41560,42 @@ function openChordSheet(clip,ti,ci){
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// v27.669 — OMITIR 5ta (botón del hero, boceto Omitir_5ta.jpg).
+// Regla del asesor de armonía: ON = omitir la 5ª JUSTA en acordes cuyo
+// resultado post-modo tenga más de 4 notas. Nunca toca dim/semidim/aug (la
+// 5ª alterada define el carácter — protegidos porque el motor busca pc7).
+// Capa ADICIONAL e independiente de las omisiones del modo (avoid notes),
+// que corren siempre. Al conmutar: suena el preview (el teclado visual se
+// repinta con las notas reales) y la fórmula del header se recalcula.
+// ═══════════════════════════════════════════════════════════════════════════
+function olToggleOmit5(){
+  try {
+    G.omit5 = !(G.omit5 === true);
+    const btn = document.getElementById('cs-omit5');
+    if (btn) {
+      btn.classList.toggle('on', G.omit5);
+      btn.setAttribute('aria-pressed', G.omit5 ? 'true' : 'false');
+    }
+    const clip = (G.editRef && G.editRef.clip) ? G.editRef.clip : null;
+    if (clip) {
+      try { cewUpdateRowVals(clip); } catch(_){}        // fórmula del header
+      try { _cewPlayPreviewClip(clip); } catch(_){}     // sonido + piano visual
+    }
+  } catch(_){}
+}
+window.olToggleOmit5 = olToggleOmit5;
+
 function updateHero(clip){
+  // v27.669 — Sync visual del botón OMITIR 5ta con el estado global G.omit5
+  // (al abrir el editor o cambiar de clip el switch refleja el estado real).
+  try {
+    const _o5 = document.getElementById('cs-omit5');
+    if (_o5) {
+      _o5.classList.toggle('on', G.omit5 === true);
+      _o5.setAttribute('aria-pressed', G.omit5 === true ? 'true' : 'false');
+    }
+  } catch(_){}
   const disp=chordDisplay(clip.r,clip.s,clip.sb);
   const elGradeTop=document.getElementById('cs-grade-top');
   const elRoot=document.getElementById('cs-root');
@@ -41388,7 +41648,13 @@ function updateHero(clip){
       setRoot(disp.root, disp.suf);
       setGradeTop(null);
   }
-  document.getElementById('cs-int').textContent=INTERVALS[clip.s]||'';
+  // v27.668 — Fórmula REAL que suena (modo + reducción), no la teórica estática.
+  try {
+    const _fxInst = (G.editRef && G.tracks[G.editRef.ti]) ? G.tracks[G.editRef.ti].inst : null;
+    document.getElementById('cs-int').textContent = _fxSoundingFormula(clip, _fxInst);
+  } catch(_) {
+    document.getElementById('cs-int').textContent = INTERVALS[clip.s] || '';
+  }
   // v27.324 — Llamada a _renderChordSheetTechFormula eliminada (grilla retirada).
   // v15.0.47 — Hook de sincronía: cualquier cambio de clip refresca el
   // botón ref del CONFIG + carrusel + editor LNF (si está abierto).
@@ -41440,8 +41706,11 @@ function previewChord(){
   // disparar y restaurarlo después (mismo patrón que los otros call-sites).
   const _pPcVoi = window._pianoCurrentClipVoi;
   window._pianoCurrentClipVoi = (cl.voi != null) ? cl.voi : 'auto';
+  const _pPcMode = window._pianoCurrentClipMode;                          // v27.667
+  window._pianoCurrentClipMode = (cl.mode != null) ? cl.mode : 'auto';    // v27.667
   playChord(cl.r,cl.s,cl.tech,G.bpm);
   window._pianoCurrentClipVoi = _pPcVoi;
+  window._pianoCurrentClipMode = _pPcMode;                                // v27.667
   currentSound=ps;currentOctShift=po;currentTrackIdx=pti;
   const btn=document.getElementById('cs-play-btn');
   btn.classList.add('ok');setTimeout(()=>btn.classList.remove('ok'),800);
@@ -45220,7 +45489,7 @@ function openInstSheet(ti) {
   }
   INST_EDIT.octShift = t.octShift || 0;
   INST_EDIT.voi = t.defaultVoi || ((Array.isArray(t.clips) && t.clips[0] && t.clips[0].voi) || 'auto');  // v27.652b — voicing track-level
-  INST_EDIT.mode = t.defaultMode || ((Array.isArray(t.clips) && t.clips[0] && t.clips[0].mode) || 'jonico');  // v27.665 — modo track-level (solo UI)
+  INST_EDIT.mode = t.defaultMode || ((Array.isArray(t.clips) && t.clips[0] && t.clips[0].mode) || 'auto');  // v27.667 — modo track-level (A+B)
   INST_EDIT.tShift = t.tShift || 0;  // v27.563 - corrimiento de tiempo por instrumento
   // Snapshot también de FX (mix vals + on/off) para revert
   INST_EDIT._fxSnapshot = {};
@@ -46107,8 +46376,14 @@ function _instPreviewCurrent(){
         // v27.652b — aplicar el voicing del track (INST_EDIT.voi) en el preview.
         const _pPcVoiI = window._pianoCurrentClipVoi;
         window._pianoCurrentClipVoi = INST_EDIT.voi || (refClip && refClip.voi) || 'auto';
+        // v27.668 — aplicar también el MODO del track (INST_EDIT.mode): sin esto
+        // el wheel MODO del inst-sheet cambiaba el estado pero el preview sonaba
+        // con el modo stale (parecía que el wheel no tenía sound preview).
+        const _pPcModeI = window._pianoCurrentClipMode;
+        window._pianoCurrentClipMode = INST_EDIT.mode || (refClip && refClip.mode) || 'auto';
         playChord(refClip.r, refClip.s, INST_EDIT.tech, G.bpm);
         window._pianoCurrentClipVoi = _pPcVoiI;
+        window._pianoCurrentClipMode = _pPcModeI;
         // Restore
         window._pianoCurrentClipLb = pPcLb;
         window._currentClipLb = pCcLb;
@@ -46669,7 +46944,7 @@ function _instMwCurrentIdx(kind, items){
     return Math.max(0, i);
   }
   if(kind === 'mode'){
-    const cur = INST_EDIT.mode || 'jonico';
+    const cur = INST_EDIT.mode || 'auto';
     const i = items.findIndex(it => it.v === cur);
     return Math.max(0, i);
   }
@@ -50160,7 +50435,7 @@ function _cewBuildModeWheel(clip){
   const _row = _trackEl ? _trackEl.closest('.cew-hw-row') : null;
   if (_row) _row.style.display = _isPiano ? '' : 'none';
   if (!_isPiano) return;
-  let _cur = (clip.mode != null) ? clip.mode : 'jonico';
+  let _cur = (clip.mode != null) ? clip.mode : 'auto';
   let _idx = MODE_ITEMS_7.findIndex(it => it.v === _cur);
   if (_idx < 0) { _idx = 0; clip.mode = MODE_ITEMS_7[0].v; }
   const items = MODE_ITEMS_7.map(it => ({ label: it.label }));
@@ -50169,10 +50444,9 @@ function _cewBuildModeWheel(clip){
     function(idx){
       const item = MODE_ITEMS_7[idx];
       if (!item) return;
-      clip.mode = item.v;               // SOLO persiste (sin recalcular fórmulas todavía)
+      clip.mode = item.v;               // v27.667 — persiste y ya recalcula tensiones
       cewUpdateRowVals(clip);
-      // Nota: NO se llama a _cewPlayPreviewClip para no sugerir un cambio de sonido
-      // que aún no existe. Cuando se cablee la teoría, se agrega el preview.
+      _cewPlayPreviewClip(clip);        // preview: el modo ahora cambia el sonido
       try { renderTrack(G.editRef.ti); } catch(_){}
     }
   );
@@ -50509,11 +50783,14 @@ function _cewPlayPreviewClip(clip){
     // v27.644 — VOICING en preview: el motor pianístico lo lee en playPianoChord.
     const _pPcVoi = window._pianoCurrentClipVoi;
     window._pianoCurrentClipVoi = (clip.voi != null) ? clip.voi : 'auto';
+    const _pPcMode = window._pianoCurrentClipMode;                             // v27.667
+    window._pianoCurrentClipMode = (clip.mode != null) ? clip.mode : 'auto';   // v27.667
     // v27.332 — Pasar clip.v explícito como 5to arg (espejo del motor principal).
     // Sin esto, en preview con clips de mismo (r,s) en otros compases, playChord
     // podía agarrar via find la subtech del clip equivocado.
     playChord(clip.r, clip.s, clip.tech, G.bpm, clip.v);
     window._pianoCurrentClipVoi = _pPcVoi;
+    window._pianoCurrentClipMode = _pPcMode;                                   // v27.667
     window._currentClipLb   = _pCcLb;
     window._currentClipVar  = _pCcVar;
     window._currentClipTech = _pCcTech;
@@ -50827,6 +51104,15 @@ function cewDualApply(type){
 // ── Update the trigger row display values ──
 function cewUpdateRowVals(clip){
   if(!clip) return;
+  // v27.668 — Refrescar la fórmula REAL del header en cada cambio de wheel
+  // (modo/técnica/sufijo/voicing afectan lo que suena → la matemática cambia).
+  try {
+    const _fxEl = document.getElementById('cs-int');
+    if (_fxEl && typeof _fxSoundingFormula === 'function') {
+      const _fxInst = (G.editRef && G.tracks[G.editRef.ti]) ? G.tracks[G.editRef.ti].inst : null;
+      _fxEl.textContent = _fxSoundingFormula(clip, _fxInst);
+    }
+  } catch(_){}
   // v16.3.10 — La grilla 2x2 desapareció (reemplazada por 7 wheels apilados).
   // Los elementos cew-root-val, cew-fam-disp, cew-suf-disp, cew-dur-val,
   // cew-tech-disp, cew-var-disp, cew-oct-val ya NO existen. Hago todo
@@ -58499,7 +58785,7 @@ function _openUserLoopExport(loopId) {
   // Construir JSON exportable (formato amigable para que Claude lo parsee)
   const exportObj = {
     tipo: 'preset_editado_por_horacio',
-    version: 'v27.666',
+    version: 'v27.673',
     timestamp: new Date().toISOString(),
     loop_id: loop.id,
     label: loop.label || '',
